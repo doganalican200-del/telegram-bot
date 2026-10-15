@@ -1,0 +1,36 @@
+﻿===========================================================
+🚀 TELEGRAM TAKAS BOTU & MINI APP - GÜNCELLEME REHBERİ
+===========================================================
+
+Bu klasördeki dosyalar Railway üzerindeki aktif botunuzu
+güncellemek için hazırlandı. Hiçbir üyeniz silinmez!
+
+ADIM 1: GITHUB'A YÜKLEME
+-----------------------------------------------------------
+1. Tarayıcınızda GitHub reponuza gidin.
+2. 'Add file' -> 'Upload files' butonuna tıklayın.
+3. Bu klasörün içindeki TÜM DOSYALARI (public klasörü dahil)
+   GitHub sayfasına sürükleyip bırakın.
+4. Sayfanın en altındaki yeşil 'Commit changes' butonuna basın.
+
+ADIM 2: RAILWAY AYARI (7/24 ÇALIŞMA)
+-----------------------------------------------------------
+1. Railway sekmenize gidin, bot projenize tıklayın.
+2. 'Settings' -> 'Networking' -> 'Generate Domain' butonuna basın.
+   (Size https://ornek-bot.up.railway.app gibi bir adres verecek)
+3. 'Variables' sekmesine gidip şu değişkeni ekleyin:
+   İsim:  WEBAPP_URL
+   Değer: https://ornek-bot.up.railway.app
+   (Generate Domain'de aldığınız adresi yazın)
+
+ADIM 3: TELEGRAM @BotFather AYARI
+-----------------------------------------------------------
+1. Telegram'da @BotFather'a gidin.
+2. /mybots -> Botunuzu seçin -> Bot Settings -> Menu Button -> Configure menu button
+3. Buton İsmi: 🔥 Takas Uygulaması
+4. Link: Railway'in verdiği https linkini yapıştırın.
+
+Tebrikler! Botunuz tüm üyelerinizle birlikte en güncel
+Mini App, 100 Yıldız ZIP, Çark ve Toplu Yükleme sistemiyle
+canlıda çalışmaya başlayacaktır!
+===========================================================

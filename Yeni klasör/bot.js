@@ -15,48 +15,105 @@ const db = require('./db');
 
 const BANNER_PATH = path.join(__dirname, 'bot_banner.jpg');
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const ADMIN_IDS = ['8633136500', '7808953142'];
-if (process.env.ADMIN_ID && !ADMIN_IDS.includes(String(process.env.ADMIN_ID))) {
-    ADMIN_IDS.push(String(process.env.ADMIN_ID));
-}
-const ADMIN_ID = ADMIN_IDS[0];
+const ADMIN_IDS = ['8633136500'];
+const ADMIN_ID = '8633136500';
 
-// 🔐 Oturum açmış yöneticiler hafızası (şifre doğrulayan kullanıcılar - kalıcı saklama)
-const AUTH_ADMINS_FILE = path.join(__dirname, 'authenticated_admins.json');
-
-function loadAuthenticatedAdmins() {
-    try {
-        if (fs.existsSync(AUTH_ADMINS_FILE)) {
-            const saved = JSON.parse(fs.readFileSync(AUTH_ADMINS_FILE, 'utf8'));
-            if (Array.isArray(saved)) {
-                return new Set(saved.map(String));
-            }
-        }
-    } catch (e) {
-        console.error('Error loading authenticated admins:', e.message);
-    }
-    return new Set();
-}
-
-function saveAuthenticatedAdmins(set) {
-    try {
-        fs.writeFileSync(AUTH_ADMINS_FILE, JSON.stringify([...set], null, 2), 'utf8');
-    } catch (e) {
-        console.error('Error saving authenticated admins:', e.message);
-    }
-}
-
-const authenticatedAdmins = loadAuthenticatedAdmins();
-
+// 🔐 Tek Yönetici Güvenlik Kontrolü
 function isAdminUser(userId) {
     if (!userId) return false;
-    const uid = String(userId);
-    return ADMIN_IDS.includes(uid) || authenticatedAdmins.has(uid);
+    return String(userId) === '8633136500';
+}
+
+if (!BOT_TOKEN) {
+    console.error('HATA: .env dosyasında BOT_TOKEN bulunamadı!');
+    process.exit(1);
+}
+
+const bot = new Telegraf(BOT_TOKEN);
+const BOT_USERNAME = 'VideoResimTakas_bot';
+
+// 📱 Telegram Mini App (Web App) Sunucusu & Otomatik Tünel
+const { createWebAppServer } = require('./webapp_server');
+const WEBAPP_PORT = process.env.PORT || process.env.WEBAPP_PORT || 3000;
+let activeWebAppUrl = process.env.WEBAPP_URL || null;
+
+let webAppServer = null;
+try {
+    webAppServer = createWebAppServer({ ADMIN_IDS, isAdminUser, bot });
+    webAppServer.listen(WEBAPP_PORT, () => {
+        console.log(`📱 Telegram Mini App sunucusu port ${WEBAPP_PORT} üzerinde aktif!`);
+        if (activeWebAppUrl) {
+            console.log(`🌐 Mini App URL: ${activeWebAppUrl}`);
+        } else {
+            startLocalTunnel();
+        }
+    });
+} catch (err) {
+    console.error('WebApp sunucusu başlatılamadı:', err.message);
+}
+
+// Telegram Sol Alt Butonu [Başlat] olarak ayarla
+async function updateTelegramMenuButton(url, chatId = null) {
+    if (!url) return;
+    activeWebAppUrl = url;
+    try {
+        if (chatId) {
+            await bot.telegram.setChatMenuButton({
+                chatId: chatId,
+                menuButton: {
+                    type: 'web_app',
+                    text: 'Başlat',
+                    web_app: { url: url }
+                }
+            });
+        } else {
+            await bot.telegram.setChatMenuButton({
+                menuButton: {
+                    type: 'web_app',
+                    text: 'Başlat',
+                    web_app: { url: url }
+                }
+            });
+            console.log(`📱 Telegram Chat Menu Button [Başlat] (${url}) aktif edildi!`);
+        }
+    } catch (e) {
+        console.warn('Chat menu button ayarlanamadı:', e.message);
+    }
+}
+
+// Otomatik Cloudflare SSL Tüneli (Telegram WebApp için HTTPS zorunludur)
+function startLocalTunnel() {
+    const { spawn } = require('child_process');
+    try {
+        const tunnel = spawn('npx', ['--yes', 'cloudflared', 'tunnel', '--url', `http://localhost:${WEBAPP_PORT}`], {
+            shell: true,
+            stdio: ['ignore', 'pipe', 'pipe']
+        });
+        const onData = (data) => {
+            const text = data.toString();
+            const m = text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/i);
+            if (m && m[0] && m[0] !== activeWebAppUrl) {
+                console.log(`🌐 Otomatik Cloudflare HTTPS Tüneli Açıldı: ${m[0]}`);
+                updateTelegramMenuButton(m[0]);
+                for (const adminId of ADMIN_IDS) {
+                    updateTelegramMenuButton(m[0], adminId);
+                }
+            }
+        };
+        tunnel.stdout.on('data', onData);
+        tunnel.stderr.on('data', onData);
+        tunnel.on('error', (err) => console.warn('Tunnel hatası:', err.message));
+        process.on('exit', () => tunnel.kill());
+    } catch (e) {
+        console.warn('Otomatik tünel başlatılamadı:', e.message);
+    }
 }
 
 // 🔐 Admin Panel Şifresi
 const ADMIN_PASSWORD = 'alper0606';
 const pendingAdminAuth = new Set(); // şifre beklenen userId'ler
+const authenticatedAdmins = new Set(); // şifresi doğrulanmış adminler
+function saveAuthenticatedAdmins() {}
 const pendingCatAdminAuth = {}; // userId -> catId (sekme yönetici şifre doğrulaması)
 const pendingRenameAuth = {}; // userId -> catId (sekme isim değiştirme şifre doğrulaması)
 
@@ -84,13 +141,6 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;');
 }
 
-if (!BOT_TOKEN) {
-    console.error('HATA: .env dosyasında BOT_TOKEN bulunamadı!');
-    process.exit(1);
-}
-
-const bot = new Telegraf(BOT_TOKEN);
-const BOT_USERNAME = 'VideoResimTakas_bot';
 
 // ZAMAN AŞIMINA UĞRAYAN BUTON KLİKLERİ KORUMASI (query is too old hatalarını absorbe eder)
 bot.use(async (ctx, next) => {
@@ -132,8 +182,19 @@ bot.use(async (ctx, next) => {
 
 // Ana Menü Klavyesi (Kategori Grid)
 function getMainMenuKeyboard(userId = null) {
-    const cats = db.getCategories();
+    const allCats = db.getCategories();
+    // Genel sekmesi (cat_11) sadece admin tarafından görülebilir
+    const isAdmin = userId ? isAdminUser(userId) : false;
+    const cats = allCats.filter(c => c.id !== 'cat_11' || isAdmin);
     const rows = [];
+
+    // 📱 Telegram Mini App (Açılır Uygulama) Butonu
+    const appUrl = activeWebAppUrl || process.env.WEBAPP_URL;
+    if (appUrl) {
+        rows.push([
+            Markup.button.webApp('🚀 Başlat (Açılır Uygulama)', appUrl)
+        ]);
+    }
 
     // Kategori / Sekme (2 sütunlu şık düzen)
     const getCatLabel = (c) => {
@@ -239,6 +300,9 @@ function getVipPackagesKeyboard() {
 
 // /start komutu
 bot.start((ctx) => {
+    if (activeWebAppUrl && ctx.chat) {
+        updateTelegramMenuButton(activeWebAppUrl, ctx.chat.id).catch(() => {});
+    }
     const text = ctx.message.text || '';
     let refId = null;
 
@@ -353,6 +417,12 @@ bot.action(/cat_view_(.+)/, async (ctx) => {
     const catId = ctx.match[1];
     const cat = db.getCategory(catId);
     if (!cat) return ctx.reply('Sekme bulunamadı.');
+
+    // Genel sekmesi (cat_11) sadece admin erişebilir
+    if (catId === 'cat_11' && !isAdminUser(ctx.from?.id)) {
+        return ctx.reply('⛔ <b>Bu sekme sadece yöneticiye özeldir.</b>', { parse_mode: 'HTML' });
+    }
+
     const catStats = db.getCategoryStats(cat.id);
     const user = db.getUser(ctx.from.id) || { photoCredits: 0, videoCredits: 0 };
     const vip = db.isUserVip(ctx.from.id);
@@ -1079,16 +1149,17 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
         if (payload === 'vip_1_day') days = 1;
         else if (payload === 'vip_2_days') days = 2;
         else if (payload === 'vip_3_days') days = 3;
+        else if (payload === 'vip_unlimited') days = 36500;
 
         db.addVipDays(uid, days);
         const vip = db.isUserVip(uid);
 
-        successMsg = `🎉 <b>Tebrikler! ${days} Günlük VIP Üyeliğiniz Başarıyla Tanımlandı!</b>\n\n👑 <b>Bitiş Tarihi:</b> ${vip.until}\nSüre boyunca kredi harcamadan dilediğiniz gibi sınırsız medya alabilirsiniz.`;
+        successMsg = `🎉 <b>Tebrikler! ${days >= 3650 ? 'Sınırsız' : days + ' Günlük'} VIP Üyeliğiniz Başarıyla Tanımlandı!</b>\n\n👑 <b>Bitiş Tarihi:</b> ${days >= 3650 ? 'Ömür Boyu (Sınırsız)' : vip.until}\nSüre boyunca kredi harcamadan dilediğiniz gibi sınırsız medya alabilirsiniz.`;
 
         if (ADMIN_ID) {
             bot.telegram.sendMessage(
                 ADMIN_ID,
-                `💰 <b>YENİ VIP SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n⭐ Tutar: ${totalAmount} Yıldız (${days} Günlük VIP)`,
+                `💰 <b>YENİ VIP SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n⭐ Tutar: ${totalAmount} Yıldız (${days >= 3650 ? 'Sınırsız VIP' : days + ' Günlük VIP'})`,
                 { parse_mode: 'HTML' }
             ).catch(() => {});
         }
@@ -1138,13 +1209,17 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
         const amount = parseInt(payload.replace('pkg_combo_', ''), 10) || 10;
         db.updateCredits(uid, 'photo', amount);
         db.updateCredits(uid, 'video', amount);
+        if (payload === 'pkg_combo_20') {
+            db.addWheelSpins(uid, 3);
+        }
         const user = db.getUser(uid) || {};
 
         successMsg = `🎉 <b>KOMBO PAKET ÖDEMESİ BAŞARILI!</b>\n\n` +
             `⭐ <b>Ödenen:</b> ${totalAmount} Telegram Yıldızı\n` +
             `💰 <b>Hesabınıza Eklenen:</b>\n` +
             `• <b>+${amount} Fotoğraf Kredisi</b>\n` +
-            `• <b>+${amount} Video Kredisi</b>\n\n` +
+            `• <b>+${amount} Video Kredisi</b>\n` +
+            (payload === 'pkg_combo_20' ? `• <b>+3 Şans Çarkı Hakkı 🎡</b>\n\n` : `\n`) +
             `📊 <b>Güncel Bakiyeniz:</b> 📸 ${user.photoCredits || 0} Resim | 🎥 ${user.videoCredits || 0} Video\n\n` +
             `<i>Hemen dilediğiniz sekmeden medya alabilirsiniz!</i>`;
 
@@ -1152,6 +1227,26 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
             bot.telegram.sendMessage(
                 ADMIN_ID,
                 `💰 <b>YENİ KOMBO PAKET SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 Paket: +${amount} Video & +${amount} Fotoğraf\n⭐ Tutar: ${totalAmount} Yıldız`,
+                { parse_mode: 'HTML' }
+            ).catch(() => {});
+        }
+    }
+    // 4b. Şans Çarkı Paketleri
+    else if (payload.startsWith('pkg_wheel_')) {
+        const amount = parseInt(payload.replace('pkg_wheel_', ''), 10) || 1;
+        db.addWheelSpins(uid, amount);
+        const user = db.getUser(uid) || {};
+
+        successMsg = `🎉 <b>ÖDEME BAŞARILI!</b>\n\n` +
+            `⭐ <b>Ödenen:</b> ${totalAmount} Telegram Yıldızı\n` +
+            `🎡 <b>Hesabınıza Eklenen:</b> <b>+${amount} Şans Çarkı Döndürme Hakkı</b>\n` +
+            `📊 <b>Toplam Çark Hakkınız:</b> <code>${user.wheelSpins || 0}</code>\n\n` +
+            `<i>Mini App içerisinden hemen çarkı çevirebilirsiniz!</i>`;
+
+        if (ADMIN_ID) {
+            bot.telegram.sendMessage(
+                ADMIN_ID,
+                `💰 <b>YENİ ÇARK PAKETİ SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 Paket: +${amount} Çark Hakkı\n⭐ Tutar: ${totalAmount} Yıldız`,
                 { parse_mode: 'HTML' }
             ).catch(() => {});
         }
@@ -1304,6 +1399,111 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
             ).catch(() => {});
         }
     }
+    // 7b. 📥 Telefona Kaydet / İndir (Video: 25 Yıldız, Fotoğraf: 10 Yıldız)
+    else if (payload.startsWith('dl_media_')) {
+        const parts = payload.split('_'); // ['dl', 'media', '<mediaId>']
+        const mediaId = parts.slice(2).join('_');
+        const media = db.getMedia(mediaId);
+
+        if (db.unlockMediaDownload) {
+            db.unlockMediaDownload(uid, mediaId);
+        }
+
+        const isVideo = media ? media.type === 'video' : (totalAmount >= 20);
+        const typeLabel = isVideo ? 'Video' : 'Fotoğraf';
+
+        successMsg = `🎉 <b>İNDİRME & TELEFONA KAYDETME AÇILDI! (⭐ ${totalAmount} Yıldız)</b>\n\n` +
+            `📥 <b>Medyanız korumasız olarak aşağıda teslim edildi.</b>\n` +
+            `Artık telefonunuzun galerisine veya dosyalarınıza tek tıkla kaydedebilirsiniz.`;
+
+        if (media) {
+            setTimeout(async () => {
+                const caption = `📥 <b>TELEFONA KAYDEDİLEBİLİR ${typeLabel.toUpperCase()}</b>\n\n` +
+                    `⭐ <i>${totalAmount} Yıldız ile indirme kilidi açıldı. Cihazınıza kaydedebilirsiniz!</i>`;
+                try {
+                    if (isVideo) {
+                        await bot.telegram.sendVideo(uid, media.fileId, {
+                            caption,
+                            parse_mode: 'HTML',
+                            protect_content: false
+                        });
+                    } else {
+                        await bot.telegram.sendPhoto(uid, media.fileId, {
+                            caption,
+                            parse_mode: 'HTML',
+                            protect_content: false
+                        });
+                    }
+                } catch (e) {
+                    console.error('İndirme teslim hatası:', e.message);
+                }
+            }, 600);
+        }
+
+        if (ADMIN_ID) {
+            bot.telegram.sendMessage(
+                ADMIN_ID,
+                `📥 <b>YENİ İNDİRME / TELEFONA KAYDETME SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📂 Medya: ${typeLabel} (${mediaId})\n⭐ Tutar: ${totalAmount} Yıldız (Video: 25⭐ / Foto: 10⭐)`,
+                { parse_mode: 'HTML' }
+            ).catch(() => {});
+        }
+    }
+    // 7c. ⭐ Yıldız Hediye / Bahşiş
+    else if (payload.startsWith('tip_gift_')) {
+        const parts = payload.split('_'); // ['tip', 'gift', '<mediaId>', '<amount>']
+        const mediaId = parts[2];
+        const amount = parseInt(parts[3], 10) || totalAmount;
+        if (mediaId && mediaId !== 'bot') {
+            db.addMediaStars(mediaId, amount);
+        }
+        successMsg = `🎉 <b>TEŞEKKÜRLER! (⭐ ${totalAmount} Yıldız Hediye Edildi)</b>\n\n` +
+            `❤️ Gönderdiğiniz ${totalAmount} Yıldız hediyeniz başarıyla ulaştı. Desteğiniz için çok teşekkür ederiz!`;
+
+        if (ADMIN_ID) {
+            bot.telegram.sendMessage(
+                ADMIN_ID,
+                `⭐ <b>YENİ YILDIZ HEDİYESİ / BAHŞİŞ!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n⭐ Tutar: ${totalAmount} Yıldız`,
+                { parse_mode: 'HTML' }
+            ).catch(() => {});
+        }
+    }
+    // 8. VIP Hariç 100 Yıldız Özel ZIP Arşivi Satın Alımı (2 GB'a Kadar)
+    else if (payload.startsWith('zip_buy_')) {
+        const zipId = payload.replace('zip_buy_', '');
+        const zip = db.getZip(zipId);
+
+        if (zip) {
+            db.recordZipPurchase(uid, zipId, totalAmount, chargeId);
+
+            successMsg = `🎉 <b>ÖZEL 2 GB ZIP ARŞİVİ SATIN ALINDI!</b>\n\n` +
+                `📦 <b>Arşiv Adı:</b> ${zip.name || 'Özel Arşiv Paketi'}\n` +
+                `⭐ <b>Ödenen:</b> ${totalAmount} Telegram Yıldızı\n` +
+                `📊 <b>Boyut:</b> ${zip.fileSizeFormatted || ''}\n\n` +
+                `<i>ZIP dosyanız aşağıda sohbete teslim ediliyor. Dilediğiniz an "Aldıklarım -> ZIP Dosyalarım" sekmesinden de tekrar gönderebilirsiniz!</i>`;
+
+            setTimeout(async () => {
+                try {
+                    await bot.telegram.sendDocument(uid, zip.fileId, {
+                        caption: `🗂️ <b>${zip.name || 'Özel ZIP Arşivi'}</b>\n\n⭐ <i>100 Yıldız ile satın aldığınız 2 GB arşiv paketiniz. İyi seyirler!</i>`,
+                        parse_mode: 'HTML',
+                        protect_content: false
+                    });
+                } catch (e) {
+                    console.error('ZIP teslimat hatası:', e.message);
+                }
+            }, 600);
+        } else {
+            successMsg = `🎉 <b>Ödeme alındı ancak ZIP arşivi bulunamadı!</b>\nLütfen yöneticiyle iletişime geçiniz.`;
+        }
+
+        if (ADMIN_ID) {
+            bot.telegram.sendMessage(
+                ADMIN_ID,
+                `💰 <b>YENİ 100 YILDIZ ZIP ARŞİVİ SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 ZIP: ${zip?.name || zipId}\n⭐ Tutar: ${totalAmount} Yıldız`,
+                { parse_mode: 'HTML' }
+            ).catch(() => {});
+        }
+    }
 
     // Şans Çarkı Bonusu: VIP üyelik alanlara veya 100+ Yıldız harcama yapanlara çark hakkı verilir
     let wheelSpinsAwarded = 0;
@@ -1380,9 +1580,9 @@ bot.on('successful_payment', async (ctx) => {
 bot.action('guide_photo_upload', async (ctx) => {
     await ctx.answerCbQuery();
     return ctx.reply(
-        `📸 <b>Fotoğraf Yükleme</b>\n\n` +
+        `📸 <b>Fotoğraf Yükleme (2 Yükle 1 Al)</b>\n\n` +
         `Lütfen bu sohbete doğrudan bir fotoğraf veya albüm gönderin.\n` +
-        `Fotoğraflarınız sistem tarafından otomatik taranır. <b>Her 5 özgün fotoğraf için hesabınıza +1 Resim Kredisi</b> tanımlanır.\n\n` +
+        `Fotoğraflarınız sistem tarafından otomatik taranır. <b>Her 2 özgün fotoğraf için hesabınıza +1 Resim Kredisi</b> tanımlanır.\n\n` +
         `⚠️ <b>ÖNEMLİ KURAL:</b> Daha önce yüklenmiş aynı fotoğrafı tekrar yüklemek yasaktır; sistem mükerrer medyaları otomatik siler!`,
         { parse_mode: 'HTML' }
     );
@@ -1392,9 +1592,9 @@ bot.action('guide_photo_upload', async (ctx) => {
 bot.action('guide_video_upload', async (ctx) => {
     await ctx.answerCbQuery();
     return ctx.reply(
-        `🎥 <b>Video Yükleme</b>\n\n` +
+        `🎥 <b>Video Yükleme (2 Yükle 1 Al)</b>\n\n` +
         `Lütfen bu sohbete doğrudan bir video gönderin.\n` +
-        `Videolarınız sistem tarafından otomatik taranır. <b>Her 5 özgün video için hesabınıza +1 Video Kredisi</b> tanımlanır.\n\n` +
+        `Videolarınız sistem tarafından otomatik taranır. <b>Her 2 özgün video için hesabınıza +1 Video Kredisi</b> tanımlanır.\n\n` +
         `⚠️ <b>ÖNEMLİ KURAL:</b> Daha önce yüklenmiş aynı videoyu tekrar yüklemek yasaktır; sistem mükerrer medyaları otomatik siler!`,
         { parse_mode: 'HTML' }
     );
@@ -1764,14 +1964,14 @@ bot.action('my_profile', async (ctx) => {
 
 🆔 <b>Kullanıcı ID:</b> <code>${user.id}</code>
 ${vipText}
-📸 <b>Resim Kredisi:</b> <code>${user.photoCredits || 0}</code> (İlerleme: ${user.photoProgress || 0}/5)
-🎥 <b>Video Kredisi:</b> <code>${user.videoCredits || 0}</code> (İlerleme: ${user.videoProgress || 0}/5)
+📸 <b>Resim Kredisi:</b> <code>${user.photoCredits || 0}</code> (İlerleme: ${user.photoProgress || 0}/2)
+🎥 <b>Video Kredisi:</b> <code>${user.videoCredits || 0}</code> (İlerleme: ${user.videoProgress || 0}/2)
 🎡 <b>Şans Çarkı Hakkı:</b> <code>${user.wheelSpins || 0}</code> çevirme
 
 📤 <b>Yüklenen Resimler:</b> ${user.uploadedPhotos || 0} | 📥 <b>Alınan:</b> ${user.receivedPhotos || 0}
 📤 <b>Yüklenen Videolar:</b> ${user.uploadedVideos || 0} | 📥 <b>Alınan:</b> ${user.receivedVideos || 0}
 
-ℹ️ <i>Kural: Her 5 özgün fotoğrafta 1 Resim Kredisi, her 5 özgün videoda 1 Video Kredisi kazanırsınız.</i>`;
+ℹ️ <i>Kural: Her 2 özgün fotoğrafta 1 Resim Kredisi, her 2 özgün videoda 1 Video Kredisi kazanırsınız (2 Yükle 1 Al).</i>`;
 
     return safeEditOrReply(ctx, profileText, {
         parse_mode: 'HTML',
@@ -1792,8 +1992,8 @@ bot.action('earn_credits', async (ctx) => {
     const text = 
 `💎 <b>Kredi Kazanma Yolları</b>
 
-1️⃣ <b>Medya Yükleyin:</b> Bota gönderip onaylanan her 5 resim için <b>+1 Resim Kredisi</b>, her 5 video için <b>+1 Video Kredisi</b> kazanırsınız.
-2️⃣ <b>Şans Çarkı Çevirin:</b> VIP üyelik alanlara veya 100+ Yıldız harcama yapanlara özel <b>Şans Çarkı</b> ile her çevirmede <b>1 ile 10 adet Video Kredisi</b> hediye!
+1️⃣ <b>Medya Yükleyin:</b> Bota gönderip onaylanan her 2 resim için <b>+1 Resim Kredisi</b>, her 2 video için <b>+1 Video Kredisi</b> kazanırsınız (2 Yükle 1 Al).
+2️⃣ <b>Şans Çarkı Çevirin:</b> Yıldız Marketi'nden 5 Yıldız ile çark hakkı alarak her çevirmede <b>1 ile 10 adet Video Kredisi</b> kazanın!
 3️⃣ <b>Arkadaşlarınızı Davet Edin:</b> 🔥 Sizin linkinizle bota katılan her kişi için <b>+2 Resim</b> ve <b>+2 Video</b> kredisi hediye! (Toplam 4 kredi / davet)
 
 🔗 <b>Size Özel Davet Linkiniz:</b>
@@ -1817,8 +2017,8 @@ bot.action('rules', async (ctx) => {
 `📜 <b>Kurallar & Güvenlik Politikası</b>
 
 1. 🚫 <b>AYNI / KOPYA İÇERİK YASAKTIR:</b> Sistemimizde daha önce yüklenmiş olan aynı resim veya videoları tekrar yüklemeye çalışıldığında sistem medyayı otomatik olarak siler ve havuza almaz.
-2. ⚡ <b>OTOMATİK ONAY SİSTEMİ:</b> Gönderilen özgün resim ve videolar anında sistem tarafından otomatik taranır. <b>Her 5 resim için +1 Resim kredisi</b>, <b>her 5 video için +1 Video kredisi</b> tanımlanır. Yönetici uygunsuz içerikleri havuzdan silme yetkisine sahiptir.
-3. 🎡 <b>ŞANS ÇARKI:</b> VIP üyelik alan veya 100+ Yıldız harcayan kullanıcılara Şans Çarkı hakkı tanımlanır. Çark 1-10 Video Kredisi kazandırır.
+2. ⚡ <b>OTOMATİK ONAY SİSTEMİ:</b> Gönderilen özgün resim ve videolar anında sistem tarafından otomatik taranır. <b>Her 2 resim için +1 Resim kredisi</b>, <b>her 2 video için +1 Video kredisi</b> tanımlanır (2 Yükle 1 Al). Yönetici uygunsuz içerikleri havuzdan silme yetkisine sahiptir.
+3. 🎡 <b>ŞANS ÇARKI:</b> Yıldız Marketi'nden 5 Yıldız ile temin edilen Şans Çarkı hakkıyla 1-10 Video Kredisi kazanılır.
 4. ⛔ <b>YANILTICI / UYGUNSUZ MEDYA:</b> Bozuk, alakasız, sahte veya yasa dışı içerik gönderenlerin hesapları anında banlanır.
 5. 🔒 <b>İÇERİK KORUMASI:</b> Bot üzerindeki tüm medyalar korumalıdır; indirilmesi veya başkalarına iletilmesi Telegram tarafından engellenmiştir.`;
 
@@ -2127,7 +2327,7 @@ async function sendUploadSummaryAndNotifyAdmin(ctx, userId) {
     let creditMsg = totalCredits > 0
         ? `🎉 <b>+${totalCredits} ${typeLabel} Kredisi hesabınıza yüklendi!</b>\n`
         : '';
-    creditMsg += `📊 <b>İlerleme: ${lastItem.currentProgress}/5</b> (Her 5 yüklemede +1 Kredi)`;
+    creditMsg += `📊 <b>İlerleme: ${lastItem.currentProgress}/2</b> (Her 2 yüklemede +1 Kredi - 2 Yükle 1 Al)`;
 
     ctx.reply(
         `✅ <b>${count} Medya Genel Havuza Eklendi!</b>\n\n${creditMsg}\n\n` +
@@ -2313,7 +2513,7 @@ bot.action(/^acp_(p\d+)_(cat_\d+|reject)$/, async (ctx) => {
         // Kullanıcıya bildirim
         const creditMsg = creditAwarded
             ? `🎉 <b>+1 ${typeLabel} Kredisi</b> hesabınıza eklendi!`
-            : `📊 <b>İlerleme: ${currentProgress}/5</b> (5 adette +1 ${typeLabel} Kredisi)`;
+            : `📊 <b>İlerleme: ${currentProgress}/2</b> (Her 2 adette +1 ${typeLabel} Kredisi - 2 Yükle 1 Al)`;
 
         bot.telegram.sendMessage(
             pending.userId,
@@ -2384,7 +2584,9 @@ bot.on('video_note', async (ctx) => {
     }
 });
 
-// 5. BELGE / DOSYA OLARAK GÖNDERİLDİĞİNDE (AKILLI AYRIŞTIRMA ÖZELLİĞİ)
+// 5. BELGE / DOSYA OLARAK GÖNDERİLDİĞİNDE (AKILLI AYRIŞTIRMA & 2 GB ZIP DESTEĞİ)
+const pendingZipUploads = new Map();
+
 bot.on('document', async (ctx) => {
     try {
         const doc = ctx.message.document;
@@ -2393,6 +2595,41 @@ bot.on('document', async (ctx) => {
 
         const isVideoDoc = mime.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm|flv|wmv|m4v|3gp|ts)$/i.test(fileName);
         const isImageDoc = mime.startsWith('image/') || /\.(jpg|jpeg|png|webp|heic|bmp)$/i.test(fileName);
+        const isZipDoc = mime.includes('zip') || mime.includes('rar') || mime.includes('tar') || mime.includes('7z') || /\.(zip|rar|7z|tar|gz)$/i.test(fileName);
+
+        // 👑 YÖNETİCİ ZIP YÜKLEMESİ (Maksimum 2 GB - 100 Yıldız Satış Paketi)
+        if (isZipDoc) {
+            if (isAdminUser(ctx.from?.id)) {
+                const sizeMb = (doc.file_size / (1024 * 1024)).toFixed(1);
+                const sizeGb = (doc.file_size / (1024 * 1024 * 1024)).toFixed(2);
+                const displaySize = doc.file_size > 1024 * 1024 * 1024 ? `${sizeGb} GB` : `${sizeMb} MB`;
+
+                const shortToken = 'zp_' + Date.now();
+                pendingZipUploads.set(shortToken, {
+                    fileId: doc.file_id,
+                    fileName: doc.file_name || 'arsiv.zip',
+                    fileSize: doc.file_size
+                });
+
+                return ctx.reply(
+                    `📦 <b>YENİ ZIP ARŞİVİ ALINDI (Maks 2 GB)</b>\n\n` +
+                    `📄 <b>Dosya Adı:</b> <code>${escapeHtml(doc.file_name || 'arsiv.zip')}</code>\n` +
+                    `📦 <b>Boyut:</b> <b>${displaySize}</b>\n` +
+                    `⭐ <b>Satış Fiyatı:</b> <b>100 Telegram Yıldızı</b>\n` +
+                    `👑 <b>VIP Dahil Değil:</b> Her kullanıcı tek tek 100 Yıldız ile satın alabilir.\n\n` +
+                    `Bu ZIP arşivi Mini App ve Bot marketine 100 Yıldız fiyatıyla satışa açılsın mı?`,
+                    {
+                        parse_mode: 'HTML',
+                        ...Markup.inlineKeyboard([
+                            [Markup.button.callback('⭐ 100 Yıldız ile Markete Ekle', `admin_confirm_zip_${shortToken}`)],
+                            [Markup.button.callback('❌ İptal', 'admin_cancel_zip')]
+                        ])
+                    }
+                );
+            } else {
+                return ctx.reply('⚠️ ZIP arşivleri yalnızca sistem yöneticisi tarafından yüklenebilir.');
+            }
+        }
 
         if (isVideoDoc) {
             enqueueMediaUpload(ctx, 'video', doc);
@@ -2408,6 +2645,109 @@ bot.on('document', async (ctx) => {
         }
     } catch (err) {
         console.error('Document handler hatası:', err.message);
+    }
+});
+
+// ZIP Arşivi Onay / İptal Callbackleri
+bot.action(/admin_confirm_zip_(.+)/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) {
+        return ctx.answerCbQuery('⛔ Yetkiniz yok!', { show_alert: true });
+    }
+    const shortToken = ctx.match[1];
+    const item = pendingZipUploads.get(shortToken);
+    if (!item) {
+        return ctx.answerCbQuery('⚠️ Dosya bilgisi bulunamadı veya süresi doldu.', { show_alert: true });
+    }
+    pendingZipUploads.delete(shortToken);
+
+    const added = db.addZip(item.fileName, `${item.fileName} • ${formatBytes(item.fileSize)} Özel Arşiv Paketi (100 Yıldız)`, item.fileId, item.fileSize, ctx.from.id);
+    await ctx.answerCbQuery('✅ ZIP Arşivi markete eklendi!');
+    return ctx.editMessageText(
+        `✅ <b>ZIP ARŞİVİ BAŞARIYLA SATIŞA AÇILDI!</b>\n\n` +
+        `📦 <b>Arşiv Dosya İsmi:</b> <code>${escapeHtml(item.fileName)}</code>\n` +
+        `📊 <b>Net Boyut:</b> <b>${formatBytes(item.fileSize)}</b>\n` +
+        `⭐ <b>Satış Fiyatı:</b> <b>100 Telegram Yıldızı</b> (VIP Hariç)\n` +
+        `🆔 <b>ID:</b> <code>${added.id}</code>\n\n` +
+        `<i>Kullanıcılar Mini App ZIP Arşivi sekmesinden veya Marketten bu arşivi 100 Yıldız ile satın alabilirler.</i>`,
+        { parse_mode: 'HTML' }
+    );
+});
+
+bot.action('admin_cancel_zip', async (ctx) => {
+    await ctx.answerCbQuery('İptal edildi.');
+    return ctx.deleteMessage().catch(() => {});
+});
+
+// 📱 Telegram Mini App (Web App) Veri Yanıtlayıcısı
+bot.on('web_app_data', async (ctx) => {
+    try {
+        const raw = ctx.message?.web_app_data?.data;
+        if (!raw) return;
+        const data = JSON.parse(raw);
+
+        // 1. Sekmeden Medya Alma
+        if (data.action === 'take_media' && data.catId && data.type) {
+            await sendMediaToUser(ctx, data.type, data.catId, 1);
+        }
+        // 2. Yıldızlı Özel Sekmeden İçerik Alma Faturası
+        else if (data.action === 'buy_star_media' && data.catId && data.type) {
+            const starCfg = STAR_CATEGORIES[data.catId];
+            const cat = db.getCategory(data.catId);
+            if (starCfg && cat) {
+                const isVideo = data.type === 'video';
+                const price = isVideo ? starCfg.videoPrice : starCfg.photoPrice;
+                await ctx.replyWithInvoice({
+                    title: `⭐ [${cat.key}] ${cat.name} — 1 ${isVideo ? 'Video' : 'Fotoğraf'}`,
+                    description: `Bu özel sekmedeki 1 adet ${isVideo ? 'videoyu' : 'fotoğrafı'} izleme hakkı.`,
+                    payload: `buy_cat_media_${data.catId}_${data.type}`,
+                    provider_token: '',
+                    currency: 'XTR',
+                    prices: [{ label: `${price} Yıldız`, amount: price }]
+                });
+            }
+        }
+        // 3. Yıldız Paket Satın Alma Faturası
+        else if (data.action === 'buy_pkg' && data.pkgId) {
+            if (data.pkgId === 'vid_1') {
+                await ctx.replyWithInvoice({
+                    title: '🎥 1 Video Kredisi',
+                    description: '1 adet Video izleme ve indirme hakkı',
+                    payload: 'buy_vid_1',
+                    provider_token: '',
+                    currency: 'XTR',
+                    prices: [{ label: '1 Yıldız', amount: 1 }]
+                });
+            } else if (data.pkgId === 'vid_10') {
+                await ctx.replyWithInvoice({
+                    title: '🎥 10 Video Kredisi',
+                    description: '10 adet Video izleme ve indirme hakkı',
+                    payload: 'buy_vid_10',
+                    provider_token: '',
+                    currency: 'XTR',
+                    prices: [{ label: '10 Yıldız', amount: 10 }]
+                });
+            } else if (data.pkgId === 'vid_50') {
+                await ctx.replyWithInvoice({
+                    title: '🎥 50 Video Kredisi (%10 İndirim)',
+                    description: '50 adet Video izleme ve indirme paketi',
+                    payload: 'buy_vid_50',
+                    provider_token: '',
+                    currency: 'XTR',
+                    prices: [{ label: '45 Yıldız', amount: 45 }]
+                });
+            } else if (data.pkgId === 'vip') {
+                await ctx.replyWithInvoice({
+                    title: '👑 Sınırsız VIP Üyelik',
+                    description: 'Tüm standart sekmelere sınırsız ve kredisiz erişim',
+                    payload: 'buy_vip_unlimited',
+                    provider_token: '',
+                    currency: 'XTR',
+                    prices: [{ label: '100 Yıldız', amount: 100 }]
+                });
+            }
+        }
+    } catch (err) {
+        console.error('web_app_data işleme hatası:', err.message);
     }
 });
 
@@ -2439,8 +2779,8 @@ bot.action(/admin_app_(.+)/, async (ctx) => {
     const typeLabel = res.media.type === 'photo' ? 'Resim' : 'Video';
     const newCredit = res.media.type === 'photo' ? res.user.photoCredits : res.user.videoCredits;
 
-    // Eğer yükleyen kişi ile butona basan aynı kişi değilse kullanıcıya bildirim gönder
-    if (String(res.media.uploadedBy) !== String(ctx.from.id)) {
+    // Yükleyen kullanıcıya onay ve kredi bildirimi gönder
+    if (res.media && res.media.uploadedBy) {
         bot.telegram.sendMessage(
             res.media.uploadedBy,
             `🎉 <b>Tebrikler!</b> Gönderdiğiniz ${typeLabel.toLowerCase()} yönetici tarafından <b>onaylandı</b> ve takas havuzuna eklendi!\n\n💰 Hesabınıza <b>+1 ${typeLabel} Kredisi</b> yüklendi. (Mevcut: <code>${newCredit}</code>)`,
@@ -4447,6 +4787,15 @@ async function main() {
             { command: 'yildizsync', description: 'Yıldız Ödemelerini Tara & Eşitle (Admin)' }
         ]).catch((e) => console.warn('Komutlar ayarlanamadı:', e.message));
 
+        // 📱 Telegram Sol Alt Açılır Mini App Menü Butonu (Menü yerine Başlat)
+        const initialUrl = activeWebAppUrl || process.env.WEBAPP_URL;
+        if (initialUrl) {
+            await updateTelegramMenuButton(initialUrl);
+            for (const adminId of ADMIN_IDS) {
+                await updateTelegramMenuButton(initialUrl, adminId);
+            }
+        }
+
         console.log('🚀 Bot başarıyla aktif ve mesajları dinliyor!');
 
         // Başlangıçta ve her 30 saniyede bir Telegram Yıldız ödemelerini senkronize et
@@ -4894,17 +5243,27 @@ bot.action('wheel_spin', async (ctx) => {
         } catch (e) {}
     }
 
-    // 1 ile 10 arasında rastgele Video kredisi
-    const wonVideoCredits = Math.floor(Math.random() * 10) + 1;
-    db.updateCredits(userId, 'video', wonVideoCredits);
+    // Çark dilimleri: 1V, 2V, 3V, 20F, 5V, 1V, 10V, 2V
+    const wheelOptions = [
+        { type: 'video', amount: 1, label: '1 Video' },
+        { type: 'video', amount: 2, label: '2 Video' },
+        { type: 'video', amount: 3, label: '3 Video' },
+        { type: 'photo', amount: 20, label: '20 Fotoğraf' },
+        { type: 'video', amount: 5, label: '5 Video' },
+        { type: 'video', amount: 1, label: '1 Video' },
+        { type: 'video', amount: 10, label: '10 Video' },
+        { type: 'video', amount: 2, label: '2 Video' }
+    ];
+    const prize = wheelOptions[Math.floor(Math.random() * wheelOptions.length)];
+    db.updateCredits(userId, prize.type, prize.amount);
     const updatedUser = db.getUser(userId) || {};
 
     const winText = 
 `🎉 <b>TEBRİKLER! ÇARK DURDU!</b> 🎉\n\n` +
-`🎯 <b>Kazandığınız Ödül:</b> 🎥 <b>+${wonVideoCredits} VİDEO KREDİSİ!</b>\n\n` +
-`📊 <b>Güncel Video Bakiyeniz:</b> <code>${updatedUser.videoCredits || 0}</code>\n` +
+`🎯 <b>Kazandığınız Ödül:</b> ${prize.type === 'photo' ? '📸' : '🎥'} <b>+${prize.amount} ${prize.type === 'photo' ? 'FOTOĞRAF' : 'VİDEO'} KREDİSİ!</b>\n\n` +
+`📊 <b>Güncel Bakiyeniz:</b> 📸 <code>${updatedUser.photoCredits || 0}</code> Foto | 🎥 <code>${updatedUser.videoCredits || 0}</code> Video\n` +
 `🎟️ <b>Kalan Çevirme Hakkınız:</b> <code>${spinRes.remaining}</code> adet\n\n` +
-`<i>Kazandığınız video kredileriyle hemen dilediğiniz sekmeden video alabilirsiniz!</i>`;
+`<i>Kazandığınız kredilerle hemen dilediğiniz sekmeden medya alabilirsiniz!</i>`;
 
     const endButtons = [];
     if (spinRes.remaining > 0) {
@@ -4969,7 +5328,11 @@ bot.command('carkver', async (ctx) => {
     ).catch(() => {});
 });
 
-main();
+if (process.env.SIMULATOR_MODE !== 'true') {
+    main();
+}
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
+module.exports = { bot, db, ADMIN_IDS, ADMIN_ID, isAdminUser, authenticatedAdmins, ADMIN_PASSWORD };

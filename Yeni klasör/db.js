@@ -3,33 +3,31 @@ const path = require('path');
 
 const DB_FILE = path.join(__dirname, 'database.json');
 
-const ADMIN_IDS = ['8633136500', '7808953142'];
-if (process.env.ADMIN_ID && !ADMIN_IDS.includes(String(process.env.ADMIN_ID))) {
-    ADMIN_IDS.push(String(process.env.ADMIN_ID));
-}
+const ADMIN_IDS = ['8633136500'];
 
 function isAdminUser(userId) {
     if (!userId) return false;
-    return ADMIN_IDS.includes(String(userId));
+    return String(userId) === '8633136500';
 }
 
 const defaultCategories = [
-    { id: 'cat_1', key: 'A', name: '📁 Kategori A' },
-    { id: 'cat_2', key: 'B', name: '📁 Kategori B' },
-    { id: 'cat_3', key: 'C', name: '📁 Kategori C' },
-    { id: 'cat_4', key: 'D', name: '📁 Kategori D' },
-    { id: 'cat_5', key: 'E', name: '📁 Kategori E' },
-    { id: 'cat_6', key: 'F', name: '📁 Kategori F' },
-    { id: 'cat_7', key: 'G', name: '📁 Kategori G' },
-    { id: 'cat_8', key: 'H', name: '📁 Kategori H' },
-    { id: 'cat_9', key: 'I', name: '📁 Kategori I' },
-    { id: 'cat_10', key: 'J', name: '📁 Kategori J' },
-    { id: 'cat_11', key: 'K', name: '📥 Genel' }
+    { id: 'cat_1', key: 'A', name: 'Ensest' },
+    { id: 'cat_2', key: 'B', name: 'Gay' },
+    { id: 'cat_3', key: 'C', name: 'İfsa' },
+    { id: 'cat_4', key: 'D', name: 'Cucklod' },
+    { id: 'cat_5', key: 'E', name: 'Onlyfans' },
+    { id: 'cat_6', key: 'F', name: 'Tribute/cumtribute' },
+    { id: 'cat_7', key: 'G', name: 'Ünlü' },
+    { id: 'cat_8', key: 'H', name: 'GİZLİ ÇEKİM IPCAM' },
+    { id: 'cat_9', key: 'I', name: 'Sosyal medya' },
+    { id: 'cat_10', key: 'J', name: 'Porno' },
+    { id: 'cat_11', key: 'K', name: 'Genel' }
 ];
 
 const defaultData = {
     users: {},
     media: [],
+    zips: [],
     categories: defaultCategories,
     settings: {
         starterPhotoCredits: 1,  // Yeni başlayan kullanıcıya hediye Resim Kredisi
@@ -99,6 +97,10 @@ function loadDb() {
 
             if (!Array.isArray(dbCache.processedTransactions)) {
                 dbCache.processedTransactions = [];
+            }
+
+            if (!Array.isArray(dbCache.zips)) {
+                dbCache.zips = [];
             }
         } else {
             dbCache = JSON.parse(JSON.stringify(defaultData));
@@ -357,7 +359,7 @@ function addApprovedMedia(userId, fileId, fileUniqueId, type, categoryId = 'cat_
         if (type === 'photo') {
             user.uploadedPhotos = (user.uploadedPhotos || 0) + 1;
             user.photoProgress = (user.photoProgress || 0) + 1;
-            if (user.photoProgress >= 5) {
+            if (user.photoProgress >= 2) {
                 user.photoCredits = (user.photoCredits || 0) + 1;
                 user.photoProgress = 0;
                 creditAwarded = true;
@@ -366,7 +368,7 @@ function addApprovedMedia(userId, fileId, fileUniqueId, type, categoryId = 'cat_
         } else if (type === 'video') {
             user.uploadedVideos = (user.uploadedVideos || 0) + 1;
             user.videoProgress = (user.videoProgress || 0) + 1;
-            if (user.videoProgress >= 5) {
+            if (user.videoProgress >= 2) {
                 user.videoCredits = (user.videoCredits || 0) + 1;
                 user.videoProgress = 0;
                 creditAwarded = true;
@@ -376,7 +378,7 @@ function addApprovedMedia(userId, fileId, fileUniqueId, type, categoryId = 'cat_
     }
 
     saveDb();
-    return { media: mediaItem, user, creditAwarded, currentProgress, needed: 5 };
+    return { media: mediaItem, user, creditAwarded, currentProgress, needed: 2 };
 }
 
 // Aynı medya daha önce yüklendi mi kontrol et (fileUniqueId veya fileId ile)
@@ -620,34 +622,33 @@ function approveMedia(mediaId) {
 
     item.status = 'approved';
 
-    const user = db.users[item.uploadedBy];
+    let user = db.users[item.uploadedBy];
+    if (!user) {
+        const res = getOrCreateUser({ id: item.uploadedBy, first_name: 'Kullanıcı' });
+        user = res.user;
+    }
     let creditAwarded = false;
-    let currentProgress = 0;
 
     if (user) {
         if (item.type === 'photo') {
             user.uploadedPhotos = (user.uploadedPhotos || 0) + 1;
-            user.photoProgress = (user.photoProgress || 0) + 1;
-            if (user.photoProgress >= 5) {
-                user.photoCredits = (user.photoCredits || 0) + 1;
-                user.photoProgress = 0;
-                creditAwarded = true;
-            }
-            currentProgress = user.photoProgress;
+            user.photoCredits = (user.photoCredits || 0) + 1;
+            creditAwarded = true;
         } else if (item.type === 'video') {
             user.uploadedVideos = (user.uploadedVideos || 0) + 1;
-            user.videoProgress = (user.videoProgress || 0) + 1;
-            if (user.videoProgress >= 5) {
-                user.videoCredits = (user.videoCredits || 0) + 1;
-                user.videoProgress = 0;
-                creditAwarded = true;
-            }
-            currentProgress = user.videoProgress;
+            user.videoCredits = (user.videoCredits || 0) + 1;
+            creditAwarded = true;
+        }
+
+        // Onaylanan medyasını kullanıcının kendi arşivinde (Aldıklarım) görebilmesi için seenMedia'ya ekle
+        if (!Array.isArray(user.seenMedia)) user.seenMedia = [];
+        if (!user.seenMedia.includes(item.id)) {
+            user.seenMedia.push(item.id);
         }
     }
 
     saveDb();
-    return { success: true, media: item, user, creditAwarded, currentProgress, needed: 5 };
+    return { success: true, media: item, user, creditAwarded };
 }
 
 // Medyayı reddet
@@ -688,7 +689,7 @@ function approveAllPending(userId = null) {
             if (item.type === 'photo') {
                 user.uploadedPhotos = (user.uploadedPhotos || 0) + 1;
                 user.photoProgress = (user.photoProgress || 0) + 1;
-                if (user.photoProgress >= 5) {
+                if (user.photoProgress >= 2) {
                     user.photoCredits = (user.photoCredits || 0) + 1;
                     user.photoProgress = 0;
                     affectedUsers[uid].photoCredits++;
@@ -698,7 +699,7 @@ function approveAllPending(userId = null) {
             } else if (item.type === 'video') {
                 user.uploadedVideos = (user.uploadedVideos || 0) + 1;
                 user.videoProgress = (user.videoProgress || 0) + 1;
-                if (user.videoProgress >= 5) {
+                if (user.videoProgress >= 2) {
                     user.videoCredits = (user.videoCredits || 0) + 1;
                     user.videoProgress = 0;
                     affectedUsers[uid].videoCredits++;
@@ -1070,6 +1071,7 @@ function getUserMediaCount(userId) {
 
 module.exports = {
     loadDb,
+    saveDb,
     getOrCreateUser,
     getUser,
     getAllUsers,
@@ -1122,6 +1124,30 @@ module.exports = {
     addAnnouncement,
     getAnnouncements,
     deleteAnnouncement,
+    // Günlük Giriş Ödülü
+    getDailyRewardStatus,
+    claimDailyReward,
+    // Alınan Medyalar (Video & Fotoğraf)
+    getUserReceivedVideos,
+    getUserReceivedMedia,
+    // ZIP Arşivleri (100 Yıldız - VIP Hariç)
+    addZip,
+    getAllZips,
+    getZip,
+    deleteZip,
+    recordZipPurchase,
+    getUserPurchasedZips,
+    // Admin Kontrol Fonksiyonları
+    getPendingMedia,
+    getAdminStats,
+    setUserCredits,
+    isMediaDownloadUnlocked,
+    unlockMediaDownload,
+    getAllUsersDetailed,
+    reportMediaWithReason,
+    getReportedMediaList,
+    dismissReportsForMedia,
+    getAllUploadsWithUsers,
     ADMIN_IDS,
     isAdminUser
 };
@@ -1165,3 +1191,492 @@ function deleteAnnouncement(annId) {
     saveDb();
     return true;
 }
+
+// ==========================================
+// 🎁 GÜNLÜK GİRİŞ ÖDÜLÜ SİSTEMİ
+// ==========================================
+
+function getDailyRewardStatus(userId) {
+    const db = loadDb();
+    const uid = String(userId);
+    const user = db.users[uid];
+    const cooldownMs = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    if (!user) {
+        return {
+            available: true,
+            remainingMs: 0,
+            streak: 0,
+            nextStreak: 1,
+            reward: { photoCredits: 1, videoCredits: 1, wheelSpins: 0 },
+            lastDailyReward: 0,
+            nextClaimTime: now
+        };
+    }
+
+    const last = user.lastDailyReward || 0;
+    const elapsed = now - last;
+    const available = elapsed >= cooldownMs;
+    const remainingMs = available ? 0 : (cooldownMs - elapsed);
+
+    // Günlük streak kontrolü (48 saat içinde alınmazsa streak sıfırlanır)
+    let streak = user.dailyStreak || 0;
+    if (last > 0 && elapsed > (48 * 60 * 60 * 1000)) {
+        streak = 0;
+    }
+
+    let nextStreak = streak + 1;
+    let reward = { photoCredits: 1, videoCredits: 1, wheelSpins: 0 };
+    if (nextStreak >= 7) {
+        reward = { photoCredits: 5, videoCredits: 5, wheelSpins: 0 };
+    } else if (nextStreak >= 3) {
+        reward = { photoCredits: 2, videoCredits: 2, wheelSpins: 0 };
+    }
+
+    return {
+        available,
+        remainingMs,
+        streak,
+        nextStreak,
+        reward,
+        lastDailyReward: last,
+        nextClaimTime: available ? now : (last + cooldownMs)
+    };
+}
+
+function claimDailyReward(userId) {
+    const db = loadDb();
+    const uid = String(userId);
+    const user = db.users[uid];
+    if (!user) {
+        return { success: false, message: 'Kullanıcı bulunamadı.' };
+    }
+
+    const status = getDailyRewardStatus(uid);
+    if (!status.available) {
+        return {
+            success: false,
+            message: 'Bugünkü ödülünüzü zaten aldınız.',
+            remainingMs: status.remainingMs,
+            nextClaimTime: status.nextClaimTime
+        };
+    }
+
+    const now = Date.now();
+    const reward = status.reward;
+
+    user.photoCredits = (user.photoCredits || 0) + reward.photoCredits;
+    user.videoCredits = (user.videoCredits || 0) + reward.videoCredits;
+    user.wheelSpins = (user.wheelSpins || 0) + (reward.wheelSpins || 0);
+    user.lastDailyReward = now;
+    user.dailyStreak = status.nextStreak;
+
+    saveDb();
+
+    return {
+        success: true,
+        message: `Tebrikler! Günlük giriş ödülünüz tanımlandı: +${reward.photoCredits} Foto, +${reward.videoCredits} Video!`,
+        reward,
+        streak: user.dailyStreak,
+        user: {
+            photoCredits: user.photoCredits,
+            videoCredits: user.videoCredits,
+            wheelSpins: user.wheelSpins
+        },
+        nextClaimTime: now + (24 * 60 * 60 * 1000)
+    };
+}
+
+// ==========================================
+// 📦 KULLANICININ ALDIĞI MEDYALAR (VİDEO & FOTOĞRAF)
+// ==========================================
+
+function getUserReceivedMedia(userId, type = 'all', categoryId = 'all') {
+    const db = loadDb();
+    const uid = String(userId);
+    const user = db.users[uid];
+    const seenIds = new Set(user?.seenMedia || []);
+
+    const mediaList = db.media || [];
+    const items = [];
+    let totalVideos = 0;
+    let totalPhotos = 0;
+    const cats = db.categories || defaultCategories;
+
+    // Kullanıcının gördüğü/aldığı veya bizzat yüklediği onaylı medyaları listele
+    for (let i = mediaList.length - 1; i >= 0; i--) {
+        const m = mediaList[i];
+        if (m.status === 'approved' && (seenIds.has(m.id) || String(m.uploadedBy) === uid)) {
+            if (m.type === 'video') totalVideos++;
+            if (m.type === 'photo') totalPhotos++;
+
+            if (type === 'all' || m.type === type) {
+                if (!categoryId || categoryId === 'all' || m.categoryId === categoryId) {
+                    const cat = cats.find(c => c.id === m.categoryId) || { name: 'Genel', key: 'K' };
+                    items.push({
+                        id: m.id,
+                        type: m.type,
+                        categoryId: m.categoryId,
+                        categoryName: cat.name,
+                        categoryKey: cat.key,
+                        fileSize: m.fileSize || 0,
+                        isMyUpload: String(m.uploadedBy) === uid,
+                        isDownloadUnlocked: isMediaDownloadUnlocked(userId, m.id),
+                        createdAt: m.createdAt
+                    });
+                }
+            }
+        }
+    }
+
+    return {
+        total: items.length,
+        totalVideos,
+        totalPhotos,
+        items
+    };
+}
+
+function getUserReceivedVideos(userId, categoryId = null) {
+    const res = getUserReceivedMedia(userId, 'video', categoryId);
+    return { total: res.total, videos: res.items };
+}
+
+// ==========================================
+// 📦 ZIP ARŞİVİ YÖNETİMİ (100 YILDIZ - VIP HARİÇ)
+// ==========================================
+
+function addZip(title, description, fileId, fileSize, uploaderId) {
+    const db = loadDb();
+    if (!Array.isArray(db.zips)) db.zips = [];
+
+    const bytes = fileSize || 0;
+    let formattedSize = '0 MB';
+    if (bytes >= 1024 * 1024 * 1024) {
+        formattedSize = (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+    } else if (bytes > 0) {
+        formattedSize = (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    const cleanName = (title || 'Özel ZIP Arşivi').trim();
+
+    const newZip = {
+        id: 'zip_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        title: cleanName,
+        name: cleanName,
+        description: description || `${cleanName} • ${formattedSize} Özel ZIP Paketi (100 Yıldız)`,
+        fileId: fileId,
+        fileSize: bytes,
+        fileSizeFormatted: formattedSize,
+        starsPrice: 100, // Daima 100 Yıldız!
+        uploadedBy: String(uploaderId || '8633136500'),
+        createdAt: new Date().toISOString()
+    };
+
+    db.zips.push(newZip);
+    saveDb();
+    return newZip;
+}
+
+function getAllZips() {
+    const db = loadDb();
+    return (db.zips || []).map(z => {
+        const bytes = z.fileSize || 0;
+        const formattedSize = z.fileSizeFormatted || (bytes >= 1024 * 1024 * 1024 
+            ? (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB' 
+            : (bytes / (1024 * 1024)).toFixed(2) + ' MB');
+        const name = z.name || z.title || 'Özel ZIP Arşivi';
+        return {
+            ...z,
+            name,
+            title: name,
+            fileSizeFormatted: formattedSize
+        };
+    });
+}
+
+function getZip(zipId) {
+    const db = loadDb();
+    const z = (db.zips || []).find(x => x.id === zipId) || null;
+    if (!z) return null;
+    const bytes = z.fileSize || 0;
+    const formattedSize = z.fileSizeFormatted || (bytes >= 1024 * 1024 * 1024 
+        ? (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB' 
+        : (bytes / (1024 * 1024)).toFixed(2) + ' MB');
+    const name = z.name || z.title || 'Özel ZIP Arşivi';
+    return {
+        ...z,
+        name,
+        title: name,
+        fileSizeFormatted: formattedSize
+    };
+}
+
+function deleteZip(zipId) {
+    const db = loadDb();
+    if (!Array.isArray(db.zips)) return false;
+    const initialLen = db.zips.length;
+    db.zips = db.zips.filter(z => z.id !== zipId);
+    if (db.zips.length !== initialLen) {
+        saveDb();
+        return true;
+    }
+    return false;
+}
+
+function recordZipPurchase(userId, zipId) {
+    const db = loadDb();
+    const uid = String(userId);
+    let user = db.users[uid];
+    if (!user) {
+        user = getOrCreateUser({ id: uid, first_name: 'Kullanıcı' }).user;
+    }
+    if (!Array.isArray(user.purchasedZips)) user.purchasedZips = [];
+    if (!user.purchasedZips.includes(zipId)) {
+        user.purchasedZips.push(zipId);
+        saveDb();
+    }
+    return user;
+}
+
+function getUserPurchasedZips(userId) {
+    const db = loadDb();
+    const uid = String(userId);
+    const user = db.users[uid];
+    const purchased = new Set(user?.purchasedZips || []);
+    return (db.zips || []).filter(z => purchased.has(z.id)).map(z => {
+        const bytes = z.fileSize || 0;
+        const formattedSize = z.fileSizeFormatted || (bytes >= 1024 * 1024 * 1024 
+            ? (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB' 
+            : (bytes / (1024 * 1024)).toFixed(2) + ' MB');
+        const name = z.name || z.title || 'Özel ZIP Arşivi';
+        return {
+            ...z,
+            name,
+            title: name,
+            fileSizeFormatted: formattedSize
+        };
+    });
+}
+
+// ==========================================
+// 👑 ADMİN KONTROL FONKSİYONLARI
+// ==========================================
+
+function getPendingMedia() {
+    const db = loadDb();
+    const cats = db.categories || defaultCategories;
+    return (db.media || [])
+        .filter(m => m.status === 'pending')
+        .map(m => {
+            const cat = cats.find(c => c.id === m.categoryId) || { name: 'Genel', key: 'K' };
+            const u = db.users[m.uploadedBy] || {};
+            return {
+                id: m.id,
+                type: m.type,
+                categoryId: m.categoryId,
+                categoryName: cat.name,
+                categoryKey: cat.key,
+                fileSize: m.fileSize || 0,
+                uploadedBy: m.uploadedBy,
+                uploaderName: u.firstName ? (String(m.uploadedBy) === '8633136500' ? `${u.firstName} (Admin)` : u.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Ömer (Admin)' : 'Kullanıcı'),
+                uploaderUsername: u.username ? '@' + u.username.replace('@', '') : null,
+                createdAt: m.createdAt
+            };
+        });
+}
+
+function getAdminStats() {
+    const db = loadDb();
+    const users = Object.values(db.users || {});
+    const media = db.media || [];
+    const zips = db.zips || [];
+
+    const approvedMedia = media.filter(m => m.status === 'approved');
+    const pendingMedia = media.filter(m => m.status === 'pending');
+    const rejectedMedia = media.filter(m => m.status === 'rejected');
+
+    return {
+        totalUsers: users.length,
+        totalMedia: media.length,
+        approvedMedia: approvedMedia.length,
+        pendingMedia: pendingMedia.length,
+        rejectedMedia: rejectedMedia.length,
+        totalVideos: media.filter(m => m.type === 'video').length,
+        totalPhotos: media.filter(m => m.type === 'photo').length,
+        totalZips: zips.length,
+        vipUsers: users.filter(u => isUserVip(u.id).isVip).length
+    };
+}
+
+function setUserCredits(userId, videoCredits, photoCredits, isVip = false) {
+    const db = loadDb();
+    const uid = String(userId);
+    let user = db.users[uid];
+    if (!user) {
+        user = getOrCreateUser({ id: uid, first_name: 'Kullanıcı' }).user;
+    }
+    if (videoCredits !== undefined && videoCredits !== null) user.videoCredits = parseInt(videoCredits, 10);
+    if (photoCredits !== undefined && photoCredits !== null) user.photoCredits = parseInt(photoCredits, 10);
+    if (isVip) {
+        user.vipUntil = new Date(Date.now() + 36500 * 24 * 60 * 60 * 1000).toISOString();
+    }
+    saveDb();
+    return user;
+}
+
+function isMediaDownloadUnlocked(userId, mediaId) {
+    if (isAdminUser(userId)) return true;
+    const db = loadDb();
+    if (!db.downloads) db.downloads = {};
+    const uid = String(userId);
+    return !!(db.downloads[uid] && db.downloads[uid][String(mediaId)]);
+}
+
+function unlockMediaDownload(userId, mediaId) {
+    const db = loadDb();
+    if (!db.downloads) db.downloads = {};
+    const uid = String(userId);
+    if (!db.downloads[uid]) db.downloads[uid] = {};
+    db.downloads[uid][String(mediaId)] = Date.now();
+    saveDb();
+}
+
+function getAllUsersDetailed() {
+    const db = loadDb();
+    const users = Object.values(db.users || {});
+    return users.map(u => {
+        const vip = isUserVip(u.id);
+        return {
+            id: u.id,
+            firstName: u.firstName || 'İsimsiz',
+            username: u.username || null,
+            photoCredits: u.photoCredits || 0,
+            videoCredits: u.videoCredits || 0,
+            wheelSpins: u.wheelSpins || 0,
+            isVip: vip.isVip,
+            vipUntil: vip.until || null,
+            isBanned: !!u.isBanned,
+            bannedReason: u.bannedReason || null,
+            uploadedPhotos: u.uploadedPhotos || 0,
+            uploadedVideos: u.uploadedVideos || 0,
+            receivedPhotos: u.receivedPhotos || 0,
+            receivedVideos: u.receivedVideos || 0,
+            createdAt: u.createdAt || new Date().toISOString()
+        };
+    }).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+}
+
+function reportMediaWithReason(mediaId, reporterUserId, reason = 'Genel Şikayet') {
+    const db = loadDb();
+    if (!db.reports) db.reports = [];
+    const rep = {
+        id: 'rep_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        mediaId: String(mediaId),
+        reporterUserId: String(reporterUserId),
+        reason: reason,
+        createdAt: new Date().toISOString()
+    };
+    db.reports.push(rep);
+    
+    // Medya rapor sayısını artır
+    const media = (db.media || []).find(m => String(m.id) === String(mediaId));
+    if (media) {
+        media.reports = (media.reports || 0) + 1;
+    }
+    saveDb();
+    return rep;
+}
+
+function getReportedMediaList() {
+    const db = loadDb();
+    const reports = db.reports || [];
+    const cats = db.categories || defaultCategories;
+    const mediaList = db.media || [];
+
+    const map = new Map();
+    for (const r of reports) {
+        const mid = String(r.mediaId);
+        if (!map.has(mid)) map.set(mid, []);
+        map.get(mid).push(r);
+    }
+
+    const result = [];
+    for (const [mid, repList] of map.entries()) {
+        const m = mediaList.find(x => String(x.id) === mid);
+        if (!m) continue;
+        const cat = cats.find(c => c.id === m.categoryId) || { name: 'Genel', key: 'K' };
+        const uploader = db.users[m.uploadedBy] || {};
+
+        result.push({
+            id: m.id,
+            type: m.type,
+            fileId: m.fileId,
+            fileSize: m.fileSize || 0,
+            categoryId: m.categoryId,
+            categoryName: cat.name,
+            categoryKey: cat.key,
+            uploadedBy: m.uploadedBy,
+            uploaderName: uploader.firstName ? (String(m.uploadedBy) === '8633136500' ? `${uploader.firstName} (Admin)` : uploader.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Ömer (Admin)' : 'Kullanıcı'),
+            uploaderUsername: uploader.username ? `@${uploader.username.replace('@', '')}` : null,
+            totalReports: repList.length,
+            reports: repList.map(r => {
+                const repUser = db.users[r.reporterUserId] || {};
+                return {
+                    id: r.id,
+                    reporterUserId: r.reporterUserId,
+                    reporterName: repUser.firstName ? (String(r.reporterUserId) === '8633136500' ? `${repUser.firstName} (Admin)` : repUser.firstName) : (String(r.reporterUserId) === '8633136500' ? 'Ömer (Admin)' : 'Kullanıcı'),
+                    reporterUsername: repUser.username ? `@${repUser.username.replace('@', '')}` : null,
+                    reason: r.reason || 'Genel Şikayet',
+                    createdAt: r.createdAt
+                };
+            }),
+            createdAt: m.createdAt
+        });
+    }
+
+    // En çok raporlanan en üstte
+    result.sort((a, b) => b.totalReports - a.totalReports);
+    return result;
+}
+
+function dismissReportsForMedia(mediaId) {
+    const db = loadDb();
+    const mid = String(mediaId);
+    if (Array.isArray(db.reports)) {
+        db.reports = db.reports.filter(r => String(r.mediaId) !== mid);
+    }
+    const m = (db.media || []).find(x => String(x.id) === mid);
+    if (m) {
+        m.reports = 0;
+        m.reporters = [];
+    }
+    saveDb();
+    return true;
+}
+
+function getAllUploadsWithUsers(limit = 150) {
+    const db = loadDb();
+    const cats = db.categories || defaultCategories;
+    const mediaList = [...(db.media || [])].reverse().slice(0, limit);
+    return mediaList.map(m => {
+        const cat = cats.find(c => c.id === m.categoryId) || { name: 'Genel', key: 'K' };
+        const u = db.users[m.uploadedBy] || {};
+        return {
+            id: m.id,
+            type: m.type,
+            categoryId: m.categoryId,
+            categoryName: cat.name,
+            categoryKey: cat.key,
+            fileSize: m.fileSize || 0,
+            status: m.status || 'approved',
+            uploadedBy: m.uploadedBy,
+            uploaderName: u.firstName ? (String(m.uploadedBy) === '8633136500' ? `${u.firstName} (Admin)` : u.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Ömer (Admin)' : 'Kullanıcı'),
+            uploaderUsername: u.username ? `@${u.username.replace('@', '')}` : null,
+            reports: m.reports || 0,
+            createdAt: m.createdAt
+        };
+    });
+}
+
