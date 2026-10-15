@@ -1219,6 +1219,63 @@
             border-color: rgba(239, 68, 68, 0.4);
             color: #f87171;
         }
+
+        /* 🛡️ EKRAN GÖRÜNTÜSÜ & İNDİRME ENGELLEME KORUMA KATMANI */
+        *, *::before, *::after {
+            -webkit-touch-callout: none !important; /* iOS Safari uzun basınca çıkan "Resmi Kaydet" menüsünü kapatır */
+            -webkit-user-select: none !important;   /* Metin ve öğe seçimini engeller */
+            -khtml-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+        }
+
+        img, video {
+            -webkit-user-drag: none !important;     /* Sürükleyip kaydetmeyi engeller */
+            -khtml-user-drag: none !important;
+            -moz-user-drag: none !important;
+            -o-user-drag: none !important;
+            user-drag: none !important;
+            pointer-events: auto;
+        }
+
+        /* Ekran görüntüsü veya başka uygulamaya / kayıt aracına geçildiğinde anında bulanıklaştır */
+        body.screen-protected {
+            filter: blur(45px) brightness(0.2) grayscale(1) !important;
+            pointer-events: none !important;
+            user-select: none !important;
+        }
+
+        /* Şeffaf koruma kalkanı ve filigran */
+        .anti-ss-watermark {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 15;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            opacity: 0.18;
+            background: repeating-linear-gradient(
+                -45deg,
+                rgba(255, 255, 255, 0.03),
+                rgba(255, 255, 255, 0.03) 25px,
+                transparent 25px,
+                transparent 50px
+            );
+        }
+
+        .anti-ss-watermark-text {
+            transform: rotate(-25deg);
+            font-size: 13px;
+            font-weight: 800;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            text-shadow: 0 0 6px rgba(0,0,0,0.9);
+        }
     </style>
 </head>
 <body>
@@ -2011,9 +2068,12 @@
 
             <!-- Video Player -->
             <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; background:#000; box-shadow: 0 8px 24px rgba(0,0,0,0.6); margin-bottom:14px;">
-                <video id="active-video-elem" controls playsinline preload="auto" style="width:100%; max-height:55vh; display:block; outline:none; background:#000;">
+                <video id="active-video-elem" controls controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false;" playsinline preload="auto" style="width:100%; max-height:55vh; display:block; outline:none; background:#000;">
                     Tarayıcınız video oynatmayı desteklemiyor.
                 </video>
+                <div class="anti-ss-watermark">
+                    <div class="anti-ss-watermark-text" id="video-ss-watermark">🔒 KORUMALI İÇERİK • TELEGRAM TAKAS BOT</div>
+                </div>
             </div>
 
             <!-- Önceki / Sonraki Butonları -->
@@ -2073,7 +2133,10 @@
 
             <!-- Photo Container -->
             <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; background:#000; box-shadow: 0 8px 24px rgba(0,0,0,0.6); margin-bottom:14px; display:flex; justify-content:center; align-items:center; min-height:220px;">
-                <img id="active-photo-elem" src="" alt="Görüntüleniyor..." style="max-width:100%; max-height:55vh; object-fit:contain; display:block; border-radius:8px;">
+                <img id="active-photo-elem" src="" alt="Görüntüleniyor..." draggable="false" oncontextmenu="return false;" style="max-width:100%; max-height:55vh; object-fit:contain; display:block; border-radius:8px;">
+                <div class="anti-ss-watermark">
+                    <div class="anti-ss-watermark-text" id="photo-ss-watermark">🔒 KORUMALI İÇERİK • TELEGRAM TAKAS BOT</div>
+                </div>
             </div>
 
             <!-- Önceki / Sonraki Butonları -->
@@ -2231,6 +2294,97 @@
         const urlParams = new URLSearchParams(window.location.search);
         const queryUserId = urlParams.get('userId');
         const tgUser = tg?.initDataUnsafe?.user || { id: queryUserId || '8633136500', first_name: 'Ömer' };
+
+        // ==========================================
+        // 🛡️ EKRAN GÖRÜNTÜSÜ VE İNDİRME ENGELLEME KORUMA MODÜLÜ
+        // ==========================================
+        if (tg) {
+            try {
+                if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+            } catch (_) {}
+        }
+
+        // Sağ tık menüsünü tamamen engelle
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+
+        // Sürükle-bırak ile resim veya video kaydetmeyi engelle
+        document.addEventListener('dragstart', (e) => {
+            e.preventDefault();
+            return false;
+        });
+
+        // Ekran görüntüsü veya başka uygulamaya / ekran kayıt aracına geçiş algılandığında anında içeriği gizle
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                document.body.classList.add('screen-protected');
+            } else {
+                setTimeout(() => {
+                    document.body.classList.remove('screen-protected');
+                }, 250);
+            }
+        });
+
+        window.addEventListener('blur', () => {
+            document.body.classList.add('screen-protected');
+        });
+
+        window.addEventListener('focus', () => {
+            setTimeout(() => {
+                document.body.classList.remove('screen-protected');
+            }, 250);
+        });
+
+        // Klavye kısayollarını engelle (PrintScreen, Ctrl+S, Ctrl+P, Ctrl+U, F12, vb.)
+        window.addEventListener('keydown', (e) => {
+            const isPrintScreen = e.key === 'PrintScreen' || e.keyCode === 44;
+            const isSaveOrPrint = e.ctrlKey && (e.key === 's' || e.key === 'S' || e.key === 'p' || e.key === 'P' || e.key === 'u' || e.key === 'U');
+            const isDevTools = (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I' || e.key === 'j' || e.key === 'J' || e.key === 'c' || e.key === 'C')) || e.key === 'F12';
+
+            if (isPrintScreen || isSaveOrPrint || isDevTools) {
+                e.preventDefault();
+                e.stopPropagation();
+                document.body.classList.add('screen-protected');
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText('');
+                    }
+                } catch (_) {}
+                showToast('🛡️ İçerikler telif korumalıdır. Ekran görüntüsü veya indirme yapılamaz.', '⚠️');
+                setTimeout(() => {
+                    document.body.classList.remove('screen-protected');
+                }, 1200);
+                return false;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'PrintScreen' || e.keyCode === 44) {
+                document.body.classList.add('screen-protected');
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText('');
+                    }
+                } catch (_) {}
+                showToast('🛡️ Ekran görüntüsü engellendi!', '⚠️');
+                setTimeout(() => {
+                    document.body.classList.remove('screen-protected');
+                }, 1200);
+            }
+        });
+
+        // Kişiselleştirilmiş Filigran (Kullanıcının Telegram ID'si ekrana basılır, sızdıramaz)
+        function updateWatermarkUserId(userId) {
+            const uidStr = String(userId || tgUser?.id || '8633136500');
+            const wText = `🔒 TELİF KORUMALI • ID: ${uidStr} • @VideoResimTakas_bot`;
+            const vW = document.getElementById('video-ss-watermark');
+            const pW = document.getElementById('photo-ss-watermark');
+            if (vW) vW.innerText = wText;
+            if (pW) pW.innerText = wText;
+        }
 
         let currentUser = null;
         let categoriesData = [];
@@ -2459,6 +2613,15 @@
         function escapeHtml(str) {
             if (!str) return '';
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function formatBytes(bytes) {
+            const b = parseInt(bytes, 10);
+            if (!b || isNaN(b) || b <= 0) return '0 B';
+            if (b >= 1024 * 1024 * 1024) return (b / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+            if (b >= 1024 * 1024) return (b / (1024 * 1024)).toFixed(1) + ' MB';
+            if (b >= 1024) return (b / 1024).toFixed(0) + ' KB';
+            return b + ' B';
         }
 
         let userPurchasedZips = [];
@@ -2744,7 +2907,7 @@
             videoPlayer.src = `/api/webapp/stream/${video.id}?userId=${tgUser.id}`;
             videoPlayer.load();
             videoPlayer.play().catch(() => {});
-
+            updateWatermarkUserId(tgUser?.id);
             if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
             document.getElementById('video-player-modal').classList.add('active');
         }
@@ -2801,6 +2964,7 @@
 
             const photoElem = document.getElementById('active-photo-elem');
             photoElem.src = `/api/webapp/stream/${photo.id}?userId=${tgUser.id}`;
+            updateWatermarkUserId(tgUser?.id);
 
             if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
             document.getElementById('photo-viewer-modal').classList.add('active');
@@ -3626,7 +3790,7 @@
                 renderAdminMediaList();
             } catch (err) {
                 console.error('Kategori medya listesi yüklenemedi:', err);
-                container.innerHTML = `<div style="text-align:center; padding:20px; color:#ef4444; font-size:12px;">Bağlantı hatası oluştu.</div>`;
+                container.innerHTML = `<div style="text-align:center; padding:20px; color:#ef4444; font-size:12px;">Hata: ${escapeHtml(err.message || 'Bağlantı hatası oluştu.')}</div>`;
             }
         }
 
