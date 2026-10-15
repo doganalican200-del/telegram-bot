@@ -1147,6 +1147,78 @@
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
+
+        /* 👑 ADMIN KATEGORİ YÖNETİM MODALI STİLLERİ */
+        .admin-tab-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .admin-tab-btn.active {
+            background: #0284c7;
+            border-color: #38bdf8;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+
+        .admin-media-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 10px 12px;
+            transition: all 0.2s ease;
+        }
+
+        .admin-media-item:hover,
+        .admin-media-item.selected {
+            background: rgba(2, 132, 199, 0.12);
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+
+        .admin-action-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: var(--text-color);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.15s ease;
+        }
+
+        .admin-action-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .admin-action-btn.view {
+            background: rgba(14, 165, 233, 0.15);
+            border-color: rgba(14, 165, 233, 0.4);
+            color: #38bdf8;
+        }
+
+        .admin-action-btn.move {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.4);
+            color: #fbbf24;
+        }
+
+        .admin-action-btn.delete {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+        }
     </style>
 </head>
 <body>
@@ -1861,6 +1933,67 @@
 
             <div id="modal-action-buttons">
                 <!-- Dinamik Butonlar -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 👑 YÖNETİCİ KATEGORİ İÇERİK & TOPLU AKTARIM MODALI -->
+    <div class="modal-overlay" id="admin-cat-modal" onclick="closeAdminCatModalOnOverlay(event)">
+        <div class="modal-sheet" style="max-height: 90vh; display: flex; flex-direction: column; padding: 18px 16px;">
+            <!-- Header -->
+            <div class="modal-header" style="margin-bottom: 10px;">
+                <div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="background:rgba(56,189,248,0.2); color:#38bdf8; font-size:10px; font-weight:800; padding:2px 7px; border-radius:6px; text-transform:uppercase;">👑 Admin Yönetim</span>
+                        <h3 id="admin-cat-title" style="margin:0; font-size:17px; font-weight:800;">Sekme Adı</h3>
+                    </div>
+                    <div id="admin-cat-counts" style="font-size:12px; color:var(--hint-color); margin-top:3px;">İçerikler yükleniyor...</div>
+                </div>
+                <button class="close-btn" onclick="closeAdminCatModal()">✕</button>
+            </div>
+
+            <!-- Filter tabs -->
+            <div style="display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; padding-bottom:4px;">
+                <button class="admin-tab-btn active" id="admin-tab-all" onclick="filterAdminCatMedia('all')">Tümü (<span id="admin-cnt-all">0</span>)</button>
+                <button class="admin-tab-btn" id="admin-tab-video" onclick="filterAdminCatMedia('video')">🎬 Videolar (<span id="admin-cnt-vid">0</span>)</button>
+                <button class="admin-tab-btn" id="admin-tab-photo" onclick="filterAdminCatMedia('photo')">🖼️ Fotoğraflar (<span id="admin-cnt-pho">0</span>)</button>
+            </div>
+
+            <!-- Bulk Toolbar -->
+            <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px 12px; margin-bottom:12px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; cursor:pointer;">
+                        <input type="checkbox" id="admin-select-all-chk" onchange="toggleSelectAllAdminMedia(this.checked)" style="width:16px; height:16px; accent-color:#0284c7; cursor:pointer;">
+                        <span>Tümünü Seç</span>
+                    </label>
+                    <span id="admin-selected-badge" style="font-size:11px; color:#38bdf8; font-weight:700;">0 seçildi</span>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <select id="admin-bulk-target-cat" style="flex:1; min-width:140px; background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:7px 10px; font-size:12px; outline:none;">
+                        <option value="">📂 Hedef Klasör Seçin...</option>
+                    </select>
+                    <button onclick="executeBulkMove()" style="background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; border:none; border-radius:8px; padding:7px 14px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                        <span>📦</span> Aktar / Taşı
+                    </button>
+                    <button onclick="executeBulkDelete()" style="background:linear-gradient(135deg, #ef4444, #b91c1c); color:#fff; border:none; border-radius:8px; padding:7px 12px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                        <span>🗑️</span> Toplu Sil
+                    </button>
+                </div>
+            </div>
+
+            <!-- Media List (Scrollable) -->
+            <div id="admin-media-list-container" style="flex:1; overflow-y:auto; padding-right:2px; display:flex; flex-direction:column; gap:8px; min-height: 220px; max-height:48vh;">
+                <div style="text-align:center; padding:30px 0; color:var(--hint-color); font-size:13px;">İçerikler yükleniyor...</div>
+            </div>
+
+            <!-- Bottom Quick Buttons -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
+                <button onclick="requestAdminQuickMedia('video')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#fff; border-radius:8px; padding:9px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                    <span>🎥</span> Rastgele Video Çek
+                </button>
+                <button onclick="requestAdminQuickMedia('photo')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#fff; border-radius:8px; padding:9px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                    <span>📸</span> Rastgele Foto Çek
+                </button>
             </div>
         </div>
     </div>
@@ -3396,8 +3529,400 @@
             }
         }
 
+        // ==========================================
+        // 👑 ADMİN KATEGORİ İÇERİK YÖNETİMİ & TOPLU AKTARIM
+        // ==========================================
+        let currentAdminCatId = null;
+        let currentAdminCatFilter = 'all';
+        let currentAdminCatItems = [];
+        let selectedAdminMediaIds = new Set();
+
+        async function openAdminCategoryModal(catId) {
+            currentAdminCatId = catId;
+            currentAdminCatFilter = 'all';
+            selectedAdminMediaIds.clear();
+
+            const modal = document.getElementById('admin-cat-modal');
+            if (modal) modal.classList.add('active');
+
+            const cat = (categoriesData || []).find(c => c.id === catId) || { name: 'Kategori', key: 'K' };
+            const titleEl = document.getElementById('admin-cat-title');
+            if (titleEl) titleEl.innerText = `[${cat.key || 'K'}] ${cat.name || 'Kategori'}`;
+            const countsEl = document.getElementById('admin-cat-counts');
+            if (countsEl) countsEl.innerText = 'İçerikler yükleniyor...';
+
+            // Filter tabs reset
+            updateAdminFilterTabsUI('all');
+            updateAdminSelectionUI();
+
+            // Populate target category dropdown
+            const selectEl = document.getElementById('admin-bulk-target-cat');
+            if (selectEl) {
+                selectEl.innerHTML = '<option value="">📂 Hedef Klasör Seçin...</option>' + 
+                    (categoriesData || []).map(c => {
+                        const isCurrent = c.id === catId;
+                        return `<option value="${c.id}" ${isCurrent ? 'disabled' : ''}>${isCurrent ? '▶️ Mevcut Sekme: ' : '📂 '}${escapeHtml(c.name)} (${c.key})</option>`;
+                    }).join('');
+            }
+
+            await loadAdminCatMedia();
+        }
+
+        function closeAdminCatModal() {
+            const modal = document.getElementById('admin-cat-modal');
+            if (modal) modal.classList.remove('active');
+            selectedAdminMediaIds.clear();
+        }
+
+        function closeAdminCatModalOnOverlay(e) {
+            if (e.target.id === 'admin-cat-modal') {
+                closeAdminCatModal();
+            }
+        }
+
+        function updateAdminFilterTabsUI(type) {
+            ['all', 'video', 'photo'].forEach(t => {
+                const btn = document.getElementById(`admin-tab-${t}`);
+                if (btn) {
+                    if (t === type) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+            });
+        }
+
+        async function filterAdminCatMedia(type) {
+            currentAdminCatFilter = type;
+            updateAdminFilterTabsUI(type);
+            await loadAdminCatMedia();
+        }
+
+        async function loadAdminCatMedia() {
+            const container = document.getElementById('admin-media-list-container');
+            if (!container) return;
+            container.innerHTML = '<div style="text-align:center; padding:30px 0; color:var(--hint-color); font-size:13px;">İçerikler yükleniyor...</div>';
+
+            try {
+                const res = await fetch(`/api/webapp/admin/category-media?userId=${tgUser?.id || '8633136500'}&categoryId=${currentAdminCatId}&type=${currentAdminCatFilter}`);
+                const data = await res.json();
+
+                if (!data.success) {
+                    container.innerHTML = `<div style="text-align:center; padding:20px; color:#ef4444; font-size:12px;">Hata: ${escapeHtml(data.message || 'Veriler alınamadı')}</div>`;
+                    return;
+                }
+
+                currentAdminCatItems = data.items || [];
+
+                // Badges
+                const cntAll = document.getElementById('admin-cnt-all');
+                const cntVid = document.getElementById('admin-cnt-vid');
+                const cntPho = document.getElementById('admin-cnt-pho');
+                const countsEl = document.getElementById('admin-cat-counts');
+
+                if (cntAll) cntAll.innerText = data.total;
+                if (cntVid) cntVid.innerText = data.totalVideos;
+                if (cntPho) cntPho.innerText = data.totalPhotos;
+                if (countsEl) countsEl.innerText = `Toplam: ${data.total} İçerik (${data.totalVideos} Video, ${data.totalPhotos} Fotoğraf)`;
+
+                renderAdminMediaList();
+            } catch (err) {
+                console.error('Kategori medya listesi yüklenemedi:', err);
+                container.innerHTML = `<div style="text-align:center; padding:20px; color:#ef4444; font-size:12px;">Bağlantı hatası oluştu.</div>`;
+            }
+        }
+
+        function renderAdminMediaList() {
+            const container = document.getElementById('admin-media-list-container');
+            if (!container) return;
+
+            if (currentAdminCatItems.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:40px 10px; color:var(--hint-color);">
+                        <div style="font-size:32px; margin-bottom:8px;">📭</div>
+                        <div style="font-size:13px; font-weight:600;">Bu kategoride henüz içerik yok.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = currentAdminCatItems.map(item => {
+                const isChecked = selectedAdminMediaIds.has(item.id);
+                const isVideo = item.type === 'video';
+                const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : 'Bilinmiyor';
+                const timeStr = item.createdAt ? new Date(item.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '';
+                const sizeStr = item.fileSize ? formatBytes(item.fileSize) : '';
+
+                return `
+                    <div class="admin-media-item ${isChecked ? 'selected' : ''}" id="admin-media-item-${item.id}">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleSelectAdminMedia('${item.id}', this.checked)" style="width:18px; height:18px; accent-color:#0284c7; cursor:pointer;">
+                            <div style="font-size:20px; line-height:1;">${isVideo ? '🎬' : '🖼️'}</div>
+                            <div style="flex:1; min-width:0;">
+                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                    <span style="font-weight:700; font-size:12px; color:#fff;">${isVideo ? 'Video' : 'Fotoğraf'}</span>
+                                    ${sizeStr ? `<span style="font-size:10px; background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px; color:var(--hint-color);">${sizeStr}</span>` : ''}
+                                    ${item.reports > 0 ? `<span style="font-size:10px; background:rgba(239,68,68,0.2); color:#ef4444; padding:1px 5px; border-radius:4px; font-weight:700;">🚨 ${item.reports} Şikayet</span>` : ''}
+                                </div>
+                                <div style="font-size:10px; color:var(--hint-color); margin-top:2px;">
+                                    Yükleyen: <span style="color:#94a3b8;">${escapeHtml(item.uploaderName)}</span> • ${dateStr} ${timeStr}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px; margin-top:8px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.06); justify-content:flex-end;">
+                            <button class="admin-action-btn view" onclick="quickAdminViewMedia('${item.id}')" title="Telegram Sohbetinde Gör">
+                                <span>👁️</span> Telegram'da Gör
+                            </button>
+                            <button class="admin-action-btn move" onclick="quickAdminMoveSingle('${item.id}')" title="Başka Sekmeye Taşı">
+                                <span>📂</span> Taşı
+                            </button>
+                            <button class="admin-action-btn delete" onclick="quickAdminDeleteSingle('${item.id}')" title="Sistemden Sil">
+                                <span>🗑️</span> Sil
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleSelectAdminMedia(id, checked) {
+            if (checked) {
+                selectedAdminMediaIds.add(id);
+            } else {
+                selectedAdminMediaIds.delete(id);
+            }
+            const el = document.getElementById(`admin-media-item-${id}`);
+            if (el) {
+                if (checked) el.classList.add('selected');
+                else el.classList.remove('selected');
+            }
+            updateAdminSelectionUI();
+        }
+
+        function toggleSelectAllAdminMedia(checked) {
+            currentAdminCatItems.forEach(item => {
+                if (checked) selectedAdminMediaIds.add(item.id);
+                else selectedAdminMediaIds.delete(item.id);
+            });
+            renderAdminMediaList();
+            updateAdminSelectionUI();
+        }
+
+        function updateAdminSelectionUI() {
+            const badge = document.getElementById('admin-selected-badge');
+            const chkAll = document.getElementById('admin-select-all-chk');
+
+            const count = selectedAdminMediaIds.size;
+            if (badge) badge.innerText = `${count} seçildi`;
+
+            if (chkAll) {
+                if (currentAdminCatItems.length > 0 && count === currentAdminCatItems.length) {
+                    chkAll.checked = true;
+                    chkAll.indeterminate = false;
+                } else if (count > 0) {
+                    chkAll.checked = false;
+                    chkAll.indeterminate = true;
+                } else {
+                    chkAll.checked = false;
+                    chkAll.indeterminate = false;
+                }
+            }
+        }
+
+        async function executeBulkMove() {
+            const targetSelect = document.getElementById('admin-bulk-target-cat');
+            const targetCatId = targetSelect?.value;
+
+            if (selectedAdminMediaIds.size === 0) {
+                showToast('Lütfen taşınacak en az bir medya seçin!', '⚠️');
+                return;
+            }
+
+            if (!targetCatId) {
+                showToast('Lütfen hedef klasörü/sekmeyi seçin!', '⚠️');
+                return;
+            }
+
+            const targetCat = (categoriesData || []).find(c => c.id === targetCatId);
+            const targetName = targetCat ? targetCat.name : targetCatId;
+
+            if (!confirm(`Seçili ${selectedAdminMediaIds.size} adet medyayı '${targetName}' kategorisine aktarmak istediğinize emin misiniz?`)) {
+                return;
+            }
+
+            showToast('Medyalar aktarılıyor...', '⏳');
+
+            try {
+                const res = await fetch('/api/webapp/admin/bulk-move-media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        mediaIds: Array.from(selectedAdminMediaIds),
+                        targetCategoryId: targetCatId
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || 'Medyalar başarıyla aktarıldı!', '✅');
+                    selectedAdminMediaIds.clear();
+                    updateAdminSelectionUI();
+                    await loadAdminCatMedia();
+                    if (typeof loadCategories === 'function') loadCategories();
+                } else {
+                    showToast(data.message || 'Aktarım başarısız.', '❌');
+                }
+            } catch (err) {
+                console.error('Toplu aktarım hatası:', err);
+                showToast('Aktarım sırasında hata oluştu.', '❌');
+            }
+        }
+
+        async function executeBulkDelete() {
+            if (selectedAdminMediaIds.size === 0) {
+                showToast('Lütfen silinecek en az bir medya seçin!', '⚠️');
+                return;
+            }
+
+            if (!confirm(`⚠️ DİKKAT! Seçili ${selectedAdminMediaIds.size} adet medyayı SİLMEK istediğinize emin misiniz?\n\nBu işlem geri alınamaz!`)) {
+                return;
+            }
+
+            showToast('Medyalar siliniyor...', '⏳');
+
+            try {
+                const res = await fetch('/api/webapp/admin/bulk-delete-media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        mediaIds: Array.from(selectedAdminMediaIds)
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || 'Medyalar silindi!', '🗑️');
+                    selectedAdminMediaIds.clear();
+                    updateAdminSelectionUI();
+                    await loadAdminCatMedia();
+                    if (typeof loadCategories === 'function') loadCategories();
+                } else {
+                    showToast(data.message || 'Silme işlemi başarısız.', '❌');
+                }
+            } catch (err) {
+                console.error('Toplu silme hatası:', err);
+                showToast('Silme sırasında hata oluştu.', '❌');
+            }
+        }
+
+        async function quickAdminViewMedia(mediaId) {
+            showToast('Medya Telegram sohbete iletiliyor...', '🚀');
+            try {
+                const res = await fetch('/api/webapp/download-media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        mediaId: mediaId
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Medya Telegram sohbete teslim edildi! ✅', '📥');
+                } else {
+                    showToast(data.message || 'Gönderilemedi.', '❌');
+                }
+            } catch (err) {
+                console.error('Görüntüleme hatası:', err);
+                showToast('Görüntüleme isteğinde hata.', '❌');
+            }
+        }
+
+        async function quickAdminMoveSingle(mediaId) {
+            const listStr = (categoriesData || []).map((c, i) => `${i + 1}. [${c.key}] ${c.name}`).join('\n');
+            const choice = prompt(`Medyayı taşımak istediğiniz sekmenin numarasını veya adını girin:\n\n${listStr}`);
+            if (!choice) return;
+
+            let targetCat = null;
+            const num = parseInt(choice.trim(), 10);
+            if (!isNaN(num) && num >= 1 && num <= categoriesData.length) {
+                targetCat = categoriesData[num - 1];
+            } else {
+                targetCat = categoriesData.find(c => c.name.toLowerCase().includes(choice.trim().toLowerCase()) || c.id === choice.trim());
+            }
+
+            if (!targetCat) {
+                showToast('Geçersiz hedef sekme!', '⚠️');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/webapp/admin/bulk-move-media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        mediaIds: [mediaId],
+                        targetCategoryId: targetCat.id
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Medya '${targetCat.name}' kategorisine aktarıldı!`, '✅');
+                    await loadAdminCatMedia();
+                    if (typeof loadCategories === 'function') loadCategories();
+                } else {
+                    showToast(data.message || 'Aktarılamadı.', '❌');
+                }
+            } catch (err) {
+                console.error('Tekli taşıma hatası:', err);
+                showToast('Taşıma hatası oluştu.', '❌');
+            }
+        }
+
+        async function quickAdminDeleteSingle(mediaId) {
+            if (!confirm('Bu medyayı sistemden tamamen silmek istediğinize emin misiniz?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/webapp/admin/bulk-delete-media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        mediaIds: [mediaId]
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Medya silindi!', '🗑️');
+                    selectedAdminMediaIds.delete(mediaId);
+                    updateAdminSelectionUI();
+                    await loadAdminCatMedia();
+                    if (typeof loadCategories === 'function') loadCategories();
+                } else {
+                    showToast(data.message || 'Silinemedi.', '❌');
+                }
+            } catch (err) {
+                console.error('Tekli silme hatası:', err);
+                showToast('Silme hatası oluştu.', '❌');
+            }
+        }
+
+        function requestAdminQuickMedia(type) {
+            closeAdminCatModal();
+            requestMediaFromCat(currentAdminCatId, type, false);
+        }
+
         // Kategori Detay Modalını Aç
         function openCatModal(catId) {
+            const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
+            if (isAdmin) {
+                openAdminCategoryModal(catId);
+                return;
+            }
+
             selectedCategory = categoriesData.find(c => c.id === catId);
             if (!selectedCategory) return;
 
@@ -3408,19 +3933,8 @@
             const isStar = !!selectedCategory.starCfg;
             const descEl = document.getElementById('modal-cat-desc');
             const btnsEl = document.getElementById('modal-action-buttons');
-            const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
 
-            if (isAdmin) {
-                descEl.innerHTML = `<span style="color:#38bdf8; font-weight:700;">👑 Yönetici Erişimi:</span> Bu sekmedeki tüm video ve fotoğraflara sınırsız ve ücretsiz erişim hakkınız bulunmaktadır.`;
-                btnsEl.innerHTML = `
-                    <button class="modal-action-btn credit" style="background:linear-gradient(135deg, #0284c7, #0369a1);" onclick="requestMediaFromCat('${catId}', 'video', false)">
-                        <span>🎥</span> Video Al / İzle (Admin Sınırsız)
-                    </button>
-                    <button class="modal-action-btn credit" style="background:linear-gradient(135deg, #0284c7, #0369a1);" onclick="requestMediaFromCat('${catId}', 'photo', false)">
-                        <span>📸</span> Fotoğraf Gör (Admin Sınırsız)
-                    </button>
-                `;
-            } else if (isStar) {
+            if (isStar) {
                 descEl.innerHTML = `⭐ <b>Özel Arşiv Sekmesi:</b> İçerikler Telegram Yıldızları ile sunulmaktadır (Video: ${selectedCategory.starCfg.videoPrice}⭐, Fotoğraf: ${selectedCategory.starCfg.photoPrice}⭐).`;
                 btnsEl.innerHTML = `
                     <button class="modal-action-btn star" onclick="requestMediaFromCat('${catId}', 'video', true)">

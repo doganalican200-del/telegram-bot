@@ -1293,6 +1293,161 @@ function createWebAppServer(options = {}) {
         }
 
         // ==========================================
+        // 14H. API: ADMİN KATEGORİ İÇERİK LİSTESİ & YÖNETİMİ
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/category-media' && req.method === 'GET') {
+            const userId = parsedUrl.searchParams.get('userId');
+            const categoryId = parsedUrl.searchParams.get('categoryId');
+            const typeFilter = parsedUrl.searchParams.get('type') || 'all';
+
+            if (!isAdminUser(userId)) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim.' }));
+            }
+
+            const dbData = db.loadDb();
+            const cats = db.getCategories();
+            const cat = cats.find(c => c.id === categoryId) || { id: categoryId, name: 'Kategori', key: 'K' };
+
+            const allCategoryMedia = (dbData.media || []).filter(m => m.categoryId === categoryId);
+            const totalVideos = allCategoryMedia.filter(m => m.type === 'video').length;
+            const totalPhotos = allCategoryMedia.filter(m => m.type === 'photo').length;
+
+            let filtered = allCategoryMedia;
+            if (typeFilter === 'video') {
+                filtered = allCategoryMedia.filter(m => m.type === 'video');
+            } else if (typeFilter === 'photo') {
+                filtered = allCategoryMedia.filter(m => m.type === 'photo');
+            }
+
+            // En son eklenenler en üstte
+            const items = filtered.slice().reverse().map(m => {
+                const uploader = dbData.users ? dbData.users[String(m.uploadedBy)] : null;
+                return {
+                    id: m.id,
+                    type: m.type,
+                    categoryId: m.categoryId,
+                    fileSize: m.fileSize || 0,
+                    status: m.status || 'approved',
+                    uploadedBy: m.uploadedBy,
+                    uploaderName: uploader?.firstName || (String(m.uploadedBy) === '8633136500' ? 'Admin' : 'Kullanıcı'),
+                    reports: m.reports || 0,
+                    createdAt: m.createdAt
+                };
+            });
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({
+                success: true,
+                category: cat,
+                categories: cats,
+                total: allCategoryMedia.length,
+                totalVideos,
+                totalPhotos,
+                items
+            }));
+        }
+
+        // ==========================================
+        // 14I. API: ADMİN TOPLU MEDYA AKTARMA / TAŞIMA
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/bulk-move-media' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, mediaIds, targetCategoryId } = data;
+
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim.' }));
+                    }
+
+                    if (!Array.isArray(mediaIds) || mediaIds.length === 0 || !targetCategoryId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Geçersiz parametreler.' }));
+                    }
+
+                    const cats = db.getCategories();
+                    const targetCat = cats.find(c => c.id === targetCategoryId);
+                    if (!targetCat) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Hedef sekme bulunamadı.' }));
+                    }
+
+                    const dbData = db.loadDb();
+                    const targetIds = new Set(mediaIds.map(String));
+                    let movedCount = 0;
+
+                    for (const m of (dbData.media || [])) {
+                        if (targetIds.has(String(m.id))) {
+                            m.categoryId = targetCategoryId;
+                            movedCount++;
+                        }
+                    }
+
+                    db.saveDb();
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({
+                        success: true,
+                        message: `${movedCount} adet medya '${targetCat.name}' kategorisine aktarıldı.`,
+                        movedCount
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 14J. API: ADMİN TOPLU MEDYA SİLME
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/bulk-delete-media' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, mediaIds } = data;
+
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim.' }));
+                    }
+
+                    if (!Array.isArray(mediaIds) || mediaIds.length === 0) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Geçersiz parametreler.' }));
+                    }
+
+                    const dbData = db.loadDb();
+                    const targetIds = new Set(mediaIds.map(String));
+                    const initialCount = (dbData.media || []).length;
+
+                    dbData.media = (dbData.media || []).filter(m => !targetIds.has(String(m.id)));
+                    const deletedCount = initialCount - dbData.media.length;
+
+                    db.saveDb();
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({
+                        success: true,
+                        message: `${deletedCount} adet medya sistemden silindi.`,
+                        deletedCount
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
         // 15. API: TEK YÖNETİCİ ADMIN DASHBOARD (8633136500)
         // ==========================================
         if (parsedUrl.pathname === '/api/webapp/admin/dashboard' && req.method === 'GET') {

@@ -1,7 +1,17 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_FILE = path.join(__dirname, 'database.json');
+const DB_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || (fs.existsSync('/data') ? '/data' : __dirname);
+const DB_FILE = path.join(DB_DIR, 'database.json');
+
+if (DB_DIR !== __dirname && !fs.existsSync(DB_FILE) && fs.existsSync(path.join(__dirname, 'database.json'))) {
+    try {
+        fs.copyFileSync(path.join(__dirname, 'database.json'), DB_FILE);
+        console.log('✅ database.json kalıcı diske aktarıldı:', DB_FILE);
+    } catch (e) {
+        console.error('Kalıcı diske kopyalama hatası:', e.message);
+    }
+}
 
 const ADMIN_IDS = ['8633136500'];
 

@@ -4505,6 +4505,10 @@ function showAdminPanel(ctx) {
         ...Markup.inlineKeyboard([
             [Markup.button.callback('⚡ Bekleyen Medyaları Toplu Onayla', 'admin_bulk_approve')],
             [
+                Markup.button.callback('🔄 Geçmiş Medyaları Kurtar', 'admin_run_recovery'),
+                Markup.button.callback('💾 Canlı Yedeği İndir', 'admin_download_backup')
+            ],
+            [
                 Markup.button.callback('👥 Kullanıcılar & İçerikler', 'admin_users_1'),
                 Markup.button.callback('⭐ Yıldız & Gelir Raporu', 'admin_stars_report')
             ],
@@ -4520,6 +4524,205 @@ function showAdminPanel(ctx) {
         ])
     });
 }
+
+// ==========================================
+// 🚨 GEÇMİŞ MEDYA KURTARMA MOTORU (/kurtar)
+// ==========================================
+let isRecoveryRunning = false;
+
+async function executeMediaRecovery(ctx) {
+    const uid = String(ctx.from?.id);
+    if (!isAdminUser(uid)) return ctx.reply('⛔ Yalnızca yönetici bu komutu kullanabilir.');
+    if (isRecoveryRunning) return ctx.reply('⏳ Zaten bir kurtarma taraması çalışıyor, lütfen bitmesini bekleyin.');
+
+    isRecoveryRunning = true;
+    const adminChatId = ctx.chat?.id || uid;
+    const currentMsgId = ctx.message?.message_id || ctx.callbackQuery?.message?.message_id || 10000;
+
+    await ctx.reply(
+        `🚀 <b>OTOMATİK MEDYA KURTARMA BAŞLATILDI</b>\n\n` +
+        `🔍 Sohbet geçmişinizdeki tüm video ve fotoğraflar taranıyor...\n` +
+        `📦 Taranacak mesaj aralığı: 1 - ${currentMsgId}\n\n` +
+        `<i>Bu işlem birkaç dakika sürebilir. İlerleme durumu canlı olarak bildirilecektir.</i>`,
+        { parse_mode: 'HTML' }
+    );
+
+    let scannedCount = 0;
+    let recoveredCount = 0;
+    let duplicateCount = 0;
+    let statusMsg = await ctx.reply('⏳ Tarama başlıyor...').catch(() => null);
+
+    const dbData = db.loadDb();
+    const existingIds = new Set((dbData.media || []).map(m => m.fileUniqueId || m.fileId));
+
+    for (let msgId = currentMsgId - 1; msgId >= 1; msgId--) {
+        scannedCount++;
+        try {
+            const fwd = await bot.telegram.forwardMessage(adminChatId, adminChatId, msgId);
+            const fwdMsgId = fwd.message_id;
+
+            let fileId = null;
+            let fileUniqueId = null;
+            let mediaType = null;
+            let fileSize = 0;
+
+            if (fwd.video) {
+                fileId = fwd.video.file_id;
+                fileUniqueId = fwd.video.file_unique_id;
+                mediaType = 'video';
+                fileSize = fwd.video.file_size || 0;
+            } else if (fwd.photo && fwd.photo.length > 0) {
+                const best = fwd.photo[fwd.photo.length - 1];
+                fileId = best.file_id;
+                fileUniqueId = best.file_unique_id;
+                mediaType = 'photo';
+                fileSize = best.file_size || 0;
+            }
+
+            await bot.telegram.deleteMessage(adminChatId, fwdMsgId).catch(() => {});
+
+            if (fileId && fileUniqueId) {
+                if (existingIds.has(fileUniqueId) || existingIds.has(fileId)) {
+                    duplicateCount++;
+                } else {
+                    const caption = fwd.caption || '';
+                    let catId = 'cat_11';
+                    
+                    const catMatch = db.getCategories().find(c => 
+                        caption.toLowerCase().includes(c.name.toLowerCase()) || 
+                        caption.includes(`[${c.key}]`)
+                    );
+                    if (catMatch) catId = catMatch.id;
+
+                    let uploaderId = uid;
+                    const uploaderMatch = caption.match(/ID:\s*<code>(\d+)<\/code>/i) || caption.match(/ID:\s*(\d+)/i);
+                    if (uploaderMatch) uploaderId = uploaderMatch[1];
+
+                    const newMedia = {
+                        id: 'm_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+                        type: mediaType,
+                        fileId: fileId,
+                        fileUniqueId: fileUniqueId,
+                        fileSize: fileSize,
+                        categoryId: catId,
+                        uploadedBy: String(uploaderId),
+                        status: 'approved',
+                        reports: 0,
+                        reporters: [],
+                        createdAt: fwd.date ? new Date(fwd.date * 1000).toISOString() : new Date().toISOString()
+                    };
+
+                    dbData.media.push(newMedia);
+                    existingIds.add(fileUniqueId);
+                    recoveredCount++;
+                }
+            }
+        } catch (err) {
+            // Mesaj yok veya silinmiş
+        }
+
+        if (scannedCount % 50 === 0 && statusMsg) {
+            await bot.telegram.editMessageText(
+                adminChatId,
+                statusMsg.message_id,
+                null,
+                `📊 <b>Kurtarma İlerlemesi:</b>\n` +
+                `🔍 Taranan Mesaj: ${scannedCount}\n` +
+                `✅ Kurtarılan Yeni Medya: <b>+${recoveredCount}</b>\n` +
+                `ℹ️ Zaten Mevcut: ${duplicateCount}\n` +
+                `⏳ Kalan mesajlar taranıyor...`,
+                { parse_mode: 'HTML' }
+            ).catch(() => {});
+            
+            db.saveDb();
+        }
+
+        await new Promise(r => setTimeout(r, 60));
+    }
+
+    db.saveDb();
+    isRecoveryRunning = false;
+
+    await ctx.reply(
+        `🎉 <b>KURTARMA BAŞARIYLA TAMAMLANDI!</b>\n\n` +
+        `📊 <b>Sonuçlar:</b>\n` +
+        `🔍 Toplam Taranan Mesaj: <b>${scannedCount}</b>\n` +
+        `💎 Kurtarılan Yeni Medya: <b>+${recoveredCount}</b>\n` +
+        `📦 Havuzdaki Toplam Güncel Medya: <b>${dbData.media.length}</b>\n\n` +
+        `✅ Tüm içerikler kategori havuzuna eklenmiştir. Aşağıda güncel veritabanı yedeğiniz gönderilmektedir:`,
+        { parse_mode: 'HTML' }
+    );
+
+    try {
+        const DB_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || (fs.existsSync('/data') ? '/data' : __dirname);
+        const dbPath = path.join(DB_DIR, 'database.json');
+        await ctx.replyWithDocument({ source: dbPath, filename: `database_kurtarilan_${Date.now()}.json` });
+    } catch (_) {}
+}
+
+bot.command(['kurtar', 'tara'], executeMediaRecovery);
+bot.action('admin_run_recovery', async (ctx) => {
+    await ctx.answerCbQuery();
+    return executeMediaRecovery(ctx);
+});
+
+// ==========================================
+// 🛡️ CANLI YEDEK İNDİR (/yedek) & OTOMATİK YEDEKLEME
+// ==========================================
+async function sendDatabaseBackup(ctx) {
+    const uid = String(ctx.from?.id);
+    if (!isAdminUser(uid)) return;
+
+    try {
+        const DB_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || (fs.existsSync('/data') ? '/data' : __dirname);
+        const dbPath = path.join(DB_DIR, 'database.json');
+        const dbData = db.loadDb();
+        const userCount = Object.keys(dbData.users || {}).length;
+        const mediaCount = (dbData.media || []).length;
+
+        await ctx.replyWithDocument(
+            { source: dbPath, filename: `database_backup_${Date.now()}.json` },
+            {
+                caption: `💾 <b>Canlı Veritabanı Yedeği</b>\n\n` +
+                    `👥 <b>Kullanıcı Sayısı:</b> ${userCount}\n` +
+                    `🎬 <b>Toplam Medya:</b> ${mediaCount}\n` +
+                    `📅 <b>Tarih:</b> ${new Date().toLocaleString('tr-TR')}`,
+                parse_mode: 'HTML'
+            }
+        );
+    } catch (err) {
+        ctx.reply('❌ Yedek alınırken hata oluştu: ' + err.message);
+    }
+}
+
+bot.command(['yedek', 'backup'], sendDatabaseBackup);
+bot.action('admin_download_backup', async (ctx) => {
+    await ctx.answerCbQuery();
+    return sendDatabaseBackup(ctx);
+});
+
+// Her 6 saatte bir sessizce Admin'e otomatik yedek gönder
+setInterval(async () => {
+    try {
+        const DB_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || (fs.existsSync('/data') ? '/data' : __dirname);
+        const dbPath = path.join(DB_DIR, 'database.json');
+        if (fs.existsSync(dbPath) && ADMIN_IDS[0]) {
+            const dbData = db.loadDb();
+            const mediaCount = (dbData.media || []).length;
+            await bot.telegram.sendDocument(
+                ADMIN_IDS[0],
+                { source: dbPath, filename: `otomatik_yedek_${Date.now()}.json` },
+                {
+                    caption: `⏰ <b>Otomatik 6 Saatlik Sistem Yedeği</b>\n📦 Toplam Medya: ${mediaCount}`,
+                    disable_notification: true,
+                    parse_mode: 'HTML'
+                }
+            );
+        }
+    } catch (e) {
+        console.error('Oto-yedek hatası:', e.message);
+    }
+}, 6 * 60 * 60 * 1000);
 
 
 // ADMİN: BENZER & KOPYA MEDYALARI YÖNETİM PANELİ (Resim & Video)
