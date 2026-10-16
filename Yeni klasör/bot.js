@@ -83,6 +83,67 @@ async function updateTelegramMenuButton(url, chatId = null) {
     }
 }
 
+// 🛡️ Evrensel Cross-Bot Güvenli Medya Gönderici
+const FALLBACK_BOT_TOKEN = '8151413936:AAFbhwQNpaGkW1CdShixrq2PJMNzC7jamjM';
+let fallbackBotClient = null;
+
+function getFallbackBotClient() {
+    if (!fallbackBotClient) {
+        try {
+            fallbackBotClient = new Telegraf(FALLBACK_BOT_TOKEN);
+        } catch (_) {}
+    }
+    return fallbackBotClient;
+}
+
+async function sendBotMediaSafe(botObj, targetChatId, media, options = {}) {
+    if (!media || !media.fileId) throw new Error('Medya veya fileId bulunamadı');
+    const isVideo = media.type === 'video';
+    const fileId = media.fileId;
+
+    // 1. Doğrudan aktif bot ile fileId gönderimi dene
+    try {
+        if (isVideo) {
+            return await botObj.telegram.sendVideo(targetChatId, fileId, options);
+        } else {
+            return await botObj.telegram.sendPhoto(targetChatId, fileId, options);
+        }
+    } catch (err) {
+        // Cross-bot (wrong file_id) durumunda Telegram CDN url linki üzerinden gönder
+        if (err.message && (err.message.includes('wrong file_id') || err.message.includes('file is temporarily unavailable') || err.message.includes('400'))) {
+            try {
+                const fb = getFallbackBotClient();
+                if (fb) {
+                    const link = await fb.telegram.getFileLink(fileId);
+                    const linkUrl = typeof link === 'object' && link.href ? link.href : String(link);
+                    if (isVideo) {
+                        return await botObj.telegram.sendVideo(targetChatId, { url: linkUrl }, options);
+                    } else {
+                        return await botObj.telegram.sendPhoto(targetChatId, { url: linkUrl }, options);
+                    }
+                }
+            } catch (fallbackErr) {
+                console.warn('sendBotMediaSafe CDN url fallback başarısız:', fallbackErr.message);
+            }
+        }
+
+        // 2. Fallback bot ile doğrudan kullanıcıya gönder
+        const fb = getFallbackBotClient();
+        if (fb) {
+            try {
+                if (isVideo) {
+                    return await fb.telegram.sendVideo(targetChatId, fileId, options);
+                } else {
+                    return await fb.telegram.sendPhoto(targetChatId, fileId, options);
+                }
+            } catch (e2) {
+                console.error('Fallback bot doğrudan gönderim hatası:', e2.message);
+            }
+        }
+        throw err;
+    }
+}
+
 // Otomatik Cloudflare SSL Tüneli (Telegram WebApp için HTTPS zorunludur)
 function startLocalTunnel() {
     const { spawn } = require('child_process');
@@ -1305,21 +1366,12 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
                     [Markup.button.callback('🏠 Ana Menü', 'main_menu')]
                 ]);
                 try {
-                    if (isVideo) {
-                        await bot.telegram.sendVideo(uid, media.fileId, {
-                            caption,
-                            parse_mode: 'HTML',
-                            protect_content: true,
-                            ...buttons
-                        });
-                    } else {
-                        await bot.telegram.sendPhoto(uid, media.fileId, {
-                            caption,
-                            parse_mode: 'HTML',
-                            protect_content: true,
-                            ...buttons
-                        });
-                    }
+                    await sendBotMediaSafe(bot, uid, media, {
+                        caption,
+                        parse_mode: 'HTML',
+                        protect_content: true,
+                        ...buttons
+                    });
                 } catch (e) {
                     console.error(`${cat?.name} medya teslim hatası:`, e.message);
                 }
@@ -1363,21 +1415,12 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
                         [Markup.button.callback('🏠 Ana Menü', 'main_menu')]
                     ]);
                     try {
-                        if (isVideo) {
-                            await bot.telegram.sendVideo(uid, media.fileId, {
-                                caption,
-                                parse_mode: 'HTML',
-                                protect_content: false, // 🔓 İNDİRME VE KAYDETME AÇIK!
-                                ...buttons
-                            });
-                        } else {
-                            await bot.telegram.sendPhoto(uid, media.fileId, {
-                                caption,
-                                parse_mode: 'HTML',
-                                protect_content: false, // 🔓 İNDİRME VE KAYDETME AÇIK!
-                                ...buttons
-                            });
-                        }
+                        await sendBotMediaSafe(bot, uid, media, {
+                            caption,
+                            parse_mode: 'HTML',
+                            protect_content: false, // 🔓 İNDİRME VE KAYDETME AÇIK!
+                            ...buttons
+                        });
                     } catch (e) {
                         console.error('Korumasız medya teslim hatası:', e.message);
                     }
@@ -1423,19 +1466,11 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
                 const caption = `📥 <b>TELEFONA KAYDEDİLEBİLİR ${typeLabel.toUpperCase()}</b>\n\n` +
                     `⭐ <i>${totalAmount} Yıldız ile indirme kilidi açıldı. Cihazınıza kaydedebilirsiniz!</i>`;
                 try {
-                    if (isVideo) {
-                        await bot.telegram.sendVideo(uid, media.fileId, {
-                            caption,
-                            parse_mode: 'HTML',
-                            protect_content: false
-                        });
-                    } else {
-                        await bot.telegram.sendPhoto(uid, media.fileId, {
-                            caption,
-                            parse_mode: 'HTML',
-                            protect_content: false
-                        });
-                    }
+                    await sendBotMediaSafe(bot, uid, media, {
+                        caption,
+                        parse_mode: 'HTML',
+                        protect_content: false
+                    });
                 } catch (e) {
                     console.error('İndirme teslim hatası:', e.message);
                 }
@@ -1828,11 +1863,7 @@ async function sendMediaToUser(ctx, type, categoryId = null, requestedCount = 1)
         };
 
         try {
-            if (isVideo) {
-                await ctx.replyWithVideo(media.fileId, sendOptions);
-            } else {
-                await ctx.replyWithPhoto(media.fileId, sendOptions);
-            }
+            await sendBotMediaSafe(bot, userId, media, sendOptions);
             sentCount++;
         } catch (sendErr) {
             console.error(`${typeLabel} gönderme hatası:`, sendErr.message);
@@ -2272,6 +2303,8 @@ const pendingAdminCategorize = loadPendingCategorize();
 
 function enqueueMediaUpload(ctx, mediaType, mediaData) {
     if (!ctx || !ctx.from || !mediaData) return;
+    // Sadece özel (birebir) sohbette medya yüklemesine izin ver - kanal veya gruplarda ödül/mesaj tetiklemesin!
+    if (ctx.chat && ctx.chat.type !== 'private') return;
     const userId = String(ctx.from.id);
 
     if (db.isUserBanned(userId)) {
@@ -2540,10 +2573,8 @@ bot.action(/^acp_(p\d+)_(cat_\d+|reject)$/, async (ctx) => {
 
 // ==========================================
 // 🗑️ startProcessingBatch KALDIRILDI
-// Yeni akış: sendBatchToAdminForCategorization
 // ==========================================
 async function startProcessingBatch(userId) {
-    // Devre dışı — yeni akış: sendBatchToAdminForCategorization
     return;
 }
 
@@ -2551,6 +2582,7 @@ async function startProcessingBatch(userId) {
 // 1. FOTOĞRAF GÖNDERİLDİĞİNDE
 bot.on('photo', async (ctx) => {
     try {
+        if (ctx.chat && ctx.chat.type !== 'private') return;
         const photos = ctx.message.photo;
         const bestPhoto = photos[photos.length - 1];
         enqueueMediaUpload(ctx, 'photo', bestPhoto);
@@ -2562,6 +2594,7 @@ bot.on('photo', async (ctx) => {
 // 2. VİDEO GÖNDERİLDİĞİNDE
 bot.on('video', async (ctx) => {
     try {
+        if (ctx.chat && ctx.chat.type !== 'private') return;
         enqueueMediaUpload(ctx, 'video', ctx.message.video);
     } catch (err) {
         console.error('Video handler hatası:', err.message);
@@ -2571,6 +2604,7 @@ bot.on('video', async (ctx) => {
 // 3. ANİMASYON / GIF GÖNDERİLDİĞİNDE (VİDEO OLARAK AYRIŞTIRILIR)
 bot.on('animation', async (ctx) => {
     try {
+        if (ctx.chat && ctx.chat.type !== 'private') return;
         enqueueMediaUpload(ctx, 'video', ctx.message.animation);
     } catch (err) {
         console.error('Animation handler hatası:', err.message);
@@ -2580,6 +2614,7 @@ bot.on('animation', async (ctx) => {
 // 4. VİDEO NOT / YUVARLAK VİDEO GÖNDERİLDİĞİNDE
 bot.on('video_note', async (ctx) => {
     try {
+        if (ctx.chat && ctx.chat.type !== 'private') return;
         enqueueMediaUpload(ctx, 'video', ctx.message.video_note);
     } catch (err) {
         console.error('Video note handler hatası:', err.message);
@@ -2591,6 +2626,7 @@ const pendingZipUploads = new Map();
 
 bot.on('document', async (ctx) => {
     try {
+        if (ctx.chat && ctx.chat.type !== 'private') return;
         const doc = ctx.message.document;
         const mime = (doc.mime_type || '').toLowerCase();
         const fileName = (doc.file_name || '').toLowerCase();
@@ -5036,10 +5072,8 @@ async function main() {
         await syncStarTransactions();
         setInterval(syncStarTransactions, 30000);
 
-        // Her 1 saatte bir (60 dakika) otomatik Yıldız Paket Satış Bildirimi gönder
-        setInterval(() => {
-            sendHourlyStarPromo(false).catch((err) => console.error('Saatlik promosyon hatası:', err.message));
-        }, 60 * 60 * 1000);
+        // Otomatik saatlik promosyon spamı kullanıcı isteğiyle tamamen durduruldu
+        // (Sadece Admin panelinden manuel tetiklendiğinde çalışır)
 
         await bot.launch({
             allowedUpdates: [
@@ -5076,11 +5110,10 @@ function getStarPromoKeyboard() {
     ]);
 }
 
-// Toplu Promosyon Bildirimi Gönderme (Rate-limit korumalı ve güvenli)
+// Toplu Promosyon Bildirimi Gönderme (Rate-limit korumalı ve güvenli - SADECE ADMİN TETİKLEYEBİLİR)
 async function sendHourlyStarPromo(triggeredByAdmin = false) {
-    const settings = db.getSettings();
-    if (!triggeredByAdmin && settings.hourlyPromoEnabled === false) {
-        console.log('Saatlik promosyon bildirimi devre dışı bırakılmış, atlandı.');
+    if (!triggeredByAdmin) {
+        console.log('Otomatik promosyon dağıtımı devre dışı bırakılmıştır, atlandı.');
         return { sent: 0, failed: 0, skipped: true };
     }
 
@@ -5526,7 +5559,7 @@ bot.action('wheel_spin', async (ctx) => {
     if (ADMIN_ID) {
         bot.telegram.sendMessage(
             ADMIN_ID,
-            `🎰 <b>ÇARK ÇEVRİLDİ!</b>\n👤 <b>Kullanıcı:</b> ${escapeHtml(ctx.from.first_name || '')} (@${ctx.from.username || 'yok'})\n🆔 ID: <code>${userId}</code>\n🎁 <b>Kazanılan:</b> +${wonVideoCredits} Video Kredisi\n🎟️ Kalan Hak: ${spinRes.remaining}`,
+            `🎰 <b>ÇARK ÇEVRİLDİ!</b>\n👤 <b>Kullanıcı:</b> ${escapeHtml(ctx.from.first_name || '')} (@${ctx.from.username || 'yok'})\n🆔 ID: <code>${userId}</code>\n🎁 <b>Kazanılan:</b> +${prize.amount} ${prize.type === 'photo' ? 'Foto' : 'Video'} Kredisi\n🎟️ Kalan Hak: ${spinRes.remaining}`,
             { parse_mode: 'HTML' }
         ).catch(() => {});
     }

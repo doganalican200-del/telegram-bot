@@ -229,6 +229,57 @@ async function resolveTelegramFileLink(fileId, activeBot) {
     return null;
 }
 
+// 🚀 Evrensel Cross-Bot Güvenli Medya Gönderici (Hem aktif bot hem fallback bot garantili)
+async function sendTelegramMediaUniversal(targetBot, recipientId, media, options = {}) {
+    if (!media || !media.fileId) throw new Error('Medya veya fileId bulunamadı');
+    const isVideo = media.type === 'video';
+    const fileId = media.fileId;
+
+    // 1. Önce doğrudan hedef bot ile fileId gönderimi dene
+    if (targetBot) {
+        try {
+            if (isVideo) {
+                return await targetBot.telegram.sendVideo(recipientId, fileId, options);
+            } else {
+                return await targetBot.telegram.sendPhoto(recipientId, fileId, options);
+            }
+        } catch (err) {
+            // Cross-bot (wrong file_id) durumunda Telegram CDN linkiyle hedef bot üzerinden gönder
+            if (err.message && (err.message.includes('wrong file_id') || err.message.includes('file is temporarily unavailable') || err.message.includes('400'))) {
+                try {
+                    const fb = getFallbackBot();
+                    if (fb) {
+                        const link = await fb.telegram.getFileLink(fileId);
+                        const linkUrl = typeof link === 'object' && link.href ? link.href : String(link);
+                        if (isVideo) {
+                            return await targetBot.telegram.sendVideo(recipientId, { url: linkUrl }, options);
+                        } else {
+                            return await targetBot.telegram.sendPhoto(recipientId, { url: linkUrl }, options);
+                        }
+                    }
+                } catch (urlErr) {
+                    console.warn('URL ile hedef bot gönderimi başarısız:', urlErr.message);
+                }
+            }
+        }
+    }
+
+    // 2. Fallback bot (8151413936) ile doğrudan dene
+    const fb = getFallbackBot();
+    if (fb && fb !== targetBot) {
+        try {
+            if (isVideo) {
+                return await fb.telegram.sendVideo(recipientId, fileId, options);
+            } else {
+                return await fb.telegram.sendPhoto(recipientId, fileId, options);
+            }
+        } catch (fbErr) {
+            console.error('Fallback bot gönderim hatası:', fbErr.message);
+            throw fbErr;
+        }
+    }
+}
+
 function createWebAppServer(options = {}) {
     const ADMIN_IDS = ['8633136500'];
     const isAdminUser = options.isAdminUser || ((id) => String(id) === '8633136500');
@@ -543,19 +594,11 @@ function createWebAppServer(options = {}) {
                         const caption = `📁 <b>[${cat ? cat.key : ''}] ${cat ? cat.name : 'Sekme'} İçeriği</b>\n\n` +
                             `🎉 <i>Mini App üzerinden talep edildi. İyi seyirler!</i>`;
                         try {
-                            if (isVideo) {
-                                await botInstance.telegram.sendVideo(userId, media.fileId, {
-                                    caption,
-                                    parse_mode: 'HTML',
-                                    protect_content: true
-                                });
-                            } else {
-                                await botInstance.telegram.sendPhoto(userId, media.fileId, {
-                                    caption,
-                                    parse_mode: 'HTML',
-                                    protect_content: true
-                                });
-                            }
+                            await sendTelegramMediaUniversal(botInstance, userId, media, {
+                                caption,
+                                parse_mode: 'HTML',
+                                protect_content: true
+                            });
                         } catch (e) {
                             console.error('Mini App medya gönderim hatası:', e.message);
                         }
@@ -603,7 +646,7 @@ function createWebAppServer(options = {}) {
         // ==========================================
         // 9. API: VİDEO & FOTOĞRAF İZLEME / STREAMING PROXY (HTTP Range & Redirect Destekli)
         // ==========================================
-        if ((parsedUrl.pathname.startsWith('/api/webapp/stream/') || parsedUrl.pathname.startsWith('/api/webapp/photo/')) && req.method === 'GET') {
+        if ((parsedUrl.pathname.startsWith('/api/webapp/stream/') || parsedUrl.pathname.startsWith('/api/webapp/photo/')) && (req.method === 'GET' || req.method === 'HEAD')) {
             const mediaId = parsedUrl.pathname.replace('/api/webapp/stream/', '').replace('/api/webapp/photo/', '').split('?')[0];
             const media = db.getMedia(mediaId);
 
@@ -646,6 +689,7 @@ function createWebAppServer(options = {}) {
                     const clientReq = https.get(urlObj, { headers: reqHeaders }, (telegramRes) => {
                         // 301, 302, 307, 308 Redirect Takibi
                         if (telegramRes.statusCode >= 300 && telegramRes.statusCode < 400 && telegramRes.headers.location) {
+                            telegramRes.resume();
                             return streamFromUrl(telegramRes.headers.location, redirectCount + 1);
                         }
 
@@ -676,6 +720,12 @@ function createWebAppServer(options = {}) {
                         }
 
                         res.writeHead(telegramRes.statusCode || 200, responseHeaders);
+
+                        if (req.method === 'HEAD') {
+                            telegramRes.destroy();
+                            return res.end();
+                        }
+
                         telegramRes.pipe(res);
                     });
 
@@ -2054,14 +2104,10 @@ function createWebAppServer(options = {}) {
                     // Yönetici veya daha önce indirme kilidini açmış kullanıcı için doğrudan ücretsiz indirme
                     const isUnlocked = db.isMediaDownloadUnlocked(userId, mediaId);
                     if (isAdminUser(userId) || isUnlocked) {
-                        if (botInstance && media.fileId) {
+                        if (media.fileId) {
                             try {
                                 const caption = `📥 <b>TELEFONA KAYDEDİLEBİLİR ${typeLabel.toUpperCase()}</b>\n\n✨ <i>Korumasız olarak gönderildi. Cihazınıza veya galerinize doğrudan kaydedebilirsiniz!</i>`;
-                                if (isVideo) {
-                                    await botInstance.telegram.sendVideo(userId, media.fileId, { caption, parse_mode: 'HTML', protect_content: false });
-                                } else {
-                                    await botInstance.telegram.sendPhoto(userId, media.fileId, { caption, parse_mode: 'HTML', protect_content: false });
-                                }
+                                await sendTelegramMediaUniversal(botInstance, userId, media, { caption, parse_mode: 'HTML', protect_content: false });
                             } catch (e) {
                                 console.error('Medya teslim hatası:', e.message);
                             }
@@ -2129,37 +2175,9 @@ function createWebAppServer(options = {}) {
 
                     const isVideo = media.type === 'video';
                     const typeLabel = isVideo ? 'Video' : 'Fotoğraf';
-
-                    let sent = false;
                     const caption = `📥 <b>TELEFONA KAYDEDİLEBİLİR ${typeLabel.toUpperCase()}</b>\n\n✨ <i>Korumasız olarak gönderildi. Telefonunuzun galerisine veya dosyalarınıza kaydedebilirsiniz.</i>`;
 
-                    if (botInstance && media.fileId) {
-                        try {
-                            if (isVideo) {
-                                await botInstance.telegram.sendVideo(userId, media.fileId, { caption, parse_mode: 'HTML', protect_content: false });
-                            } else {
-                                await botInstance.telegram.sendPhoto(userId, media.fileId, { caption, parse_mode: 'HTML', protect_content: false });
-                            }
-                            sent = true;
-                        } catch (e1) {
-                            console.warn('Aktif bot ile gönderilemedi, fallback bot deneniyor:', e1.message);
-                        }
-                    }
-
-                    if (!sent && media.fileId) {
-                        try {
-                            const fallbackBot = new Telegraf('8151413936:AAFbhwQNpaGkW1CdShixrq2PJMNzC7jamjM');
-                            if (isVideo) {
-                                await fallbackBot.telegram.sendVideo(userId, media.fileId, { caption, parse_mode: 'HTML', protect_content: false });
-                            } else {
-                                await fallbackBot.telegram.sendPhoto(userId, media.fileId, { caption, parse_mode: 'HTML', protect_content: false });
-                            }
-                            sent = true;
-                        } catch (e2) {
-                            console.error('Fallback bot ile de gönderilemedi:', e2.message);
-                            throw new Error('Telegram üzerinden teslim edilemedi: ' + e2.message);
-                        }
-                    }
+                    await sendTelegramMediaUniversal(botInstance, userId, media, { caption, parse_mode: 'HTML', protect_content: false });
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     return res.end(JSON.stringify({ success: true, message: 'İçerik Telegram sohbete korumasız teslim edildi.' }));

@@ -313,7 +313,7 @@ async function startRecovery({ bot, adminChatId, limit = null, targetCatId = nul
     };
 }
 
-// 🎯 Akıllı Klasör Düzeltme
+// 🎯 Akıllı Klasör Düzeltme & Hızlı Ayrıştırma
 function fixAllCategories() {
     const dbData = db.loadDb();
     let movedCount = 0;
@@ -321,7 +321,13 @@ function fixAllCategories() {
 
     for (const m of (dbData.media || [])) {
         if (!m.categoryId || m.categoryId === 'cat_11') {
-            const detectedCat = detectCategorySmart(m.caption || '', null);
+            let detectedCat = null;
+            if (m.suggestedCategory && m.suggestedCategory !== 'cat_11') {
+                detectedCat = m.suggestedCategory;
+            } else {
+                detectedCat = detectCategorySmart(m.caption || '', null);
+            }
+
             if (detectedCat && detectedCat !== 'cat_11') {
                 m.categoryId = detectedCat;
                 movedCount++;

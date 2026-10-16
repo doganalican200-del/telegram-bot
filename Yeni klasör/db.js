@@ -62,6 +62,7 @@ function loadDb() {
             }
             dbCache.settings.refBonusPhotoCredits = 2;
             dbCache.settings.refBonusVideoCredits = 2;
+            dbCache.settings.hourlyPromoEnabled = false;
 
             for (const uid in dbCache.users) {
                 const u = dbCache.users[uid];
@@ -950,10 +951,19 @@ function addMediaStars(mediaId, starCount) {
     return 0;
 }
 
-// Medyayı ID ile getir
+// Medyayı ID ile getir (Esnek eşleşme: id, m_ id, fileId, fileUniqueId veya orderIndex)
 function getMedia(mediaId) {
+    if (!mediaId) return null;
     const db = loadDb();
-    return db.media.find(m => m.id === mediaId) || null;
+    const idStr = String(mediaId).trim();
+    return db.media.find(m => 
+        m.id === idStr || 
+        m.id === 'm_' + idStr || 
+        ('m_' + m.id) === idStr ||
+        m.fileId === idStr || 
+        m.fileUniqueId === idStr ||
+        String(m.orderIndex) === idStr
+    ) || null;
 }
 
 // Medyayı oyla (İyi / Kötü)
@@ -1832,17 +1842,10 @@ function autoHealUser(userId) {
         }
     }
 
-    // 5. 2 Yükle 1 Al İlerleme Telafisi (Gecikmiş Kredi Kontrolü)
+    // 5. İlerleme sayacı senkronizasyonu (Kafasına göre kredi dağıtımı yapmaz)
     const approvedUploads = (db.media || []).filter(m => String(m.uploadedBy) === uid && m.status === 'approved').length;
-    const progressCount = (user.videoProgress || 0);
-    if (approvedUploads > 0 && progressCount < approvedUploads) {
-        const diff = approvedUploads - progressCount;
-        const rewardOwed = Math.floor(diff / 2);
-        if (rewardOwed > 0) {
-            user.videoCredits = (user.videoCredits || 0) + rewardOwed;
-            user.videoProgress = approvedUploads;
-            fixes.push(`Onaylanan yüklemeleriniz taranarak eksik kalan +${rewardOwed} Video Kredisi hesabınıza eklendi!`);
-        }
+    if (approvedUploads > 0 && (user.videoProgress || 0) < approvedUploads) {
+        user.videoProgress = approvedUploads;
     }
 
     if (fixes.length > 0) {
