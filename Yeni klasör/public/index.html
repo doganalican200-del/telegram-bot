@@ -6,6 +6,15 @@
     <title>Medya Takas - Telegram Mini App</title>
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome 6 Pro/Free & RemixIcon (Official High-Quality Icons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
     <style>
         :root {
             --bg-color: var(--tg-theme-bg-color, #0a0f1d);
@@ -28,7 +37,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -958,36 +967,46 @@
             cursor: pointer;
         }
 
-        /* Alt Sabit Menü (5 Sekmeli) */
+        /* Alt Sabit Menü (Ultra Modern iOS / Telegram Floating Dock) */
         .bottom-nav {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            height: 64px;
-            background: rgba(10, 15, 29, 0.95);
-            backdrop-filter: blur(14px);
-            border-top: 1px solid var(--card-border);
+            height: 68px;
+            background: rgba(10, 15, 29, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.45);
             display: flex;
             justify-content: space-around;
             align-items: center;
             z-index: 1000;
-            padding: 0 4px;
+            padding: 0 6px 4px 6px;
         }
 
         .nav-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            font-size: 10px;
-            color: var(--hint-color);
+            justify-content: center;
+            gap: 3px;
+            font-size: 10.5px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            color: #94a3b8;
             cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
             user-select: none;
-            padding: 6px 2px;
+            padding: 6px 3px;
             flex: 1;
             text-align: center;
+            position: relative;
+        }
+
+        .nav-item:active {
+            transform: scale(0.92);
         }
 
         .nav-item.active {
@@ -999,21 +1018,35 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 24px;
-            height: 24px;
+            width: 32px;
+            height: 28px;
+            border-radius: 12px;
+            font-size: 19px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .nav-icon-svg {
-            width: 22px;
-            height: 22px;
-            display: block;
-            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), filter 0.25s;
-            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45));
+        .nav-item.active .nav-icon {
+            transform: translateY(-2px);
+            color: #38bdf8;
+            filter: drop-shadow(0 2px 8px rgba(56, 189, 248, 0.65));
         }
 
-        .nav-item.active .nav-icon-svg {
-            transform: scale(1.18) translateY(-2px);
-            filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.7));
+        .nav-item .active-pill-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #38bdf8;
+            position: absolute;
+            bottom: 2px;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.2s ease;
+            box-shadow: 0 0 6px #38bdf8;
+        }
+
+        .nav-item.active .active-pill-dot {
+            opacity: 1;
+            transform: scale(1);
         }
 
         /* Modal Sheet */
@@ -1290,10 +1323,7 @@
     <div class="header-bar">
         <div class="user-info">
             <div class="user-avatar" id="header-avatar">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="8" r="4.5" fill="#ffffff"/>
-                    <path d="M4 20C4 16 7.5 13.5 12 13.5C16.5 13.5 20 16 20 20" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
-                </svg>
+                <i class="fa-solid fa-circle-user" style="font-size:22px; color:#ffffff;"></i>
             </div>
             <div class="user-details">
                 <h3 id="header-username">Kullanıcı <span id="vip-badge" style="display:none; font-size:10px; background:#f59e0b; color:#000; padding:1px 5px; border-radius:6px; font-weight:800;">VIP</span></h3>
@@ -1302,31 +1332,15 @@
         </div>
         <div class="balance-badge">
             <div class="bal-pill photo" title="Resim Kredisi">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                    <rect x="2" y="6" width="20" height="15" rx="4" fill="currentColor"/>
-                    <circle cx="12" cy="13.5" r="4" fill="#0f172a" stroke="#ffffff" stroke-width="2"/>
-                    <path d="M7 6l1.5-3h7L17 6" fill="currentColor"/>
-                    <circle cx="18" cy="9.5" r="1.2" fill="#fff"/>
-                </svg>
+                <i class="fa-solid fa-camera" style="color:#ec4899; font-size:13px; margin-right:4px;"></i>
                 <span id="bal-photos">0</span>
             </div>
             <div class="bal-pill video" title="Video Kredisi">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                    <rect x="2" y="5" width="14" height="14" rx="3.5" fill="currentColor"/>
-                    <polygon points="17,9 22,5.5 22,18.5 17,15" fill="currentColor"/>
-                    <circle cx="9" cy="12" r="2.5" fill="#fff"/>
-                </svg>
+                <i class="fa-solid fa-clapperboard" style="color:#38bdf8; font-size:13px; margin-right:4px;"></i>
                 <span id="bal-videos">0</span>
             </div>
             <div class="bal-pill wheel" title="Şans Çarkı - Çarkı Açmak İçin Dokunun" onclick="openWheel()" style="cursor:pointer;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.5"/>
-                    <circle cx="12" cy="12" r="3" fill="currentColor"/>
-                    <line x1="12" y1="3" x2="12" y2="21" stroke="currentColor" stroke-width="2"/>
-                    <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/>
-                    <line x1="5.6" y1="5.6" x2="18.4" y2="18.4" stroke="currentColor" stroke-width="1.8"/>
-                    <line x1="18.4" y1="5.6" x2="5.6" y2="18.4" stroke="currentColor" stroke-width="1.8"/>
-                </svg>
+                <i class="fa-solid fa-dharmachakra" style="color:#f59e0b; font-size:14px; margin-right:4px;"></i>
                 <span id="bal-spins">0</span>
             </div>
         </div>
@@ -1338,19 +1352,19 @@
         <!-- 🎁 GÜNLÜK GİRİŞ ÖDÜLÜ KARTI -->
         <div class="daily-reward-card" id="daily-card">
             <div class="daily-top-row">
-                <span class="daily-badge">GÜNLÜK HEDİYE</span>
-                <span class="daily-streak-text" id="daily-streak-badge">🔥 1. Gün Serisi</span>
+                <span class="daily-badge"><i class="fa-solid fa-gift" style="margin-right:4px;"></i> GÜNLÜK HEDİYE</span>
+                <span class="daily-streak-text" id="daily-streak-badge"><i class="fa-solid fa-fire" style="color:#ef4444; margin-right:4px;"></i> 1. Gün Serisi</span>
             </div>
-            <div class="daily-title">🎁 Günlük Giriş Ödülü</div>
+            <div class="daily-title"><i class="fa-solid fa-gift" style="color:#fbbf24; margin-right:6px;"></i> Günlük Giriş Ödülü</div>
             <div class="daily-desc">
-                Her 24 saatte bir bota giriş yaparak ücretsiz fotoğraf ve video kredinizi alın!
+                Her 24 saatte bir bota giriş yaparak ücretsiz fotoğraf ve video kredinizi anında toplayın!
             </div>
             <div class="daily-perks">
-                <span class="daily-perk-tag" id="perk-photo"><svg width="12" height="12" viewBox="0 0 24 24" fill="#ec4899" style="vertical-align:middle;margin-right:3px;"><circle cx="12" cy="13" r="4"/><path d="M4 6h4l2-3h4l2 3h4a2 2 0 012 2v11a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z"/></svg>+1 Foto</span>
-                <span class="daily-perk-tag" id="perk-video"><svg width="12" height="12" viewBox="0 0 24 24" fill="#38bdf8" style="vertical-align:middle;margin-right:3px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>+1 Video</span>
+                <span class="daily-perk-tag" id="perk-photo"><i class="fa-solid fa-camera" style="color:#ec4899; margin-right:4px;"></i> +1 Foto</span>
+                <span class="daily-perk-tag" id="perk-video"><i class="fa-solid fa-clapperboard" style="color:#38bdf8; margin-right:4px;"></i> +1 Video</span>
             </div>
             <button class="daily-claim-btn" id="daily-btn" onclick="claimDailyReward()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                <i class="fa-solid fa-wand-magic-sparkles" style="font-size:15px; margin-right:6px;"></i>
                 <span id="daily-btn-text">Günlük Ödülü Topla (+2 Hediye)</span>
             </button>
         </div>
@@ -1367,9 +1381,9 @@
         </div>
 
         <div class="section-title">
-            <span>📁 Sekmeler & Arşivler</span>
+            <span><i class="fa-solid fa-layer-group" style="color:#38bdf8; margin-right:6px;"></i> Sekmeler & Arşivler</span>
             <span style="font-size:11px; color:var(--link-color); cursor:pointer;" onclick="switchNav('received', document.querySelectorAll('.nav-item')[1])">
-                📦 Aldıklarım Arşivi &rarr;
+                <i class="fa-solid fa-box-archive" style="margin-right:4px;"></i> Aldıklarım Arşivi &rarr;
             </span>
         </div>
 
@@ -1390,23 +1404,13 @@
         <!-- Alt Sekme Seçici (Videolar vs Fotoğraflar vs ZIP Arşivleri) -->
         <div class="subtab-switcher">
             <button class="subtab-btn active" id="subtab-btn-video" onclick="switchReceivedSubTab('video')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:middle; margin-right:4px;">
-                    <rect x="2" y="5" width="14" height="14" rx="3.5" fill="currentColor"/>
-                    <polygon points="17,9 22,5.5 22,18.5 17,15" fill="currentColor"/>
-                </svg> Videolar (<span id="received-videos-count">0</span>)
+                <i class="fa-solid fa-clapperboard" style="color:#38bdf8; font-size:14px; margin-right:6px;"></i> Videolar (<span id="received-videos-count">0</span>)
             </button>
             <button class="subtab-btn photo-tab" id="subtab-btn-photo" onclick="switchReceivedSubTab('photo')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:middle; margin-right:4px;">
-                    <rect x="2" y="6" width="20" height="15" rx="4" fill="currentColor"/>
-                    <circle cx="12" cy="13.5" r="4" fill="#0f172a" stroke="#ffffff" stroke-width="2"/>
-                    <path d="M7 6l1.5-3h7L17 6" fill="currentColor"/>
-                </svg> Fotoğraflar (<span id="received-photos-count">0</span>)
+                <i class="fa-solid fa-camera" style="color:#ec4899; font-size:14px; margin-right:6px;"></i> Fotoğraflar (<span id="received-photos-count">0</span>)
             </button>
             <button class="subtab-btn zip-tab" id="subtab-btn-zip" onclick="switchReceivedSubTab('zip')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:middle; margin-right:4px;">
-                    <rect x="3" y="4" width="18" height="16" rx="3.5" fill="#f59e0b"/>
-                    <rect x="8.5" y="10.5" width="7" height="5" rx="1.5" fill="#fde68a" stroke="#78350f" stroke-width="1"/>
-                </svg> ZIP Arşivlerim (<span id="received-zips-count">0</span>)
+                <i class="fa-solid fa-file-zipper" style="color:#f59e0b; font-size:14px; margin-right:6px;"></i> ZIP Arşivlerim (<span id="received-zips-count">0</span>)
             </button>
         </div>
 
@@ -1512,19 +1516,19 @@
             </div>
             <div class="media-type-selector" id="media-type-selector" style="display:flex; gap:8px;">
                 <div class="type-choice-btn selected" id="type-btn-all" onclick="setUploadMediaType('all')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                    <i class="fa-solid fa-shapes" style="font-size:15px; margin-right:6px;"></i>
                     Tümü (Karışık)
                 </div>
                 <div class="type-choice-btn" id="type-btn-video" onclick="setUploadMediaType('video')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="15" height="16" rx="3.5" fill="#38bdf8"/><polygon points="17,8.5 22,5 22,19 17,15.5" fill="#38bdf8"/></svg>
+                    <i class="fa-solid fa-clapperboard" style="color:#38bdf8; font-size:15px; margin-right:6px;"></i>
                     Video
                 </div>
                 <div class="type-choice-btn photo-choice" id="type-btn-photo" onclick="setUploadMediaType('photo')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="15" rx="4" fill="#ec4899"/><circle cx="12" cy="13.5" r="4" fill="#0f172a" stroke="#fff" stroke-width="2"/><path d="M7 6l1.5-3h7L17 6" fill="#ec4899"/></svg>
+                    <i class="fa-solid fa-camera" style="color:#ec4899; font-size:15px; margin-right:6px;"></i>
                     Fotoğraf
                 </div>
                 <div class="type-choice-btn" id="type-btn-zip" onclick="setUploadMediaType('zip')" style="display:none;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4" width="17" height="16" rx="3.5" fill="#f59e0b"/><rect x="8.5" y="10.5" width="7" height="5.5" rx="1.5" fill="#fde68a" stroke="#78350f" stroke-width="1"/></svg>
+                    <i class="fa-solid fa-file-zipper" style="color:#f59e0b; font-size:15px; margin-right:6px;"></i>
                     ZIP (Admin)
                 </div>
             </div>
@@ -1703,8 +1707,8 @@
             <!-- Neon Aydınlatma ve AI Rozeti -->
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
                 <div style="display:flex; align-items:center; gap:12px;">
-                    <div style="width:46px; height:46px; border-radius:14px; background:linear-gradient(135deg, #0284c7, #6366f1); display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px rgba(56, 189, 248, 0.4); font-size:24px; position:relative;">
-                        🤖
+                    <div style="width:46px; height:46px; border-radius:14px; background:linear-gradient(135deg, #0284c7, #6366f1); display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px rgba(56, 189, 248, 0.4); font-size:22px; color:#fff; position:relative;">
+                        <i class="fa-solid fa-robot"></i>
                         <span style="position:absolute; bottom:-2px; right:-2px; width:12px; height:12px; border-radius:50%; background:#10b981; border:2px solid #030712; box-shadow:0 0 8px #10b981;"></span>
                     </div>
                     <div>
@@ -1730,10 +1734,10 @@
             <!-- Canlı Teşhis & Sohbet Aksiyon Butonları -->
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                 <button onclick="runAiQuickDiagnose()" id="btn-ai-quick-diagnose" style="background:linear-gradient(135deg, #0284c7, #2563eb); border:none; color:#fff; font-size:11px; font-weight:800; padding:10px 8px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 14px rgba(2, 132, 199, 0.35);">
-                    <span>⚡</span> Akıllı Teşhis & Onar
+                    <i class="fa-solid fa-bolt" style="margin-right:4px;"></i> Akıllı Teşhis & Onar
                 </button>
                 <button onclick="openAiDoctorModal()" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18); color:#f8fafc; font-size:11px; font-weight:700; padding:10px 8px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-                    <span>💬</span> Yapay Zekaya Sor
+                    <i class="fa-solid fa-robot" style="margin-right:4px;"></i> Yapay Zekaya Sor
                 </button>
             </div>
 
@@ -1765,7 +1769,7 @@
                 Davet linkinizle gelen her yeni kullanıcı için hem Resim hem Video kredisi kazanın.
             </p>
             <button class="primary-action-btn" style="width:100%;" onclick="copyReferralLink()">
-                📋 Davet Linkini Kopyala
+                <i class="fa-solid fa-copy" style="margin-right:6px;"></i> Davet Linkini Kopyala
             </button>
         </div>
 
@@ -1773,8 +1777,8 @@
         <div id="admin-panel-container" style="display:none; margin-top:16px;">
             <div class="profile-card" style="border: 1px solid rgba(245, 158, 11, 0.4); background: linear-gradient(145deg, #182235 0%, rgba(245, 158, 11, 0.08) 100%);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:6px;">
-                    <div style="font-size:15px; font-weight:800; color:#f59e0b; display:flex; align-items:center; gap:6px;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#f59e0b"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
+                    <div style="font-size:15px; font-weight:800; color:#f59e0b; display:flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-shield-halved" style="font-size:18px; color:#f59e0b;"></i>
                         SİSTEM YÖNETİCİ PANELİ
                     </div>
                     <div style="display:flex; align-items:center; gap:6px;">
@@ -1814,10 +1818,10 @@
                         <span style="font-size:9.5px; background:#38bdf8; color:#000; font-weight:800; padding:2px 7px; border-radius:4px;">TAM OTOMATİK</span>
                     </div>
                     <div style="font-size:11px; color:#cbd5e1; line-height:1.45; margin-bottom:10px;">
-                        Tüm veritabanını, 2,146 medyayı, kategori bağlantılarını ve 135 kullanıcının hesaplarını tarayarak tutarsızlıkları tek tıkla otonom onarır.
+                        Tüm veritabanını, sistemdeki medyaları, kategori bağlantılarını ve kayıtlı kullanıcıların hesaplarını tarayarak tutarsızlıkları tek tıkla otonom onarır.
                     </div>
                     <button onclick="runAdminSystemAutoHeal()" id="btn-admin-system-autoheal" style="width:100%; background:linear-gradient(135deg, #0284c7, #6366f1); border:none; color:#fff; font-size:11.5px; font-weight:800; padding:10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 14px rgba(2, 132, 199, 0.35);">
-                        <span>🚀</span> 2,146 Medya & Tüm Sistemi Otomatik Onar
+                        <i class="fa-solid fa-screwdriver-wrench" style="margin-right:6px;"></i> Tüm Medyaları & Veritabanını Otomatik Onar
                     </button>
                     <div id="admin-system-autoheal-result" style="display:none; margin-top:10px; font-size:11px; padding:10px; border-radius:8px; line-height:1.45;"></div>
                 </div>
@@ -1851,17 +1855,17 @@
                     <!-- Actions -->
                     <div style="display:flex; flex-direction:column; gap:6px;">
                         <button onclick="cleanDuplicatesAdmin('all')" id="btn-admin-clean-dups" style="width:100%; background:linear-gradient(135deg, #dc2626, #b91c1c); border:none; color:#fff; font-size:11.5px; font-weight:800; padding:10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 14px rgba(220, 38, 38, 0.4);">
-                            <span>🗑️</span> Tüm Kopyaları Şimdi Sil (Orijinalleri Koru)
+                            <i class="fa-solid fa-trash-can" style="margin-right:6px;"></i> Tüm Kopyaları Şimdi Sil (Orijinalleri Koru)
                         </button>
                         <div style="display:flex; gap:6px;">
                             <button onclick="cleanDuplicatesAdmin('photo')" style="flex:1; background:#1e293b; border:1px solid rgba(245, 158, 11, 0.4); color:#fbbf24; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">
-                                📸 Sadece Foto Kopyaları Sil
+                                <i class="fa-solid fa-camera" style="margin-right:4px;"></i> Sadece Foto Kopyaları Sil
                             </button>
                             <button onclick="cleanDuplicatesAdmin('video')" style="flex:1; background:#1e293b; border:1px solid rgba(168, 85, 247, 0.4); color:#c084fc; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">
-                                🎥 Sadece Video Kopyaları Sil
+                                <i class="fa-solid fa-clapperboard" style="margin-right:4px;"></i> Sadece Video Kopyaları Sil
                             </button>
                             <button onclick="fetchDuplicateStats()" style="background:#1e293b; border:1px solid rgba(255,255,255,0.15); color:#94a3b8; font-size:10px; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Yeniden Tara">
-                                🔄 Tara
+                                <i class="fa-solid fa-rotate-right" style="margin-right:4px;"></i> Tara
                             </button>
                         </div>
                     </div>
@@ -2151,93 +2155,47 @@
 
     <!-- Alt Sabit Menü (6 Sekmeli) -->
     <div class="bottom-nav">
-        <!-- SVG Gradient Tanımları -->
-        <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
-            <defs>
-                <linearGradient id="navCatGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#38bdf8"/>
-                    <stop offset="100%" stop-color="#0284c7"/>
-                </linearGradient>
-                <linearGradient id="navBoxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#c084fc"/>
-                    <stop offset="100%" stop-color="#7c3aed"/>
-                </linearGradient>
-                <linearGradient id="navZipGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#fde047"/>
-                    <stop offset="100%" stop-color="#d97706"/>
-                </linearGradient>
-                <linearGradient id="navUpGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#34d399"/>
-                    <stop offset="100%" stop-color="#059669"/>
-                </linearGradient>
-                <linearGradient id="navCartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#fb7185"/>
-                    <stop offset="100%" stop-color="#e11d48"/>
-                </linearGradient>
-                <linearGradient id="navProfGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#60a5fa"/>
-                    <stop offset="100%" stop-color="#6366f1"/>
-                </linearGradient>
-            </defs>
-        </svg>
-
         <div class="nav-item active" onclick="switchNav('categories', this)">
             <div class="nav-icon">
-                <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 6.5C3 5.12 4.12 4 5.5 4H9.2c.8 0 1.55.38 2.02 1.02L12.3 6.5H18.5C19.88 6.5 21 7.62 21 9V17.5C21 18.88 19.88 20 18.5 20H5.5C4.12 20 3 18.88 3 17.5V6.5Z" fill="url(#navCatGrad)"/>
-                    <path d="M3 10H21" stroke="#ffffff" stroke-width="1" stroke-opacity="0.35"/>
-                </svg>
+                <i class="fa-solid fa-shapes"></i>
             </div>
             <span>Sekmeler</span>
+            <div class="active-pill-dot"></div>
         </div>
         <div class="nav-item" onclick="switchNav('received', this)">
             <div class="nav-icon">
-                <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2L20.5 6.5V17.5L12 22L3.5 17.5V6.5L12 2Z" fill="url(#navBoxGrad)"/>
-                    <path d="M12 22V11.5M12 11.5L20.5 6.5M12 11.5L3.5 6.5" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/>
-                </svg>
+                <i class="fa-solid fa-box-archive"></i>
             </div>
             <span>Aldıklarım</span>
+            <div class="active-pill-dot"></div>
         </div>
         <div class="nav-item" onclick="switchNav('zips', this)">
             <div class="nav-icon">
-                <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none">
-                    <rect x="3.5" y="4" width="17" height="16" rx="3.5" fill="url(#navZipGrad)"/>
-                    <path d="M10 4V20M14 4V20" stroke="#000000" stroke-width="1.5" stroke-dasharray="2 1.5" opacity="0.6"/>
-                    <rect x="8.5" y="10.5" width="7" height="5.5" rx="1.5" fill="#fde68a" stroke="#78350f" stroke-width="1"/>
-                    <circle cx="12" cy="13.2" r="1" fill="#78350f"/>
-                </svg>
+                <i class="fa-solid fa-file-zipper" style="color:#f59e0b;"></i>
             </div>
             <span>ZIP Arşivi</span>
+            <div class="active-pill-dot"></div>
         </div>
         <div class="nav-item" onclick="switchNav('upload', this)">
-            <div class="nav-icon">
-                <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="9.5" fill="url(#navUpGrad)"/>
-                    <path d="M12 7V17M12 7L8 11M12 7L16 11" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+            <div class="nav-icon" style="background:linear-gradient(135deg, #0284c7, #6366f1); color:#fff; width:36px; height:32px; border-radius:12px; box-shadow:0 3px 10px rgba(2, 132, 199, 0.4);">
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size:16px;"></i>
             </div>
-            <span>Yükle</span>
+            <span style="font-weight:700;">Yükle</span>
+            <div class="active-pill-dot"></div>
         </div>
         <div class="nav-item" onclick="switchNav('packages', this)">
             <div class="nav-icon">
-                <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none">
-                    <circle cx="9" cy="19.5" r="1.8" fill="#fff"/>
-                    <circle cx="18" cy="19.5" r="1.8" fill="#fff"/>
-                    <path d="M2.5 4H5L7.6 15.2H19.5L22 6.5H5.8" stroke="url(#navCartGrad)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <polygon points="13.5,8 14.5,10.2 16.8,10.5 15.1,12 15.6,14.2 13.5,13.1 11.4,14.2 11.9,12 10.2,10.5 12.5,10.2" fill="#fbbf24"/>
-                </svg>
+                <i class="fa-solid fa-gem" style="color:#a855f7;"></i>
             </div>
             <span>Market</span>
+            <div class="active-pill-dot"></div>
         </div>
         <div class="nav-item" onclick="switchNav('profile', this)">
             <div class="nav-icon">
-                <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="8" r="4.5" fill="url(#navProfGrad)"/>
-                    <path d="M4 20C4 16 7.5 13.5 12 13.5C16.5 13.5 20 16 20 20" stroke="url(#navProfGrad)" stroke-width="2.5" stroke-linecap="round"/>
-                </svg>
+                <i class="fa-solid fa-circle-user"></i>
             </div>
             <span>Profilim</span>
+            <div class="active-pill-dot"></div>
         </div>
     </div>
 
@@ -2283,7 +2241,7 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <button id="admin-btn-fast-triage" onclick="openFastTriageStudio(currentAdminCatId)" style="background:linear-gradient(135deg, #7c3aed, #ec4899); border:none; color:#fff; font-size:11px; font-weight:800; padding:6px 10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 2px 8px rgba(168, 85, 247, 0.4);">
-                        <span>⚡</span> Hızlı Ayrıştır
+                        <i class="fa-solid fa-wand-magic-sparkles" style="margin-right:4px;"></i> Hızlı Ayrıştır
                     </button>
                     <button class="close-btn" onclick="closeAdminCatModal()">✕</button>
                 </div>
@@ -2292,9 +2250,9 @@
             <!-- Filter tabs -->
             <div style="display:flex; gap:6px; margin-bottom:10px; overflow-x:auto; padding-bottom:4px;">
                 <button class="admin-tab-btn active" id="admin-tab-all" onclick="filterAdminCatMedia('all')">Tümü (<span id="admin-cnt-all">0</span>)</button>
-                <button class="admin-tab-btn" id="admin-tab-video" onclick="filterAdminCatMedia('video')">🎬 Videolar (<span id="admin-cnt-vid">0</span>)</button>
-                <button class="admin-tab-btn" id="admin-tab-photo" onclick="filterAdminCatMedia('photo')">🖼️ Fotoğraflar (<span id="admin-cnt-pho">0</span>)</button>
-                <button class="admin-tab-btn" id="admin-tab-admin" onclick="filterAdminCatUploader('admin')" style="background:rgba(245, 158, 11, 0.15); border-color:#f59e0b; color:#fbbf24; display:none;">👑 Admin İçerikleri (<span id="admin-cnt-mine">0</span>)</button>
+                <button class="admin-tab-btn" id="admin-tab-video" onclick="filterAdminCatMedia('video')"><i class="fa-solid fa-clapperboard" style="color:#38bdf8; margin-right:4px;"></i> Videolar (<span id="admin-cnt-vid">0</span>)</button>
+                <button class="admin-tab-btn" id="admin-tab-photo" onclick="filterAdminCatMedia('photo')"><i class="fa-solid fa-camera" style="color:#ec4899; margin-right:4px;"></i> Fotoğraflar (<span id="admin-cnt-pho">0</span>)</button>
+                <button class="admin-tab-btn" id="admin-tab-admin" onclick="filterAdminCatUploader('admin')" style="background:rgba(245, 158, 11, 0.15); border-color:#f59e0b; color:#fbbf24; display:none;"><i class="fa-solid fa-crown" style="color:#fbbf24; margin-right:4px;"></i> Admin İçerikleri (<span id="admin-cnt-mine">0</span>)</button>
             </div>
 
             <!-- Sıralama ve Arama Çubuğu -->
@@ -2325,10 +2283,10 @@
                         <option value="">📂 Hedef Klasör Seçin...</option>
                     </select>
                     <button onclick="executeBulkMove()" style="background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; border:none; border-radius:8px; padding:7px 14px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                        <span>📦</span> Aktar / Taşı
+                        <i class="fa-solid fa-arrow-right-arrow-left" style="margin-right:4px;"></i> Aktar / Taşı
                     </button>
                     <button onclick="executeBulkDelete()" style="background:linear-gradient(135deg, #ef4444, #b91c1c); color:#fff; border:none; border-radius:8px; padding:7px 12px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                        <span>🗑️</span> Toplu Sil
+                        <i class="fa-solid fa-trash-can" style="margin-right:4px;"></i> Toplu Sil
                     </button>
                 </div>
             </div>
@@ -2341,10 +2299,10 @@
             <!-- Bottom Quick Buttons -->
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
                 <button onclick="requestAdminQuickMedia('video')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#fff; border-radius:8px; padding:9px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-                    <span>🎥</span> Rastgele Video Çek
+                    <i class="fa-solid fa-clapperboard" style="color:#38bdf8; margin-right:4px;"></i> Rastgele Video Çek
                 </button>
                 <button onclick="requestAdminQuickMedia('photo')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#fff; border-radius:8px; padding:9px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-                    <span>📸</span> Rastgele Foto Çek
+                    <i class="fa-solid fa-camera" style="color:#ec4899; margin-right:4px;"></i> Rastgele Foto Çek
                 </button>
             </div>
         </div>
@@ -2370,8 +2328,8 @@
                 </select>
                 <div style="display:flex; gap:4px;">
                     <button class="admin-tab-btn active" id="triage-filter-all" onclick="setTriageTypeFilter('all')">Tümü</button>
-                    <button class="admin-tab-btn" id="triage-filter-video" onclick="setTriageTypeFilter('video')">🎬 Video</button>
-                    <button class="admin-tab-btn" id="triage-filter-photo" onclick="setTriageTypeFilter('photo')">🖼️ Foto</button>
+                    <button class="admin-tab-btn" id="triage-filter-video" onclick="setTriageTypeFilter('video')"><i class="fa-solid fa-clapperboard" style="color:#38bdf8; margin-right:4px;"></i> Video</button>
+                    <button class="admin-tab-btn" id="triage-filter-photo" onclick="setTriageTypeFilter('photo')"><i class="fa-solid fa-camera" style="color:#ec4899; margin-right:4px;"></i> Foto</button>
                 </div>
             </div>
 
@@ -2489,11 +2447,11 @@
             <!-- Önceki / Sonraki Butonları -->
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:14px;">
                 <button class="video-nav-btn" id="btn-prev-video" onclick="playAdjacentVideo(-1)">
-                    <span>⏮️</span> Önceki
+                    <i class="fa-solid fa-backward-step" style="margin-right:4px;"></i> Önceki
                 </button>
                 <span id="vp-counter" style="font-size:12px; color:var(--hint-color); font-weight:700;">1 / 1</span>
                 <button class="video-nav-btn" id="btn-next-video" onclick="playAdjacentVideo(1)">
-                    Sonraki <span>⏭️</span>
+                    Sonraki <i class="fa-solid fa-forward-step" style="margin-left:4px;"></i>
                 </button>
             </div>
 
@@ -2568,11 +2526,11 @@
             <!-- Önceki / Sonraki Butonları -->
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:14px;">
                 <button class="video-nav-btn" id="btn-prev-photo" onclick="playAdjacentPhoto(-1)">
-                    <span>⏮️</span> Önceki
+                    <i class="fa-solid fa-backward-step" style="margin-right:4px;"></i> Önceki
                 </button>
                 <span id="pv-counter" style="font-size:12px; color:var(--hint-color); font-weight:700;">1 / 1</span>
                 <button class="video-nav-btn" id="btn-next-photo" onclick="playAdjacentPhoto(1)">
-                    Sonraki <span>⏭️</span>
+                    Sonraki <i class="fa-solid fa-forward-step" style="margin-left:4px;"></i>
                 </button>
             </div>
 
@@ -3058,22 +3016,22 @@
                 const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
 
                 const CAT_THEMES = {
-                    'cat_1': { color: '#f43f5e', bg: 'linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(244, 63, 94, 0.45)', icon: '🔥' },
-                    'cat_2': { color: '#06b6d4', bg: 'linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(6, 182, 212, 0.45)', icon: '⚡' },
-                    'cat_3': { color: '#ef4444', bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(239, 68, 68, 0.45)', icon: '🚨' },
-                    'cat_4': { color: '#a855f7', bg: 'linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(168, 85, 247, 0.45)', icon: '👑' },
-                    'cat_5': { color: '#38bdf8', bg: 'linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(56, 189, 248, 0.45)', icon: '💎' },
-                    'cat_6': { color: '#10b981', bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(16, 185, 129, 0.45)', icon: '🎯' },
-                    'cat_7': { color: '#f59e0b', bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(245, 158, 11, 0.45)', icon: '🌟' },
-                    'cat_8': { color: '#fb7185', bg: 'linear-gradient(135deg, rgba(251, 113, 133, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(251, 113, 133, 0.45)', icon: '📹' },
-                    'cat_9': { color: '#818cf8', bg: 'linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(129, 140, 248, 0.45)', icon: '📱' },
-                    'cat_10': { color: '#ec4899', bg: 'linear-gradient(135deg, rgba(236, 72, 153, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(236, 72, 153, 0.45)', icon: '🔞' },
-                    'cat_11': { color: '#0ea5e9', bg: 'linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(14, 165, 233, 0.45)', icon: '📦' }
+                    'cat_1': { color: '#f43f5e', bg: 'linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(244, 63, 94, 0.45)', icon: '<i class="fa-solid fa-fire-flame-curved" style="color:#f43f5e;"></i>' },
+                    'cat_2': { color: '#06b6d4', bg: 'linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(6, 182, 212, 0.45)', icon: '<i class="fa-solid fa-bolt-lightning" style="color:#06b6d4;"></i>' },
+                    'cat_3': { color: '#ef4444', bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(239, 68, 68, 0.45)', icon: '<i class="fa-solid fa-shield-halved" style="color:#ef4444;"></i>' },
+                    'cat_4': { color: '#a855f7', bg: 'linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(168, 85, 247, 0.45)', icon: '<i class="fa-solid fa-crown" style="color:#eab308;"></i>' },
+                    'cat_5': { color: '#38bdf8', bg: 'linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(56, 189, 248, 0.45)', icon: '<i class="fa-solid fa-gem" style="color:#38bdf8;"></i>' },
+                    'cat_6': { color: '#10b981', bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(16, 185, 129, 0.45)', icon: '<i class="fa-solid fa-bullseye" style="color:#10b981;"></i>' },
+                    'cat_7': { color: '#f59e0b', bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(245, 158, 11, 0.45)', icon: '<i class="fa-solid fa-star" style="color:#f59e0b;"></i>' },
+                    'cat_8': { color: '#fb7185', bg: 'linear-gradient(135deg, rgba(251, 113, 133, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(251, 113, 133, 0.45)', icon: '<i class="fa-solid fa-video" style="color:#fb7185;"></i>' },
+                    'cat_9': { color: '#818cf8', bg: 'linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(129, 140, 248, 0.45)', icon: '<i class="fa-solid fa-mobile-screen-button" style="color:#818cf8;"></i>' },
+                    'cat_10': { color: '#ec4899', bg: 'linear-gradient(135deg, rgba(236, 72, 153, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(236, 72, 153, 0.45)', icon: '<i class="fa-solid fa-lock" style="color:#ec4899;"></i>' },
+                    'cat_11': { color: '#0ea5e9', bg: 'linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(14, 165, 233, 0.45)', icon: '<i class="fa-solid fa-file-zipper" style="color:#0ea5e9;"></i>' }
                 };
 
                 categoriesData.forEach(c => {
                     const isStar = !isAdmin && !!c.starCfg;
-                    const theme = CAT_THEMES[c.id] || { color: '#38bdf8', bg: 'rgba(15,23,42,0.85)', border: 'var(--card-border)', icon: '📁' };
+                    const theme = CAT_THEMES[c.id] || { color: '#38bdf8', bg: 'rgba(15,23,42,0.85)', border: 'var(--card-border)', icon: '<i class="fa-solid fa-folder" style="color:#38bdf8;"></i>' };
 
                     html += `
                         <div class="cat-card ${isStar ? 'star-card' : ''}" onclick="openCatModal('${c.id}')" style="background:${theme.bg}; border:1px solid ${theme.border}; position:relative; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.3);">
@@ -3393,38 +3351,117 @@
         let currentViewerItems = [];
         let currentViewerIndex = 0;
 
-        // 🌟 BİRLEŞİK EVRENSEL MEDYA OYNATICI (VİDEO & FOTOĞRAF KESİNTİSİZ GEÇİŞ)
-        function openUnifiedMediaViewer(items, index) {
-            if (!items || items.length === 0) return;
-            currentViewerItems = items;
-            currentViewerIndex = Math.max(0, Math.min(index, items.length - 1));
-            const item = currentViewerItems[currentViewerIndex];
-            if (!item) return;
+        // 🎬 ÖZEL HIZLI VİDEO OYNATICI (Sadece Videolar Arası Ultra Hızlı Geçiş)
+        function openVideoPlayer(index) {
+            const videoItems = (receivedData.items || []).filter(m => m.type === 'video');
+            if (!videoItems || videoItems.length === 0) return;
+            currentViewerItems = videoItems;
+            currentViewerIndex = Math.max(0, Math.min(index, videoItems.length - 1));
+            const video = currentViewerItems[currentViewerIndex];
+            if (!video) return;
 
-            const isVideo = item.type === 'video';
-            if (isVideo) {
-                closePhotoViewer();
-                renderVideoViewer(item, currentViewerIndex, currentViewerItems.length);
-            } else {
-                closeVideoPlayer();
-                renderPhotoViewer(item, currentViewerIndex, currentViewerItems.length);
+            closePhotoViewer();
+            renderVideoViewer(video, currentViewerIndex, currentViewerItems.length);
+        }
+
+        function playAdjacentVideo(offset) {
+            if (!currentViewerItems || currentViewerItems.length === 0) return;
+            const newIndex = currentViewerIndex + offset;
+            if (newIndex >= 0 && newIndex < currentViewerItems.length) {
+                currentViewerIndex = newIndex;
+                renderVideoViewer(currentViewerItems[currentViewerIndex], currentViewerIndex, currentViewerItems.length);
+            } else if (newIndex >= currentViewerItems.length) {
+                currentViewerIndex = 0;
+                showToast('Videoların sonuna gelindi, ilk videoya dönüldü.', 'ℹ️');
+                renderVideoViewer(currentViewerItems[0], 0, currentViewerItems.length);
+            } else if (newIndex < 0) {
+                currentViewerIndex = currentViewerItems.length - 1;
+                showToast('İlk videodasınız, son videoya geçildi.', 'ℹ️');
+                renderVideoViewer(currentViewerItems[currentViewerIndex], currentViewerIndex, currentViewerItems.length);
             }
         }
 
-        function playAdjacentUnifiedMedia(offset) {
-            if (!currentViewerItems || currentViewerItems.length === 0) {
-                showToast('Görüntülenecek başka medya yok.', 'ℹ️');
-                return;
-            }
+        // 📸 ÖN YÜKLEME (PRELOAD) ÖNBELLEĞİ — Fotoğrafları anında açmak için
+        const photoPreloadCache = new Map();
+        function preloadAdjacentPhotos(items, currentIndex) {
+            if (!items || items.length === 0) return;
+            const nextIdx = (currentIndex + 1) % items.length;
+            const prevIdx = (currentIndex - 1 + items.length) % items.length;
+            [nextIdx, prevIdx].forEach(idx => {
+                const item = items[idx];
+                if (item && item.type === 'photo' && !photoPreloadCache.has(item.id)) {
+                    const img = new Image();
+                    img.src = `/api/webapp/stream/${item.id}?userId=${tgUser.id}`;
+                    photoPreloadCache.set(item.id, img);
+                }
+            });
+        }
+
+        // 🎬 ÖZEL HIZLI VİDEO OYNATICI (Sadece Videolar Arası Ultra Hızlı & Akıcı Geçiş)
+        function openVideoPlayer(index) {
+            const videoItems = (receivedData.items || []).filter(m => m.type === 'video');
+            if (!videoItems || videoItems.length === 0) return;
+            currentViewerItems = videoItems;
+            currentViewerIndex = Math.max(0, Math.min(index, videoItems.length - 1));
+            const video = currentViewerItems[currentViewerIndex];
+            if (!video) return;
+
+            closePhotoViewer();
+            renderVideoViewer(video, currentViewerIndex, currentViewerItems.length);
+        }
+
+        function playAdjacentVideo(offset) {
+            if (!currentViewerItems || currentViewerItems.length === 0) return;
             const newIndex = currentViewerIndex + offset;
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
             if (newIndex >= 0 && newIndex < currentViewerItems.length) {
-                openUnifiedMediaViewer(currentViewerItems, newIndex);
+                currentViewerIndex = newIndex;
+                renderVideoViewer(currentViewerItems[currentViewerIndex], currentViewerIndex, currentViewerItems.length);
             } else if (newIndex >= currentViewerItems.length) {
-                showToast('Listenin sonuna ulaşıldı, başa dönülüyor...', 'ℹ️');
-                openUnifiedMediaViewer(currentViewerItems, 0);
+                currentViewerIndex = 0;
+                showToast('Videoların sonuna gelindi, ilk videoya dönüldü.', 'ℹ️');
+                renderVideoViewer(currentViewerItems[0], 0, currentViewerItems.length);
             } else if (newIndex < 0) {
-                showToast('Listenin başındasınız, en sona gidiliyor...', 'ℹ️');
-                openUnifiedMediaViewer(currentViewerItems, currentViewerItems.length - 1);
+                currentViewerIndex = currentViewerItems.length - 1;
+                showToast('İlk videodasınız, son videoya geçildi.', 'ℹ️');
+                renderVideoViewer(currentViewerItems[currentViewerIndex], currentViewerIndex, currentViewerItems.length);
+            }
+        }
+
+        // 📸 ÖZEL HIZLI FOTOĞRAF GÖRÜNTÜLEYİCİ (Ön Yüklemeli & Dokunmatik Kaydırmalı Anında Galeri)
+        function openPhotoViewer(index) {
+            const photoItems = (receivedData.items || []).filter(m => m.type === 'photo');
+            if (!photoItems || photoItems.length === 0) return;
+            currentViewerItems = photoItems;
+            currentViewerIndex = Math.max(0, Math.min(index, photoItems.length - 1));
+            const photo = currentViewerItems[currentViewerIndex];
+            if (!photo) return;
+
+            closeVideoPlayer();
+            renderPhotoViewer(photo, currentViewerIndex, currentViewerItems.length);
+            preloadAdjacentPhotos(currentViewerItems, currentViewerIndex);
+        }
+
+        function playAdjacentPhoto(offset) {
+            if (!currentViewerItems || currentViewerItems.length === 0) return;
+            const newIndex = currentViewerIndex + offset;
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+            if (newIndex >= 0 && newIndex < currentViewerItems.length) {
+                currentViewerIndex = newIndex;
+                renderPhotoViewer(currentViewerItems[currentViewerIndex], currentViewerIndex, currentViewerItems.length);
+                preloadAdjacentPhotos(currentViewerItems, currentViewerIndex);
+            } else if (newIndex >= currentViewerItems.length) {
+                currentViewerIndex = 0;
+                showToast('Fotoğrafların sonuna gelindi, ilk fotoğrafa dönüldü.', 'ℹ️');
+                renderPhotoViewer(currentViewerItems[0], 0, currentViewerItems.length);
+                preloadAdjacentPhotos(currentViewerItems, 0);
+            } else if (newIndex < 0) {
+                currentViewerIndex = currentViewerItems.length - 1;
+                showToast('İlk fotoğraftasınız, son fotoğrafa geçildi.', 'ℹ️');
+                renderPhotoViewer(currentViewerItems[currentViewerIndex], currentViewerIndex, currentViewerItems.length);
+                preloadAdjacentPhotos(currentViewerItems, currentViewerIndex);
             }
         }
 
@@ -3484,8 +3521,8 @@
                 videoPlayer.play().catch(() => {});
             }
 
+            setupSwipeGesture('video-player-modal', playAdjacentVideo);
             updateWatermarkUserId(tgUser?.id);
-            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
             document.getElementById('video-player-modal').classList.add('active');
         }
 
@@ -3532,7 +3569,12 @@
 
             const photoElem = document.getElementById('active-photo-elem');
             if (photoElem) {
-                photoElem.onload = () => { if (pLoading) pLoading.style.display = 'none'; };
+                photoElem.style.opacity = '0.3';
+                photoElem.style.transition = 'opacity 0.2s ease';
+                photoElem.onload = () => {
+                    photoElem.style.opacity = '1';
+                    if (pLoading) pLoading.style.display = 'none';
+                };
                 photoElem.onerror = () => {
                     if (pLoading) pLoading.style.display = 'none';
                     if (pError) pError.style.display = 'flex';
@@ -3541,13 +3583,48 @@
                 photoElem.src = `/api/webapp/stream/${photo.id}?userId=${tgUser.id}`;
             }
 
+            setupSwipeGesture('photo-viewer-modal', playAdjacentPhoto);
             updateWatermarkUserId(tgUser?.id);
-            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
             document.getElementById('photo-viewer-modal').classList.add('active');
         }
 
-        function openVideoPlayer(index) {
-            openUnifiedMediaViewer(receivedData.items || [], index);
+        // 👆 AKILLI DOKUNMATİK KAYDIRMA (SWIPE GESTURE: SAĞA/SOLA KAYDIRIP GEÇME)
+        const activeSwipeListeners = new Map();
+        function setupSwipeGesture(containerId, changeFn) {
+            const el = document.getElementById(containerId);
+            if (!el || activeSwipeListeners.has(containerId)) return;
+
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let touchEndX = 0;
+            let touchEndY = 0;
+
+            el.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            }, { passive: true });
+
+            el.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                touchEndY = e.changedTouches[0].screenY;
+                handleSwipeGesture();
+            }, { passive: true });
+
+            function handleSwipeGesture() {
+                const diffX = touchEndX - touchStartX;
+                const diffY = touchEndY - touchStartY;
+                // Yatay kaydırma dikeyden baskınsa ve en az 45px ise
+                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 45) {
+                    if (diffX < 0) {
+                        // Sola kaydırdı -> Sonraki
+                        changeFn(1);
+                    } else {
+                        // Sağa kaydırdı -> Önceki
+                        changeFn(-1);
+                    }
+                }
+            }
+            activeSwipeListeners.set(containerId, true);
         }
 
         function closeVideoPlayer() {
@@ -3568,14 +3645,6 @@
             if (e.target.id === 'video-player-modal') closeVideoPlayer();
         }
 
-        function playAdjacentVideo(offset) {
-            playAdjacentUnifiedMedia(offset);
-        }
-
-        function openPhotoViewer(index) {
-            openUnifiedMediaViewer(receivedData.items || [], index);
-        }
-
         function closePhotoViewer() {
             const photoElem = document.getElementById('active-photo-elem');
             if (photoElem) photoElem.src = '';
@@ -3589,10 +3658,6 @@
 
         function closePhotoViewerOnOverlay(e) {
             if (e.target.id === 'photo-viewer-modal') closePhotoViewer();
-        }
-
-        function playAdjacentPhoto(offset) {
-            playAdjacentUnifiedMedia(offset);
         }
 
         // 🌟 TEKİL / HERHANGİ BİR EKRANDAN DOĞRUDAN MEDYA İZLEME / GÖRÜNTÜLEME
@@ -4192,8 +4257,8 @@
                 <div style="background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.25), transparent 70%), linear-gradient(145deg, #182032 0%, #0c1222 100%); border: 1.5px solid rgba(245, 158, 11, 0.45); border-radius: 16px; padding: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 14px;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 10px;">
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg, #f59e0b, #d97706); display:flex; align-items:center; justify-content:center; box-shadow:0 0 15px rgba(245, 158, 11, 0.4); font-size:22px;">
-                                👑
+                            <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg, #f59e0b, #d97706); display:flex; align-items:center; justify-content:center; box-shadow:0 0 15px rgba(245, 158, 11, 0.4); font-size:20px; color:#fff;">
+                                <i class="fa-solid fa-crown"></i>
                             </div>
                             <div>
                                 <div style="font-size:15px; font-weight:800; color:#fbbf24; text-shadow:0 1px 4px rgba(0,0,0,0.8);">Geçici Krallık (VIP)</div>
@@ -4211,7 +4276,7 @@
                         ✨ <b>Krallık Ayrıcalıkları:</b> Tüm sekmelerden kredisiz sınırsız izleme & çekme, bekleme süresi yok, telefona/TG sohbete ücretsiz indirme ve her alımda <b>+1 ile +5 arası Şans Çarkı Hediyesi</b> 🎡!
                     </div>
 
-                    <!-- 3 Seçenek (1 Gün, 3 Gün, 7 Gün) -->
+                    <!-- 3 Seçenek (1 Gün, 3 Gün, 7 Gün) - YALNIZCA YILDIZ İLE SATIN ALINIR -->
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
                         <!-- 1 Günlük -->
                         <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px; display:flex; flex-direction:column; justify-content:space-between; gap:6px;">
@@ -4220,10 +4285,7 @@
                                 <div style="font-size:10px; color:#10b981; font-weight:700;">+1 Şans Çarkı 🎡</div>
                             </div>
                             <div style="display:flex; flex-direction:column; gap:4px; margin-top:4px;">
-                                <button onclick="buyVipWithCreditsUI('1_day', 1, 10)" style="background:linear-gradient(135deg, #0284c7, #0369a1); border:none; color:#fff; font-size:10px; font-weight:700; padding:5px 6px; border-radius:6px; cursor:pointer;">
-                                    💎 10 Kredi ile Al
-                                </button>
-                                <button onclick="buyMarketPackage('vip_1_day')" style="background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:10px; font-weight:800; padding:5px 6px; border-radius:6px; cursor:pointer;">
+                                <button onclick="buyMarketPackage('vip_1_day')" style="background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:11px; font-weight:800; padding:8px 6px; border-radius:6px; cursor:pointer;">
                                     ⭐ 100 Yıldız
                                 </button>
                             </div>
@@ -4237,10 +4299,7 @@
                                 <div style="font-size:10px; color:#10b981; font-weight:700;">+2 Şans Çarkı 🎡</div>
                             </div>
                             <div style="display:flex; flex-direction:column; gap:4px; margin-top:4px;">
-                                <button onclick="buyVipWithCreditsUI('3_days', 3, 25)" style="background:linear-gradient(135deg, #0284c7, #0369a1); border:none; color:#fff; font-size:10px; font-weight:700; padding:5px 6px; border-radius:6px; cursor:pointer;">
-                                    💎 25 Kredi ile Al
-                                </button>
-                                <button onclick="buyMarketPackage('vip_3_days')" style="background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:10px; font-weight:800; padding:5px 6px; border-radius:6px; cursor:pointer;">
+                                <button onclick="buyMarketPackage('vip_3_days')" style="background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:11px; font-weight:800; padding:8px 6px; border-radius:6px; cursor:pointer;">
                                     ⭐ 250 Yıldız
                                 </button>
                             </div>
@@ -4253,10 +4312,7 @@
                                 <div style="font-size:10px; color:#10b981; font-weight:700;">+5 Şans Çarkı 🎡</div>
                             </div>
                             <div style="display:flex; flex-direction:column; gap:4px; margin-top:4px;">
-                                <button onclick="buyVipWithCreditsUI('7_days', 7, 50)" style="background:linear-gradient(135deg, #0284c7, #0369a1); border:none; color:#fff; font-size:10px; font-weight:700; padding:5px 6px; border-radius:6px; cursor:pointer;">
-                                    💎 50 Kredi ile Al
-                                </button>
-                                <button onclick="buyMarketPackage('vip_unlimited')" style="background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:10px; font-weight:800; padding:5px 6px; border-radius:6px; cursor:pointer;">
+                                <button onclick="buyMarketPackage('vip_unlimited')" style="background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:11px; font-weight:800; padding:8px 6px; border-radius:6px; cursor:pointer;">
                                     ⭐ 450 Yıldız
                                 </button>
                             </div>
@@ -4327,7 +4383,7 @@
                     const isFeatured = pkg.badge.includes('ÖMÜR BOYU') || pkg.badge.includes('MEGA') || pkg.badge.includes('EN ÇOK');
 
                     const perksHtml = (pkg.perks || []).map(perk => `
-                        <li><span style="color:#10b981; font-weight:bold;">✓</span> ${perk}</li>
+                        <li><i class="fa-solid fa-circle-check" style="color:#10b981; font-size:12px; margin-right:6px;"></i> ${perk}</li>
                     `).join('');
 
                     html += `
@@ -4348,7 +4404,7 @@
                                         Admin Aktif
                                        </button>`
                                     : `<button class="market-buy-btn" onclick="buyMarketPackage('${pkg.id}')">
-                                        <span>⚡</span> Satın Al
+                                        <i class="fa-solid fa-bolt" style="margin-right:4px;"></i> Satın Al
                                        </button>`
                                 }
                             </div>
@@ -4372,7 +4428,7 @@
                                 📄 Dosya: <b>${escapeHtml(zip.name || zip.title)}</b> • Boyut: <b style="color:#f59e0b;">${zip.fileSizeFormatted || (zip.fileSize ? (zip.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : 'Özel Arşiv')}</b>
                             </div>
                             <ul class="market-perks-list">
-                                <li><span style="color:#f59e0b; font-weight:bold;">✓</span> Arşiv Boyutu: <b>${zip.fileSizeFormatted || (zip.fileSize ? (zip.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : '2 GB\'a kadar')}</b></li>
+                                <li><i class="fa-solid fa-circle-check" style="color:#f59e0b; font-size:12px; margin-right:6px;"></i> Arşiv Boyutu: <b>${zip.fileSizeFormatted || (zip.fileSize ? (zip.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : '2 GB\'a kadar')}</b></li>
                                 <li><span style="color:#ef4444; font-weight:bold;">•</span> <b>VIP Üyeliğe Dahil Değildir (Özel Arşiv)</b></li>
                                 <li><span style="color:#10b981; font-weight:bold;">✓</span> Telegram Sohbetinize & Telefona Doğrudan İndirme</li>
                             </ul>
@@ -4728,7 +4784,7 @@
             } catch (err) {
                 showToast('Hata: ' + err.message, '❌');
             } finally {
-                if (btn) btn.innerHTML = `<span>🚀</span> 2,146 Medya & Tüm Sistemi Otomatik Onar`;
+                if (btn) btn.innerHTML = `<span>🚀</span> Tüm Medyaları & Veritabanını Otomatik Onar`;
             }
         }
 
@@ -5361,13 +5417,72 @@
             requestMediaFromCat(currentAdminCatId, type, isStar);
         }
 
-        // Kategori Klasörünü Aç (Tüm Kullanıcılar İçin Klasör İçi Sıralı İzleme)
+        // Kategori Klasörünü Aç (Sadece Admin için Yönetim Ekranı Açılır, Normal Kullanıcılar İçin Satın Alma/Çekme Modal'ı Açılır)
         function openCatModal(catId) {
-            openAdminCategoryModal(catId);
+            const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
+            if (isAdmin) {
+                return openAdminCategoryModal(catId);
+            }
+
+            // Normal Kullanıcı Modalı
+            const cat = (categoriesData || []).find(c => c.id === catId);
+            if (!cat) return;
+
+            selectedCategory = cat;
+            const modal = document.getElementById('cat-modal');
+            const titleEl = document.getElementById('modal-cat-title');
+            const descEl = document.getElementById('modal-cat-desc');
+            const vidCntEl = document.getElementById('modal-videos-count');
+            const phoCntEl = document.getElementById('modal-photos-count');
+            const actionBox = document.getElementById('modal-action-buttons');
+
+            if (titleEl) titleEl.innerText = `[${cat.key}] ${cat.name}`;
+            if (descEl) descEl.innerText = cat.description || `${cat.name} sekmesinden fotoğraf ve videolar.`;
+            if (vidCntEl) vidCntEl.innerText = cat.stats?.approvedVideos || 0;
+            if (phoCntEl) phoCntEl.innerText = cat.stats?.approvedPhotos || 0;
+
+            const isStar = !!cat.starCfg;
+            const vidPrice = cat.starCfg ? cat.starCfg.videoPrice : 2;
+            const phoPrice = cat.starCfg ? cat.starCfg.photoPrice : 1;
+
+            if (actionBox) {
+                if (isStar) {
+                    actionBox.innerHTML = `
+                        <div style="font-size:11.5px; color:#cbd5e1; line-height:1.45; background:rgba(245, 158, 11, 0.1); border:1px solid rgba(245, 158, 11, 0.3); border-radius:10px; padding:10px; margin-bottom:12px;">
+                            ⭐ <b>Özel Yıldızlı Sekme:</b> Bu sekmedeki içerikler Telegram Yıldızı ile satın alınır. Satın aldığınız içerikler <b>hemen Telegram sohbetinize gönderilir</b> ve <b>Aldıklarım Arşivinize</b> süresiz eklenir. Asla aynı içerik tekrar verilmez!
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <button onclick="requestMediaFromCat('${cat.id}', 'video', true)" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#000; border:none; padding:12px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 15px rgba(245, 158, 11, 0.35);">
+                                <span>🎥</span> 1 Video İzle & Arşivle (⭐ ${vidPrice} Yıldız)
+                            </button>
+                            <button onclick="requestMediaFromCat('${cat.id}', 'photo', true)" style="background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; border:none; padding:11px; border-radius:10px; font-weight:800; font-size:12.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 15px rgba(2, 132, 199, 0.3);">
+                                <span>📸</span> 1 Fotoğraf İzle & Arşivle (⭐ ${phoPrice} Yıldız)
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    const isVip = !!(currentUser?.isVip);
+                    const vCred = currentUser?.videoCredits || 0;
+                    const pCred = currentUser?.photoCredits || 0;
+                    actionBox.innerHTML = `
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <button onclick="requestMediaFromCat('${cat.id}', 'video', false)" style="background:linear-gradient(135deg, #0284c7, #2563eb); color:#fff; border:none; padding:12px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 15px rgba(2, 132, 199, 0.35);">
+                                <span>🎥</span> 1 Video Çek (${isVip ? '👑 VIP Sınırsız' : `1 Kredi • Bakiye: ${vCred}`})
+                            </button>
+                            <button onclick="requestMediaFromCat('${cat.id}', 'photo', false)" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); color:#f8fafc; padding:11px; border-radius:10px; font-weight:700; font-size:12.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                                <span>📸</span> 1 Resim Çek (${isVip ? '👑 VIP Sınırsız' : `1 Kredi • Bakiye: ${pCred}`})
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+
+            if (modal) modal.classList.add('active');
         }
 
         function closeCatModal() {
-            document.getElementById('cat-modal').classList.remove('active');
+            const modal = document.getElementById('cat-modal');
+            if (modal) modal.classList.remove('active');
         }
 
         function closeModalOnOverlay(e) {
@@ -5456,7 +5571,16 @@
             
             const target = document.getElementById(`tab-${tabId}`);
             if (target) target.classList.add('active');
-            if (el) el.classList.add('active');
+            if (el) {
+                el.classList.add('active');
+            } else {
+                const navOrder = { 'categories': 0, 'received': 1, 'zips': 2, 'upload': 3, 'packages': 4, 'profile': 5 };
+                const idx = navOrder[tabId];
+                if (idx !== undefined) {
+                    const navItems = document.querySelectorAll('.nav-item');
+                    if (navItems[idx]) navItems[idx].classList.add('active');
+                }
+            }
 
             if (tabId === 'received') {
                 loadReceivedMedia();

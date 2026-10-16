@@ -1543,19 +1543,30 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
         const typeLabel = isVideo ? 'Video' : 'Fotoğraf';
         const nextPrice = isVideo ? starCfg.videoPrice : starCfg.photoPrice;
 
-        // Sekmeden medya çek (kredi düşmeden)
+        // Sekmeden medya çek (kredi düşmeden, görülenleri kesinlikle atla)
         let media = db.getRandomMedia(uid, type, targetCatId, true);
         if (!media) {
+            // Eğer kullanıcının görmediği medya kalmadıysa, aynı medyayı ASLA tekrar atma
             const allCatMedia = db.getCategoryMedia(targetCatId, type);
-            if (allCatMedia && allCatMedia.length > 0) {
-                media = allCatMedia[Math.floor(Math.random() * allCatMedia.length)];
+            const userObj = db.getUser(uid);
+            const seenSet = new Set(userObj?.seenMedia || []);
+            const unseens = (allCatMedia || []).filter(m => !seenSet.has(m.id));
+            if (unseens.length > 0) {
+                media = unseens[Math.floor(Math.random() * unseens.length)];
+                if (userObj) {
+                    if (!userObj.seenMedia) userObj.seenMedia = [];
+                    userObj.seenMedia.push(media.id);
+                    if (type === 'video') userObj.receivedVideos = (userObj.receivedVideos || 0) + 1;
+                    else userObj.receivedPhotos = (userObj.receivedPhotos || 0) + 1;
+                    db.saveDb();
+                }
             }
         }
 
         successMsg = `🎉 <b>ÖDEME BAŞARILI!</b>\n\n` +
             `⭐ <b>Ödenen:</b> ${totalAmount} Telegram Yıldızı\n` +
             `📂 <b>Sekme:</b> [${cat?.key || ''}] ${cat?.name || 'Özel Sekme'}\n\n` +
-            `<i>${typeLabel} içeriğiniz aşağıda gönderiliyor...</i>`;
+            `<i>${typeLabel} içeriğiniz aşağıda gönderiliyor ve doğrudan Aldıklarım Arşivinize eklendi...</i>`;
 
         if (media) {
             setTimeout(async () => {
