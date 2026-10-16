@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const { Telegraf } = require('telegraf');
 const db = require('./db');
+const recovery = require('./recovery');
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
@@ -552,14 +553,17 @@ function createWebAppServer(options = {}) {
         }
 
         // ==========================================
-        // 9. API: VİDEO & FOTOĞRAF İZLEME / STREAMING PROXY (HTTP Range Destekli)
+        // 9. API: VİDEO & FOTOĞRAF İZLEME / STREAMING PROXY (HTTP Range & Redirect Destekli)
         // ==========================================
         if (parsedUrl.pathname.startsWith('/api/webapp/stream/') && req.method === 'GET') {
             const mediaId = parsedUrl.pathname.replace('/api/webapp/stream/', '').split('?')[0];
             const media = db.getMedia(mediaId);
 
             if (!media) {
-                res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                res.writeHead(404, { 
+                    'Content-Type': 'text/plain; charset=utf-8',
+                    'Access-Control-Allow-Origin': '*'
+                });
                 return res.end('Medya bulunamadı');
             }
 
@@ -569,13 +573,13 @@ function createWebAppServer(options = {}) {
             let fileLink = null;
             // 1. Önce aktif bot ile link almayı dene
             try {
-                if (botInstance) {
+                if (botInstance && media.fileId) {
                     fileLink = await botInstance.telegram.getFileLink(media.fileId);
                 }
             } catch (_) {}
 
             // 2. Eğer yetersiz/hata olursa ana bot ile almayı dene
-            if (!fileLink) {
+            if (!fileLink && media.fileId) {
                 try {
                     const fallbackBot = new Telegraf('8151413936:AAFbhwQNpaGkW1CdShixrq2PJMNzC7jamjM');
                     fileLink = await fallbackBot.telegram.getFileLink(media.fileId);
@@ -585,38 +589,80 @@ function createWebAppServer(options = {}) {
             }
 
             if (!fileLink) {
-                res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' });
-                return res.end('Medya kaynağına erişilemedi');
+                res.writeHead(502, { 
+                    'Content-Type': 'text/plain; charset=utf-8',
+                    'Access-Control-Allow-Origin': '*'
+                });
+                return res.end('Medya kaynağına erişilemedi (Telegram sınırı veya dosya silinmiş)');
             }
 
-            // HTTP Range ve Stream Desteği
+            // HTTP Range ve Stream Desteği (Redirect ve CORS tam destekli)
             const https = require('https');
-            const range = req.headers.range;
-            const headers = {};
-            if (range) headers['Range'] = range;
+            const targetUrlStr = typeof fileLink === 'object' && fileLink.href ? fileLink.href : String(fileLink);
 
-            const clientReq = https.get(fileLink.href, { headers }, (telegramRes) => {
-                const responseHeaders = {
-                    'Content-Type': defaultContentType,
-                    'Accept-Ranges': 'bytes',
-                    'Cache-Control': 'public, max-age=86400'
-                };
-                if (telegramRes.headers['content-length']) {
-                    responseHeaders['Content-Length'] = telegramRes.headers['content-length'];
-                }
-                if (telegramRes.headers['content-range']) {
-                    responseHeaders['Content-Range'] = telegramRes.headers['content-range'];
+            function streamFromUrl(urlStr, redirectCount = 0) {
+                if (redirectCount > 5) {
+                    res.writeHead(500, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
+                    return res.end('Too many redirects');
                 }
 
-                res.writeHead(telegramRes.statusCode || 200, responseHeaders);
-                telegramRes.pipe(res);
-            });
+                try {
+                    const urlObj = new URL(urlStr);
+                    const reqHeaders = {};
+                    if (req.headers.range) reqHeaders['Range'] = req.headers.range;
 
-            clientReq.on('error', (err) => {
-                console.error('Medya stream pipe hatası:', err.message);
-                if (!res.headersSent) res.writeHead(500);
-                res.end();
-            });
+                    const clientReq = https.get(urlObj, { headers: reqHeaders }, (telegramRes) => {
+                        // 301, 302, 307, 308 Redirect Takibi
+                        if (telegramRes.statusCode >= 300 && telegramRes.statusCode < 400 && telegramRes.headers.location) {
+                            return streamFromUrl(telegramRes.headers.location, redirectCount + 1);
+                        }
+
+                        if (telegramRes.statusCode >= 400) {
+                            res.writeHead(telegramRes.statusCode, { 
+                                'Content-Type': 'text/plain; charset=utf-8',
+                                'Access-Control-Allow-Origin': '*' 
+                            });
+                            return res.end('Telegram stream hatası: ' + telegramRes.statusCode);
+                        }
+
+                        const responseHeaders = {
+                            'Access-Control-Allow-Origin': '*',
+                            'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                            'Access-Control-Allow-Headers': 'Content-Type, Range',
+                            'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges',
+                            'Content-Type': defaultContentType,
+                            'Accept-Ranges': 'bytes',
+                            'Cache-Control': 'public, max-age=86400',
+                            'Content-Disposition': 'inline'
+                        };
+
+                        if (telegramRes.headers['content-length']) {
+                            responseHeaders['Content-Length'] = telegramRes.headers['content-length'];
+                        }
+                        if (telegramRes.headers['content-range']) {
+                            responseHeaders['Content-Range'] = telegramRes.headers['content-range'];
+                        }
+
+                        res.writeHead(telegramRes.statusCode || 200, responseHeaders);
+                        telegramRes.pipe(res);
+                    });
+
+                    clientReq.on('error', (err) => {
+                        console.error('Medya stream pipe hatası:', err.message);
+                        if (!res.headersSent) {
+                            res.writeHead(500, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
+                            res.end('Stream hatası: ' + err.message);
+                        }
+                    });
+                } catch (urlErr) {
+                    if (!res.headersSent) {
+                        res.writeHead(500, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
+                        res.end('URL parse hatası');
+                    }
+                }
+            }
+
+            streamFromUrl(targetUrlStr, 0);
             return;
         }
 
@@ -1448,6 +1494,68 @@ function createWebAppServer(options = {}) {
         }
 
         // ==========================================
+        // 14K. API: ADMİN KURTARMA DURUMU & KONTROLÜ
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/recovery-status' && req.method === 'GET') {
+            const userId = parsedUrl.searchParams.get('userId');
+            if (!isAdminUser(userId)) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim.' }));
+            }
+
+            const state = recovery.getRecoveryState();
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({ success: true, state }));
+        }
+
+        // ==========================================
+        // 14L. API: ADMİN KURTARMA EYLEMİ (BAŞLAT / DEVAM ET / DURDUR / DÜZELT)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/recovery-action' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, action, targetCatId, limit } = data;
+
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim.' }));
+                    }
+
+                    if (action === 'stop' || action === 'pause') {
+                        recovery.stopRecovery();
+                        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({ success: true, message: 'Kurtarma duraklatıldı.' }));
+                    }
+
+                    if (action === 'fix_categories') {
+                        const result = recovery.fixAllCategories();
+                        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({ success: true, message: `${result.movedCount} adet medya akıllı olarak uygun kategorilere dağıtıldı.`, ...result }));
+                    }
+
+                    const isResume = action === 'resume';
+                    const runRes = await recovery.startRecovery({
+                        bot: botInstance,
+                        adminChatId: userId,
+                        limit: limit ? parseInt(limit, 10) : null,
+                        targetCatId: targetCatId || null,
+                        resume: isResume
+                    });
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify(runRes));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
         // 15. API: TEK YÖNETİCİ ADMIN DASHBOARD (8633136500)
         // ==========================================
         if (parsedUrl.pathname === '/api/webapp/admin/dashboard' && req.method === 'GET') {
@@ -1894,12 +2002,34 @@ function createWebAppServer(options = {}) {
                     const isVideo = media.type === 'video';
                     const typeLabel = isVideo ? 'Video' : 'Fotoğraf';
 
+                    let sent = false;
+                    const caption = `📥 <b>TELEFONA KAYDEDİLEBİLİR ${typeLabel.toUpperCase()}</b>\n\n✨ <i>Korumasız olarak gönderildi. Telefonunuzun galerisine veya dosyalarınıza kaydedebilirsiniz.</i>`;
+
                     if (botInstance && media.fileId) {
-                        const caption = `📥 <b>TELEFONA KAYDEDİLEBİLİR ${typeLabel.toUpperCase()}</b>\n\n✨ <i>Korumasız olarak gönderildi. Telefonunuzun galerisine veya dosyalarınıza kaydedebilirsiniz.</i>`;
-                        if (isVideo) {
-                            await botInstance.telegram.sendVideo(userId, media.fileId, { caption, parse_mode: 'HTML', protect_content: false });
-                        } else {
-                            await botInstance.telegram.sendPhoto(userId, media.fileId, { caption, parse_mode: 'HTML', protect_content: false });
+                        try {
+                            if (isVideo) {
+                                await botInstance.telegram.sendVideo(userId, media.fileId, { caption, parse_mode: 'HTML', protect_content: false });
+                            } else {
+                                await botInstance.telegram.sendPhoto(userId, media.fileId, { caption, parse_mode: 'HTML', protect_content: false });
+                            }
+                            sent = true;
+                        } catch (e1) {
+                            console.warn('Aktif bot ile gönderilemedi, fallback bot deneniyor:', e1.message);
+                        }
+                    }
+
+                    if (!sent && media.fileId) {
+                        try {
+                            const fallbackBot = new Telegraf('8151413936:AAFbhwQNpaGkW1CdShixrq2PJMNzC7jamjM');
+                            if (isVideo) {
+                                await fallbackBot.telegram.sendVideo(userId, media.fileId, { caption, parse_mode: 'HTML', protect_content: false });
+                            } else {
+                                await fallbackBot.telegram.sendPhoto(userId, media.fileId, { caption, parse_mode: 'HTML', protect_content: false });
+                            }
+                            sent = true;
+                        } catch (e2) {
+                            console.error('Fallback bot ile de gönderilemedi:', e2.message);
+                            throw new Error('Telegram üzerinden teslim edilemedi: ' + e2.message);
                         }
                     }
 

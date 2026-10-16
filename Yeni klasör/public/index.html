@@ -1756,6 +1756,72 @@
                     </div>
                 </div>
 
+                <!-- ⚡ GELİŞMİŞ MEDYA KURTARMA & AKILLI KLASÖR DÜZENLEME -->
+                <div style="margin-top:14px; margin-bottom:14px; background:linear-gradient(145deg, rgba(30, 27, 75, 0.45), rgba(15, 23, 42, 0.6)); border:1px solid rgba(139, 92, 246, 0.4); border-radius:12px; padding:14px; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;">
+                        <div style="font-size:13px; font-weight:800; color:#c084fc; display:flex; align-items:center; gap:6px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                            <span>Kanal Medyalarını Kurtarma & Klasörleme</span>
+                        </div>
+                        <span id="adm-recov-status-badge" style="background:rgba(139, 92, 246, 0.2); color:#c084fc; border:1px solid rgba(139, 92, 246, 0.4); font-size:10px; font-weight:800; padding:2px 8px; border-radius:10px;">
+                            Beklemede
+                        </span>
+                    </div>
+
+                    <div style="font-size:11px; color:#cbd5e1; line-height:1.4; margin-bottom:10px;">
+                        Kanaldaki geçmiş medyaları otomatik tarar, kesilirse <b>kaldığı mesaj numarasından</b> devam eder ve doğrudan uygulamaya aktarır.
+                    </div>
+
+                    <!-- İlerleme Çubuğu ve Bilgi Kutusu -->
+                    <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.07); border-radius:8px; padding:10px; margin-bottom:12px;">
+                        <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px;">
+                            <span style="color:var(--hint-color);">Durum: <b id="adm-recov-status-text" style="color:#fff;">Hazır</b></span>
+                            <span style="color:#a855f7; font-weight:800;" id="adm-recov-percent">0%</span>
+                        </div>
+                        <div style="width:100%; height:8px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden; margin-bottom:8px;">
+                            <div id="adm-recov-progress-bar" style="width:0%; height:100%; background:linear-gradient(90deg, #8b5cf6, #ec4899); border-radius:4px; transition:width 0.3s ease;"></div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; font-size:10px; text-align:center;">
+                            <div style="background:rgba(255,255,255,0.03); padding:4px; border-radius:4px;">
+                                <div style="color:var(--hint-color);">Kaldığı Mesaj</div>
+                                <div id="adm-recov-last-msg" style="font-weight:700; color:#38bdf8;">-</div>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03); padding:4px; border-radius:4px;">
+                                <div style="color:var(--hint-color);">Taranan</div>
+                                <div id="adm-recov-scanned" style="font-weight:700; color:#f59e0b;">0</div>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03); padding:4px; border-radius:4px;">
+                                <div style="color:var(--hint-color);">Kurtarılan</div>
+                                <div id="adm-recov-recovered" style="font-weight:700; color:#10b981;">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hedef Klasör Seçimi -->
+                    <div style="margin-bottom:10px; display:flex; gap:8px; align-items:center;">
+                        <label style="font-size:11px; color:var(--hint-color); white-space:nowrap;">Hedef Klasör:</label>
+                        <select id="adm-recov-target-cat" style="flex:1; background:#0f172a; border:1px solid var(--card-border); color:#fff; padding:6px 8px; border-radius:6px; font-size:11px;">
+                            <option value="auto">🤖 Otomatik Akıllı Sınıflandır</option>
+                        </select>
+                    </div>
+
+                    <!-- İşlem Butonları -->
+                    <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px;">
+                        <button id="adm-recov-btn-resume" onclick="handleAdminRecoveryAction('resume')" style="background:linear-gradient(135deg, #059669, #10b981); border:none; color:#fff; font-size:11px; font-weight:800; padding:9px 10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; box-shadow:0 2px 8px rgba(16, 185, 129, 0.3);">
+                            ▶️ Kaldığı Yerden Devam Et
+                        </button>
+                        <button id="adm-recov-btn-stop" onclick="handleAdminRecoveryAction('stop')" style="background:rgba(239, 68, 68, 0.2); border:1px solid #ef4444; color:#f87171; font-size:11px; font-weight:800; padding:9px 10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+                            ⏸️ Duraklat / Beklet
+                        </button>
+                        <button id="adm-recov-btn-fast" onclick="handleAdminRecoveryAction('start', 2000)" style="background:linear-gradient(135deg, #0284c7, #38bdf8); border:none; color:#000; font-size:11px; font-weight:800; padding:9px 10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+                            ⚡ Son 2.000'i Hızlı Tara
+                        </button>
+                        <button id="adm-recov-btn-fixcat" onclick="handleAdminRecoveryAction('fix_categories')" style="background:linear-gradient(135deg, #7c3aed, #a855f7); border:none; color:#fff; font-size:11px; font-weight:800; padding:9px 10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+                            🎯 Klasörleri Akıllı Düzenle
+                        </button>
+                    </div>
+                </div>
+
                 <!-- 👑 KATILAN KİŞİLER (ÜYE YÖNETİMİ) -->
                 <div style="margin-top:14px; margin-bottom:14px; background:rgba(0,0,0,0.3); border:1px solid rgba(56, 189, 248, 0.35); border-radius:12px; padding:12px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;">
@@ -2067,10 +2133,26 @@
             </div>
 
             <!-- Video Player -->
-            <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; background:#000; box-shadow: 0 8px 24px rgba(0,0,0,0.6); margin-bottom:14px;">
-                <video id="active-video-elem" controls controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false;" playsinline preload="auto" style="width:100%; max-height:55vh; display:block; outline:none; background:#000;">
+            <div style="position:relative; width:100%; min-height:240px; border-radius:14px; overflow:hidden; background:#000; box-shadow: 0 8px 24px rgba(0,0,0,0.6); margin-bottom:14px; display:flex; align-items:center; justify-content:center;">
+                <video id="active-video-elem" controls controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false;" playsinline webkit-playsinline preload="auto" style="width:100%; max-height:55vh; display:block; outline:none; background:#000;">
                     Tarayıcınız video oynatmayı desteklemiyor.
                 </video>
+                <!-- Yükleniyor Spinner -->
+                <div id="video-loading-spinner" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.7); flex-direction:column; align-items:center; justify-content:center; gap:10px; z-index:5;">
+                    <div style="width:36px; height:36px; border:3px solid rgba(56,189,248,0.2); border-top-color:#38bdf8; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
+                    <div style="font-size:12px; color:#38bdf8; font-weight:700;">Video Yükleniyor...</div>
+                </div>
+                <!-- Hata Durumu Fallback Kutusu -->
+                <div id="video-error-banner" style="display:none; position:absolute; inset:0; background:rgba(15,23,42,0.96); flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; gap:10px; z-index:6;">
+                    <div style="font-size:32px;">⚠️</div>
+                    <div style="font-size:13px; font-weight:800; color:#f87171;">Tarayıcıda Oynatılamadı</div>
+                    <div style="font-size:11px; color:#cbd5e1; max-width:270px; line-height:1.4;">
+                        Bu video Telegram korumalı veya 20 MB üzeri olabilir. Telegram sohbetinize anında göndererek izleyebilirsiniz:
+                    </div>
+                    <button onclick="sendActiveMediaToTelegramChat()" style="background:linear-gradient(135deg, #0284c7, #38bdf8); border:none; color:#000; font-weight:800; font-size:12px; padding:9px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(56,189,248,0.3);">
+                        <span>📱</span> Telegram Sohbetinde İzle
+                    </button>
+                </div>
                 <div class="anti-ss-watermark">
                     <div class="anti-ss-watermark-text" id="video-ss-watermark">🔒 KORUMALI İÇERİK • TELEGRAM TAKAS BOT</div>
                 </div>
@@ -2134,6 +2216,22 @@
             <!-- Photo Container -->
             <div style="position:relative; width:100%; border-radius:14px; overflow:hidden; background:#000; box-shadow: 0 8px 24px rgba(0,0,0,0.6); margin-bottom:14px; display:flex; justify-content:center; align-items:center; min-height:220px;">
                 <img id="active-photo-elem" src="" alt="Görüntüleniyor..." draggable="false" oncontextmenu="return false;" style="max-width:100%; max-height:55vh; object-fit:contain; display:block; border-radius:8px;">
+                <!-- Fotoğraf Yükleniyor Spinner -->
+                <div id="photo-loading-spinner" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.7); flex-direction:column; align-items:center; justify-content:center; gap:10px; z-index:5;">
+                    <div style="width:36px; height:36px; border:3px solid rgba(236,72,153,0.2); border-top-color:#ec4899; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
+                    <div style="font-size:12px; color:#ec4899; font-weight:700;">Fotoğraf Yükleniyor...</div>
+                </div>
+                <!-- Fotoğraf Hata Fallback Kutusu -->
+                <div id="photo-error-banner" style="display:none; position:absolute; inset:0; background:rgba(15,23,42,0.96); flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; gap:10px; z-index:6;">
+                    <div style="font-size:32px;">🖼️</div>
+                    <div style="font-size:13px; font-weight:800; color:#f87171;">Fotoğraf Yüklenemedi</div>
+                    <div style="font-size:11px; color:#cbd5e1; max-width:270px; line-height:1.4;">
+                        Fotoğraf doğrudan yüklenemedi. Telegram sohbetinize hemen gönderebilirsiniz:
+                    </div>
+                    <button onclick="sendActiveMediaToTelegramChat()" style="background:linear-gradient(135deg, #0284c7, #38bdf8); border:none; color:#000; font-weight:800; font-size:12px; padding:9px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(56,189,248,0.3);">
+                        <span>📱</span> Telegram Sohbetine Gönder
+                    </button>
+                </div>
                 <div class="anti-ss-watermark">
                     <div class="anti-ss-watermark-text" id="photo-ss-watermark">🔒 KORUMALI İÇERİK • TELEGRAM TAKAS BOT</div>
                 </div>
@@ -2886,6 +2984,11 @@
             document.getElementById('vp-category-text').innerText = `📁 [${video.categoryKey || ''}] ${video.categoryName || 'Sekme'}`;
             document.getElementById('vp-counter').innerText = `${currentPlayingIndex + 1} / ${items.length}`;
 
+            const vLoading = document.getElementById('video-loading-spinner');
+            const vError = document.getElementById('video-error-banner');
+            if (vLoading) vLoading.style.display = 'flex';
+            if (vError) vError.style.display = 'none';
+
             // İndirme / Telefona Kaydetme Buton Durumu (Video: 25 Yıldız, Admin: Ücretsiz)
             const dlBtn = document.getElementById('vp-btn-download');
             const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
@@ -2904,6 +3007,14 @@
             }
 
             const videoPlayer = document.getElementById('active-video-elem');
+            videoPlayer.onloadstart = () => { if (vLoading) vLoading.style.display = 'flex'; if (vError) vError.style.display = 'none'; };
+            videoPlayer.oncanplay = () => { if (vLoading) vLoading.style.display = 'none'; };
+            videoPlayer.onplaying = () => { if (vLoading) vLoading.style.display = 'none'; };
+            videoPlayer.onerror = () => {
+                if (vLoading) vLoading.style.display = 'none';
+                if (vError) vError.style.display = 'flex';
+            };
+
             videoPlayer.src = `/api/webapp/stream/${video.id}?userId=${tgUser.id}`;
             videoPlayer.load();
             videoPlayer.play().catch(() => {});
@@ -2916,6 +3027,10 @@
             const videoPlayer = document.getElementById('active-video-elem');
             videoPlayer.pause();
             videoPlayer.src = '';
+            const vLoading = document.getElementById('video-loading-spinner');
+            const vError = document.getElementById('video-error-banner');
+            if (vLoading) vLoading.style.display = 'none';
+            if (vError) vError.style.display = 'none';
             document.getElementById('video-player-modal').classList.remove('active');
         }
 
@@ -2945,6 +3060,11 @@
             document.getElementById('pv-category-text').innerText = `📁 [${photo.categoryKey || ''}] ${photo.categoryName || 'Sekme'}`;
             document.getElementById('pv-counter').innerText = `${currentPhotoIndex + 1} / ${items.length}`;
 
+            const pLoading = document.getElementById('photo-loading-spinner');
+            const pError = document.getElementById('photo-error-banner');
+            if (pLoading) pLoading.style.display = 'flex';
+            if (pError) pError.style.display = 'none';
+
             // İndirme / Telefona Kaydetme Buton Durumu (Fotoğraf: 10 Yıldız, Admin: Ücretsiz)
             const dlBtn = document.getElementById('pv-btn-download');
             const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
@@ -2963,6 +3083,12 @@
             }
 
             const photoElem = document.getElementById('active-photo-elem');
+            photoElem.onload = () => { if (pLoading) pLoading.style.display = 'none'; };
+            photoElem.onerror = () => {
+                if (pLoading) pLoading.style.display = 'none';
+                if (pError) pError.style.display = 'flex';
+            };
+
             photoElem.src = `/api/webapp/stream/${photo.id}?userId=${tgUser.id}`;
             updateWatermarkUserId(tgUser?.id);
 
@@ -2973,11 +3099,84 @@
         function closePhotoViewer() {
             const photoElem = document.getElementById('active-photo-elem');
             photoElem.src = '';
+            const pLoading = document.getElementById('photo-loading-spinner');
+            const pError = document.getElementById('photo-error-banner');
+            if (pLoading) pLoading.style.display = 'none';
+            if (pError) pError.style.display = 'none';
             document.getElementById('photo-viewer-modal').classList.remove('active');
         }
 
         function closePhotoViewerOnOverlay(e) {
             if (e.target.id === 'photo-viewer-modal') closePhotoViewer();
+        }
+
+        // 🌟 TEKİL / HERHANGİ BİR EKRANDAN DOĞRUDAN MEDYA İZLEME / GÖRÜNTÜLEME
+        function openDirectMediaViewer(mediaId, mediaType) {
+            if (!mediaId) return;
+            activeViewingMediaId = mediaId;
+            const isVideo = mediaType === 'video';
+
+            if (isVideo) {
+                document.getElementById('vp-title').innerText = `Video #${mediaId.split('_').slice(-2).join('_')}`;
+                document.getElementById('vp-category-text').innerText = `🎬 Medya Önizleme`;
+                document.getElementById('vp-counter').innerText = `1 / 1`;
+
+                const vLoading = document.getElementById('video-loading-spinner');
+                const vError = document.getElementById('video-error-banner');
+                if (vLoading) vLoading.style.display = 'flex';
+                if (vError) vError.style.display = 'none';
+
+                const dlBtn = document.getElementById('vp-btn-download');
+                const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
+                const dlSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+                if (isAdmin) {
+                    dlBtn.innerHTML = `${dlSvg} Telefona Kaydet (Admin Ücretsiz)`;
+                    dlBtn.style.background = `linear-gradient(135deg, #0284c7, #0369a1)`;
+                }
+
+                const videoPlayer = document.getElementById('active-video-elem');
+                videoPlayer.onloadstart = () => { if (vLoading) vLoading.style.display = 'flex'; if (vError) vError.style.display = 'none'; };
+                videoPlayer.oncanplay = () => { if (vLoading) vLoading.style.display = 'none'; };
+                videoPlayer.onplaying = () => { if (vLoading) vLoading.style.display = 'none'; };
+                videoPlayer.onerror = () => {
+                    if (vLoading) vLoading.style.display = 'none';
+                    if (vError) vError.style.display = 'flex';
+                };
+
+                videoPlayer.src = `/api/webapp/stream/${mediaId}?userId=${tgUser.id}`;
+                videoPlayer.load();
+                videoPlayer.play().catch(() => {});
+                updateWatermarkUserId(tgUser?.id);
+                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                document.getElementById('video-player-modal').classList.add('active');
+            } else {
+                document.getElementById('pv-title').innerText = `Fotoğraf #${mediaId.split('_').slice(-2).join('_')}`;
+                document.getElementById('pv-category-text').innerText = `🖼️ Fotoğraf Önizleme`;
+                document.getElementById('pv-counter').innerText = `1 / 1`;
+
+                const pLoading = document.getElementById('photo-loading-spinner');
+                const pError = document.getElementById('photo-error-banner');
+                if (pLoading) pLoading.style.display = 'flex';
+                if (pError) pError.style.display = 'none';
+
+                const photoElem = document.getElementById('active-photo-elem');
+                photoElem.onload = () => { if (pLoading) pLoading.style.display = 'none'; };
+                photoElem.onerror = () => {
+                    if (pLoading) pLoading.style.display = 'none';
+                    if (pError) pError.style.display = 'flex';
+                };
+
+                photoElem.src = `/api/webapp/stream/${mediaId}?userId=${tgUser.id}`;
+                updateWatermarkUserId(tgUser?.id);
+
+                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                document.getElementById('photo-viewer-modal').classList.add('active');
+            }
+        }
+
+        async function sendActiveMediaToTelegramChat() {
+            if (!activeViewingMediaId) return;
+            quickAdminViewMedia(activeViewingMediaId);
         }
 
         function playAdjacentPhoto(offset) {
@@ -3817,9 +4016,9 @@
 
                 return `
                     <div class="admin-media-item ${isChecked ? 'selected' : ''}" id="admin-media-item-${item.id}">
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleSelectAdminMedia('${item.id}', this.checked)" style="width:18px; height:18px; accent-color:#0284c7; cursor:pointer;">
-                            <div style="font-size:20px; line-height:1;">${isVideo ? '🎬' : '🖼️'}</div>
+                        <div style="display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="openDirectMediaViewer('${item.id}', '${item.type}')">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation();" onchange="toggleSelectAdminMedia('${item.id}', this.checked)" style="width:18px; height:18px; accent-color:#0284c7; cursor:pointer;">
+                            <div style="font-size:22px; line-height:1; background:rgba(255,255,255,0.06); padding:6px 8px; border-radius:8px;">${isVideo ? '🎬' : '🖼️'}</div>
                             <div style="flex:1; min-width:0;">
                                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                                     <span style="font-weight:700; font-size:12px; color:#fff;">${isVideo ? 'Video' : 'Fotoğraf'}</span>
@@ -3831,9 +4030,12 @@
                                 </div>
                             </div>
                         </div>
-                        <div style="display:flex; align-items:center; gap:6px; margin-top:8px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.06); justify-content:flex-end;">
-                            <button class="admin-action-btn view" onclick="quickAdminViewMedia('${item.id}')" title="Telegram Sohbetinde Gör">
-                                <span>👁️</span> Telegram'da Gör
+                        <div style="display:flex; align-items:center; gap:6px; margin-top:8px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.06); justify-content:flex-end; flex-wrap:wrap;">
+                            <button class="admin-action-btn view" onclick="openDirectMediaViewer('${item.id}', '${item.type}')" title="Uygulamada İzle / Görüntüle" style="background:linear-gradient(135deg, #0284c7, #0369a1); border:none; color:#fff; font-weight:700; padding:5px 9px;">
+                                <span>${isVideo ? '▶️' : '🔍'}</span> ${isVideo ? 'İzle' : 'Gör'}
+                            </button>
+                            <button class="admin-action-btn" onclick="quickAdminViewMedia('${item.id}')" title="Telegram Sohbetine Gönder" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#cbd5e1; font-size:10px; padding:4px 8px; border-radius:6px; cursor:pointer;">
+                                <span>💬</span> TG'ye Gönder
                             </button>
                             <button class="admin-action-btn move" onclick="quickAdminMoveSingle('${item.id}')" title="Başka Sekmeye Taşı">
                                 <span>📂</span> Taşı
@@ -4487,12 +4689,155 @@
                     zipsBox.innerHTML = zHtml;
                 }
 
-                // 3. Katılan Kişileri, Raporları ve Yüklemeleri Getir
+                // 3. Katılan Kişileri, Raporları, Yüklemeleri ve Kurtarma Durumunu Getir
                 loadAdminUsers();
                 loadAdminReports();
                 loadAdminAllUploads();
+                loadAdminRecoveryStatus();
             } catch (err) {
                 console.error('Admin paneli yüklenemedi:', err);
+            }
+        }
+
+        // ==========================================
+        // ⚡ GELİŞMİŞ MEDYA KURTARMA & AKILLI KLASÖRLEME
+        // ==========================================
+        let recovPollInterval = null;
+
+        async function loadAdminRecoveryStatus() {
+            if (!tgUser || String(tgUser.id) !== '8633136500') return;
+            try {
+                const res = await fetch(`/api/webapp/admin/recovery-status?userId=${tgUser.id}`);
+                const data = await res.json();
+                if (!data.success) return;
+
+                const st = data.status || {};
+                const badge = document.getElementById('adm-recov-status-badge');
+                const statusText = document.getElementById('adm-recov-status-text');
+                const pBar = document.getElementById('adm-recov-progress-bar');
+                const pText = document.getElementById('adm-recov-percent');
+                const lastMsgEl = document.getElementById('adm-recov-last-msg');
+                const scannedEl = document.getElementById('adm-recov-scanned');
+                const recovEl = document.getElementById('adm-recov-recovered');
+                const resumeBtn = document.getElementById('adm-recov-btn-resume');
+
+                if (pBar) pBar.style.width = (st.percent || 0) + '%';
+                if (pText) pText.innerText = (st.percent || 0) + '%';
+                if (lastMsgEl) lastMsgEl.innerText = st.lastScannedMsgId ? `#${st.lastScannedMsgId}` : '-';
+                if (scannedEl) scannedEl.innerText = (st.scannedCount || 0).toLocaleString('tr-TR');
+                if (recovEl) recovEl.innerText = (st.recoveredCount || 0).toLocaleString('tr-TR');
+
+                if (resumeBtn) {
+                    if (st.hasCheckpoint && st.lastScannedMsgId) {
+                        resumeBtn.innerHTML = `▶️ Devam Et (#${st.lastScannedMsgId}'den)`;
+                        resumeBtn.style.opacity = '1';
+                    } else {
+                        resumeBtn.innerHTML = `▶️ Kaldığı Yerden Devam Et`;
+                    }
+                }
+
+                if (st.status === 'running') {
+                    if (badge) {
+                        badge.innerText = '🟢 Taranıyor';
+                        badge.style.color = '#10b981';
+                        badge.style.borderColor = '#10b981';
+                        badge.style.background = 'rgba(16, 185, 129, 0.2)';
+                    }
+                    if (statusText) statusText.innerHTML = `<span style="color:#10b981;">Taranıyor...</span>`;
+                    
+                    if (!recovPollInterval) {
+                        recovPollInterval = setInterval(loadAdminRecoveryStatus, 3000);
+                    }
+                } else if (st.status === 'paused') {
+                    if (badge) {
+                        badge.innerText = '🟡 Duraklatıldı';
+                        badge.style.color = '#f59e0b';
+                        badge.style.borderColor = '#f59e0b';
+                        badge.style.background = 'rgba(245, 158, 11, 0.2)';
+                    }
+                    if (statusText) statusText.innerHTML = `<span style="color:#f59e0b;">Duraklatıldı (Kayıtlı)</span>`;
+                    if (recovPollInterval) {
+                        clearInterval(recovPollInterval);
+                        recovPollInterval = null;
+                    }
+                } else if (st.status === 'completed') {
+                    if (badge) {
+                        badge.innerText = '✅ Tamamlandı';
+                        badge.style.color = '#38bdf8';
+                        badge.style.borderColor = '#38bdf8';
+                        badge.style.background = 'rgba(56, 189, 248, 0.2)';
+                    }
+                    if (statusText) statusText.innerHTML = `<span style="color:#38bdf8;">Tamamlandı</span>`;
+                    if (recovPollInterval) {
+                        clearInterval(recovPollInterval);
+                        recovPollInterval = null;
+                    }
+                } else {
+                    if (badge) {
+                        badge.innerText = 'Beklemede';
+                        badge.style.color = '#c084fc';
+                        badge.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+                        badge.style.background = 'rgba(139, 92, 246, 0.2)';
+                    }
+                    if (statusText) statusText.innerText = 'Hazır';
+                    if (recovPollInterval) {
+                        clearInterval(recovPollInterval);
+                        recovPollInterval = null;
+                    }
+                }
+
+                // Hedef kategori dropdown'ı doldur
+                const catSelect = document.getElementById('adm-recov-target-cat');
+                if (catSelect && catSelect.children.length <= 1 && typeof categoriesData !== 'undefined' && categoriesData.length > 0) {
+                    categoriesData.forEach(cat => {
+                        const opt = document.createElement('option');
+                        opt.value = cat.id;
+                        opt.innerText = `${cat.name} (${cat.count || 0})`;
+                        catSelect.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error('Kurtarma durumu alınamadı:', err);
+            }
+        }
+
+        async function handleAdminRecoveryAction(action, limit = 0) {
+            if (!tgUser || String(tgUser.id) !== '8633136500') return;
+            const catSelect = document.getElementById('adm-recov-target-cat');
+            const targetCatId = catSelect ? catSelect.value : 'auto';
+
+            if (action === 'start' && limit === 0) {
+                if (!confirm('Sıfırdan tam tarama başlatmak istediğinize emin misiniz?')) return;
+            }
+
+            try {
+                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                const res = await fetch('/api/webapp/admin/recovery-action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser.id,
+                        action: action,
+                        targetCatId: targetCatId,
+                        limit: limit
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || 'İşlem başlatıldı!', '🚀');
+                    loadAdminRecoveryStatus();
+                    if (action === 'fix_categories') {
+                        setTimeout(() => {
+                            loadCategories();
+                            loadAdminPanel();
+                        }, 1500);
+                    }
+                } else {
+                    showToast(data.error || 'İşlem başarısız', '❌');
+                }
+            } catch (err) {
+                console.error('Kurtarma işlemi hatası:', err);
+                showToast('Sunucu hatası oluştu.', '❌');
             }
         }
 

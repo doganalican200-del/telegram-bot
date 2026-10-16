@@ -12,6 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const { Telegraf, Markup } = require('telegraf');
 const db = require('./db');
+const recovery = require('./recovery');
 
 const BANNER_PATH = path.join(__dirname, 'bot_banner.jpg');
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -30,6 +31,7 @@ if (!BOT_TOKEN) {
 }
 
 const bot = new Telegraf(BOT_TOKEN);
+recovery.init({ bot, db, ADMIN_IDS, isAdminUser });
 const BOT_USERNAME = 'VideoResimTakas_bot';
 
 // 📱 Telegram Mini App (Web App) Sunucusu & Otomatik Tünel
@@ -4528,142 +4530,171 @@ function showAdminPanel(ctx) {
 // ==========================================
 // 🚨 GEÇMİŞ MEDYA KURTARMA MOTORU (/kurtar)
 // ==========================================
-let isRecoveryRunning = false;
+// ==========================================
+// 🚀 TURBO GEÇMİŞ MEDYA KURTARMA & AKILLI KATEGORİLEME MOTORU (/kurtar)
+// ==========================================
 
-async function executeMediaRecovery(ctx) {
+async function handleKurtarCommand(ctx, customLimit = null, customCat = null, isResume = false) {
     const uid = String(ctx.from?.id);
     if (!isAdminUser(uid)) return ctx.reply('⛔ Yalnızca yönetici bu komutu kullanabilir.');
-    if (isRecoveryRunning) return ctx.reply('⏳ Zaten bir kurtarma taraması çalışıyor, lütfen bitmesini bekleyin.');
 
-    isRecoveryRunning = true;
     const adminChatId = ctx.chat?.id || uid;
-    const currentMsgId = ctx.message?.message_id || ctx.callbackQuery?.message?.message_id || 10000;
+    const state = recovery.getRecoveryState();
+    const canResume = state.lastScannedMsgId > 1 && state.status !== 'completed';
 
-    await ctx.reply(
-        `🚀 <b>OTOMATİK MEDYA KURTARMA BAŞLATILDI</b>\n\n` +
-        `🔍 Sohbet geçmişinizdeki tüm video ve fotoğraflar taranıyor...\n` +
-        `📦 Taranacak mesaj aralığı: 1 - ${currentMsgId}\n\n` +
-        `<i>Bu işlem birkaç dakika sürebilir. İlerleme durumu canlı olarak bildirilecektir.</i>`,
-        { parse_mode: 'HTML' }
-    );
+    // Parametreleri ayrıştır (Örn: /kurtar gay veya /kurtar 3000 ensest)
+    let limit = customLimit;
+    let targetCatId = customCat || null;
 
-    let scannedCount = 0;
-    let recoveredCount = 0;
-    let duplicateCount = 0;
-    let statusMsg = await ctx.reply('⏳ Tarama başlıyor...').catch(() => null);
-
-    const dbData = db.loadDb();
-    const existingIds = new Set((dbData.media || []).map(m => m.fileUniqueId || m.fileId));
-
-    for (let msgId = currentMsgId - 1; msgId >= 1; msgId--) {
-        scannedCount++;
-        try {
-            const fwd = await bot.telegram.forwardMessage(adminChatId, adminChatId, msgId);
-            const fwdMsgId = fwd.message_id;
-
-            let fileId = null;
-            let fileUniqueId = null;
-            let mediaType = null;
-            let fileSize = 0;
-
-            if (fwd.video) {
-                fileId = fwd.video.file_id;
-                fileUniqueId = fwd.video.file_unique_id;
-                mediaType = 'video';
-                fileSize = fwd.video.file_size || 0;
-            } else if (fwd.photo && fwd.photo.length > 0) {
-                const best = fwd.photo[fwd.photo.length - 1];
-                fileId = best.file_id;
-                fileUniqueId = best.file_unique_id;
-                mediaType = 'photo';
-                fileSize = best.file_size || 0;
+    if (!limit && ctx.message?.text) {
+        const parts = ctx.message.text.trim().split(/\s+/).slice(1);
+        for (const p of parts) {
+            const num = parseInt(p, 10);
+            if (!isNaN(num) && num > 0) {
+                limit = num;
+            } else {
+                const pLow = p.toLowerCase();
+                const matchedCat = db.getCategories().find(c => 
+                    c.name.toLowerCase().includes(pLow) || 
+                    c.key.toLowerCase() === pLow ||
+                    c.id.toLowerCase() === pLow
+                );
+                if (matchedCat) targetCatId = matchedCat.id;
             }
-
-            await bot.telegram.deleteMessage(adminChatId, fwdMsgId).catch(() => {});
-
-            if (fileId && fileUniqueId) {
-                if (existingIds.has(fileUniqueId) || existingIds.has(fileId)) {
-                    duplicateCount++;
-                } else {
-                    const caption = fwd.caption || '';
-                    let catId = 'cat_11';
-                    
-                    const catMatch = db.getCategories().find(c => 
-                        caption.toLowerCase().includes(c.name.toLowerCase()) || 
-                        caption.includes(`[${c.key}]`)
-                    );
-                    if (catMatch) catId = catMatch.id;
-
-                    let uploaderId = uid;
-                    const uploaderMatch = caption.match(/ID:\s*<code>(\d+)<\/code>/i) || caption.match(/ID:\s*(\d+)/i);
-                    if (uploaderMatch) uploaderId = uploaderMatch[1];
-
-                    const newMedia = {
-                        id: 'm_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
-                        type: mediaType,
-                        fileId: fileId,
-                        fileUniqueId: fileUniqueId,
-                        fileSize: fileSize,
-                        categoryId: catId,
-                        uploadedBy: String(uploaderId),
-                        status: 'approved',
-                        reports: 0,
-                        reporters: [],
-                        createdAt: fwd.date ? new Date(fwd.date * 1000).toISOString() : new Date().toISOString()
-                    };
-
-                    dbData.media.push(newMedia);
-                    existingIds.add(fileUniqueId);
-                    recoveredCount++;
-                }
-            }
-        } catch (err) {
-            // Mesaj yok veya silinmiş
         }
-
-        if (scannedCount % 50 === 0 && statusMsg) {
-            await bot.telegram.editMessageText(
-                adminChatId,
-                statusMsg.message_id,
-                null,
-                `📊 <b>Kurtarma İlerlemesi:</b>\n` +
-                `🔍 Taranan Mesaj: ${scannedCount}\n` +
-                `✅ Kurtarılan Yeni Medya: <b>+${recoveredCount}</b>\n` +
-                `ℹ️ Zaten Mevcut: ${duplicateCount}\n` +
-                `⏳ Kalan mesajlar taranıyor...`,
-                { parse_mode: 'HTML' }
-            ).catch(() => {});
-            
-            db.saveDb();
-        }
-
-        await new Promise(r => setTimeout(r, 60));
     }
 
-    db.saveDb();
-    isRecoveryRunning = false;
+    // Parametresiz /kurtar ve buton tıklaması değilse menü sun
+    if (!limit && !targetCatId && !isResume && ctx.message?.text && !ctx.callbackQuery) {
+        const buttons = [];
+        if (canResume) {
+            buttons.push([Markup.button.callback(`▶️ Kaldığı Yerden Devam Et (#${state.lastScannedMsgId}'den)`, 'recov_resume')]);
+        }
+        buttons.push([
+            Markup.button.callback('⚡ Hızlı Tara (Son 2.000)', 'recov_run_2000_auto'),
+            Markup.button.callback('🚀 Orta Tara (Son 5.000)', 'recov_run_5000_auto')
+        ]);
+        buttons.push([Markup.button.callback('🔥 Tam Tarama (Tüm Geçmiş)', 'recov_run_all_auto')]);
+        buttons.push([Markup.button.callback('📂 Belirli Bir Klasöre Kurtar...', 'recov_choose_cat')]);
+        buttons.push([Markup.button.callback('🎯 Mevcut Klasörleri Akıllı Düzenle (/klasor_duzelt)', 'recov_fix_all_cats')]);
 
-    await ctx.reply(
-        `🎉 <b>KURTARMA BAŞARIYLA TAMAMLANDI!</b>\n\n` +
-        `📊 <b>Sonuçlar:</b>\n` +
-        `🔍 Toplam Taranan Mesaj: <b>${scannedCount}</b>\n` +
-        `💎 Kurtarılan Yeni Medya: <b>+${recoveredCount}</b>\n` +
-        `📦 Havuzdaki Toplam Güncel Medya: <b>${dbData.media.length}</b>\n\n` +
-        `✅ Tüm içerikler kategori havuzuna eklenmiştir. Aşağıda güncel veritabanı yedeğiniz gönderilmektedir:`,
-        { parse_mode: 'HTML' }
-    );
+        let desc = `🚀 <b>TURBO MEDYA KURTARMA & KLASÖRLEME MENÜSÜ</b>\n\n`;
+        if (canResume) {
+            desc += `⚠️ <b>YARIM KALAN KURTARMA BULUNDU:</b>\n` +
+                    `📍 Kaldığı Mesaj: <b>#${state.lastScannedMsgId}</b>\n` +
+                    `💎 Kurtarılan Medya: <b>+${state.recoveredCount}</b>\n` +
+                    `📊 İlerleme: <b>%${state.percent}</b>\n\n` +
+                    `<i>"Kaldığı Yerden Devam Et" butonuna basarsanız baştan başlamaz, doğrudan kaldığı mesajdan devam eder!</i>`;
+        } else {
+            desc += `Sohbet geçmişindeki kayıp video ve fotoğrafları <b>15 kat daha hızlı</b> paralel taramayla kurtarır.\n\n👇 <b>Nasıl taramak istersiniz?</b>`;
+        }
 
-    try {
-        const DB_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || (fs.existsSync('/data') ? '/data' : __dirname);
-        const dbPath = path.join(DB_DIR, 'database.json');
-        await ctx.replyWithDocument({ source: dbPath, filename: `database_kurtarilan_${Date.now()}.json` });
-    } catch (_) {}
+        return ctx.reply(desc, {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard(buttons)
+        });
+    }
+
+    let statusMsg = await ctx.reply('⏳ Turbo kurtarma başlatılıyor...').catch(() => null);
+
+    const runRes = await recovery.startRecovery({
+        bot,
+        adminChatId,
+        limit,
+        targetCatId,
+        resume: isResume,
+        onProgress: async (st) => {
+            if (statusMsg) {
+                const actionText = st.status === 'paused' ? '⏸️ Duraklatıldı' : '⏳ Taranıyor...';
+                await bot.telegram.editMessageText(
+                    adminChatId,
+                    statusMsg.message_id,
+                    null,
+                    `⚡ <b>Turbo Kurtarma Durumu (%${st.percent}):</b>\n` +
+                    `🔍 Taranan: <b>${st.scannedCount} / ${st.totalToScan}</b>\n` +
+                    `📍 Kaldığı Mesaj: <b>#${st.lastScannedMsgId}</b>\n` +
+                    `✅ Kurtarılan Yeni Medya: <b>+${st.recoveredCount}</b>\n` +
+                    `ℹ️ Zaten Mevcut: <b>${st.duplicateCount}</b>\n` +
+                    `${actionText}`,
+                    { parse_mode: 'HTML' }
+                ).catch(() => {});
+            }
+        }
+    });
+
+    if (!runRes.success) {
+        return ctx.reply(`⚠️ ${runRes.message}`);
+    }
 }
 
-bot.command(['kurtar', 'tara'], executeMediaRecovery);
-bot.action('admin_run_recovery', async (ctx) => {
+async function fixAllCategoriesBot(ctx) {
+    const uid = String(ctx.from?.id);
+    if (!isAdminUser(uid)) return ctx.reply('⛔ Yalnızca yönetici bu komutu kullanabilir.');
+
+    const res = recovery.fixAllCategories();
+    if (res.movedCount > 0) {
+        const cats = db.getCategories();
+        const breakdown = Object.entries(res.catStats).map(([cid, count]) => {
+            const cObj = cats.find(c => c.id === cid);
+            return `• ${cObj ? cObj.name : cid}: <b>+${count}</b>`;
+        }).join('\n');
+
+        return ctx.reply(
+            `✅ <b>OTOMATİK KLASÖR DÜZELTME TAMAMLANDI!</b>\n\n` +
+            `📦 Toplam <b>${res.movedCount} adet</b> medya uygun klasörlere dağıtıldı:\n\n${breakdown}`,
+            { parse_mode: 'HTML' }
+        );
+    } else {
+        return ctx.reply('ℹ️ Genel klasöründe taşınacak başka içerik bulunamadı veya tüm içerikler zaten düzenli.');
+    }
+}
+
+bot.command(['kurtar', 'tara'], (ctx) => handleKurtarCommand(ctx));
+bot.command(['kurtar_devam', 'devam'], (ctx) => handleKurtarCommand(ctx, null, null, true));
+bot.command(['kurtar_durdur', 'durdur'], (ctx) => {
+    recovery.stopRecovery();
+    return ctx.reply('⏸️ Kurtarma taraması duraklatıldı. İstediğiniz an `/kurtar_devam` veya menüden kaldığı yerden devam edebilirsiniz.');
+});
+bot.command(['klasor_duzelt', 'kategorileri_duzelt'], fixAllCategoriesBot);
+
+// Kurtarma Butonları
+bot.action('admin_run_recovery', (ctx) => {
+    ctx.answerCbQuery();
+    return handleKurtarCommand(ctx);
+});
+
+bot.action('recov_resume', async (ctx) => {
     await ctx.answerCbQuery();
-    return executeMediaRecovery(ctx);
+    return handleKurtarCommand(ctx, null, null, true);
+});
+
+bot.action(/^recov_run_(\w+)_(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const limitType = ctx.match[1];
+    const catType = ctx.match[2];
+    let limit = null;
+    if (limitType === '2000') limit = 2000;
+    else if (limitType === '5000') limit = 5000;
+    else if (limitType === '10000') limit = 10000;
+    const targetCat = catType === 'auto' ? null : catType;
+    return handleKurtarCommand(ctx, limit, targetCat, false);
+});
+
+bot.action('recov_choose_cat', async (ctx) => {
+    await ctx.answerCbQuery();
+    const cats = db.getCategories();
+    const buttons = cats.map(c => [Markup.button.callback(`📂 ${c.name} (${c.key})`, `recov_run_all_${c.id}`)]);
+    buttons.push([Markup.button.callback('⬅️ Geri Dön', 'admin_panel')]);
+
+    return ctx.reply('📂 <b>Kurtarılan medyalar doğrudan hangi klasöre eklensin?</b>\n\nBir klasör seçin (Tüm kurtarılanlar o klasöre aktarılır):', {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard(buttons)
+    });
+});
+
+bot.action('recov_fix_all_cats', async (ctx) => {
+    await ctx.answerCbQuery();
+    return fixAllCategoriesBot(ctx);
 });
 
 // ==========================================
