@@ -596,12 +596,45 @@ function findDuplicateMediaList(filterType = null) {
     };
 }
 
-// Medyayı tamamen sil
+// Medyayı tamamen sil (Resim & Video)
 function deleteMedia(mediaId) {
     const db = loadDb();
-    const idx = db.media.findIndex(m => m.id === mediaId);
+    const idx = (db.media || []).findIndex(m => m.id === mediaId);
     if (idx === -1) return { success: false, message: 'Medya bulunamadı.' };
     const [deleted] = db.media.splice(idx, 1);
+
+    // Kalan medyaların orderIndex değerlerini yeniden sırala
+    (db.media || []).forEach((m, i) => {
+        m.orderIndex = i + 1;
+    });
+
+    // Kullanıcıların izleme geçmişi ve favorilerinden temizle
+    if (db.users) {
+        for (const uid in db.users) {
+            const u = db.users[uid];
+            if (Array.isArray(u.seenMedia)) {
+                u.seenMedia = u.seenMedia.filter(id => id !== mediaId);
+            }
+            if (Array.isArray(u.favorites)) {
+                u.favorites = u.favorites.filter(id => id !== mediaId);
+            }
+        }
+    }
+    if (db.received) {
+        for (const uid in db.received) {
+            if (Array.isArray(db.received[uid])) {
+                db.received[uid] = db.received[uid].filter(id => id !== mediaId);
+            }
+        }
+    }
+    if (db.downloads) {
+        for (const uid in db.downloads) {
+            if (db.downloads[uid] && db.downloads[uid][mediaId]) {
+                delete db.downloads[uid][mediaId];
+            }
+        }
+    }
+
     saveDb();
     return { success: true, media: deleted };
 }

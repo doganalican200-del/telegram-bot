@@ -647,11 +647,11 @@ async function renderTelegramTriage(ctx, index = 0) {
     const cats = db.getCategories().filter(c => c.id !== 'cat_11');
 
     const caption = 
-`⚡ <b>AYRIŞTIRMA STÜDYOSU (#${idx + 1} / ${total})</b>\n\n` +
+`⚡ <b>MEDYA AYRIŞTIRMA BÖLÜMÜ (#${idx + 1} / ${total})</b>\n\n` +
 `📎 <b>Tür:</b> ${isVideo ? '🎥 Video' : '📸 Fotoğraf'}\n` +
 `🆔 <b>ID:</b> <code>${media.id}</code> (Sıra: #${media.orderIndex || (idx + 1)})\n` +
-`📁 <b>Şu an:</b> [K] Genel\n\n` +
-`👇 <b>Bu medyayı aktarmak istediğiniz sekmeyi seçin:</b>`;
+`📁 <b>Mevcut Sekme:</b> [K] Genel\n\n` +
+`👇 <b>Bu medyayı aktarmak istediğiniz sekmeyi seçin veya silin:</b>`;
 
     const catRows = [];
     for (let i = 0; i < cats.length; i += 2) {
@@ -663,12 +663,19 @@ async function renderTelegramTriage(ctx, index = 0) {
     }
 
     catRows.push([
-        Markup.button.callback('🗑️ Sil', `tg_mv_${media.id}__del__${idx}`),
-        Markup.button.callback('⏭️ Atla / Sonraki', `admin_tg_triage_${idx + 1}`)
+        Markup.button.callback('🗑️ Bu Medyayı Tamamen Sil', `tg_mv_${media.id}__del__${idx}`)
+    ]);
+    catRows.push([
+        Markup.button.callback('⬅️ Önceki', `admin_tg_triage_${Math.max(0, idx - 1)}`),
+        Markup.button.callback('Sonraki ➡️', `admin_tg_triage_${(idx + 1) >= total ? 0 : idx + 1}`)
     ]);
     catRows.push([
         Markup.button.callback('🤖 100 Medyayı Otomatik Dağıt', 'admin_auto_dist_100'),
-        Markup.button.callback('⬅️ Genel Sekmesine Dön', 'cat_view_cat_11')
+        Markup.button.callback('🚀 Tümünü Dağıt', 'admin_auto_dist_all')
+    ]);
+    catRows.push([
+        Markup.button.callback('⚡ Ayrıştırma Menüsü', 'admin_triage_menu'),
+        Markup.button.callback('👑 Yönetici Paneli', 'admin_panel')
     ]);
 
     const keyboard = Markup.inlineKeyboard(catRows);
@@ -717,8 +724,12 @@ bot.action(/^tg_mv_(.+)__(cat_\d+|del)__(\d+)$/, async (ctx) => {
     const currentIdx = parseInt(ctx.match[3], 10) || 0;
 
     if (targetCatId === 'del') {
-        db.deleteMedia(mediaId);
-        await ctx.answerCbQuery('🗑️ Medya silindi!', { show_alert: false });
+        const delRes = db.deleteMedia(mediaId);
+        if (delRes.success) {
+            await ctx.answerCbQuery('🗑️ Bu resim/video sistemden tamamen silindi!', { show_alert: true });
+        } else {
+            await ctx.answerCbQuery('⚠️ Medya zaten silinmiş veya bulunamadı.');
+        }
     } else {
         const res = db.changeMediaCategory(mediaId, targetCatId);
         const catName = res.newCategory ? res.newCategory.name : targetCatId;
@@ -4664,7 +4675,7 @@ bot.command('admin', async (ctx) => {
 });
 
 // Callback üzerinden şifre isteme / panel açma
-bot.action(['admin_panel_open', 'admin_panel_auth_request'], async (ctx) => {
+bot.action(['admin_panel', 'admin_panel_open', 'admin_panel_auth_request'], async (ctx) => {
     await ctx.answerCbQuery();
     const uid = String(ctx.from?.id);
     // Sadece şifre girip doğrulanmış adminler panele girer (ADMIN_IDS'de olsa bile şifre şarttır)
@@ -4716,18 +4727,24 @@ bot.action('admin_logout', async (ctx) => {
 function showAdminPanel(ctx) {
     const stats = db.getStats();
     const bannedUsers = db.getBannedUsers();
+    const dbData = db.loadDb();
+    const unclassifiedCount = (dbData.media || []).filter(m => m.categoryId === 'cat_11').length;
+    const dupStats = db.getDuplicateStats ? db.getDuplicateStats() : { duplicateCount: 0 };
+
     const text =
 `👑 <b>Yönetici Paneli</b>
 
 📊 <b>Sistem Havuzu:</b> 📸 <b>${stats.approvedPhotos} Resim</b> | 🎥 <b>${stats.approvedVideos} Video</b>
 ⏳ <b>Onay Bekleyen:</b> <b>${stats.pendingMedia} Medya</b>
+⚡ <b>Ayrıştırılacak Medya:</b> <b>${unclassifiedCount} Medya</b>
 🚫 <b>Banlı Kullanıcı:</b> <b>${bannedUsers.length}</b>
 
 👇 <b>Tüm yönetici işlemleri aşağıdadır:</b>`;
 
-    return ctx.reply(text, {
+    return safeEditOrReply(ctx, text, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
+            [Markup.button.callback(`⚡ Medyaları Ayrıştır (${unclassifiedCount} Medya)`, 'admin_triage_menu')],
             [Markup.button.callback('⚡ Bekleyen Medyaları Toplu Onayla', 'admin_bulk_approve')],
             [
                 Markup.button.callback('🔄 Geçmiş Medyaları Kurtar', 'admin_run_recovery'),
@@ -4738,7 +4755,7 @@ function showAdminPanel(ctx) {
                 Markup.button.callback('⭐ Yıldız & Gelir Raporu', 'admin_stars_report')
             ],
             [
-                Markup.button.callback('🗑️ Benzer Medyaları Sil (Resim & Video)', 'admin_dup_panel'),
+                Markup.button.callback(`🗑️ Benzer Medyaları Sil (${dupStats.duplicateCount || 0})`, 'admin_dup_panel'),
                 Markup.button.callback('🚫 Banlı Kullanıcılar', 'admin_manage_bans')
             ],
             [Markup.button.callback('⚙️ Sekme / Kategori İsimlerini Düzenle', 'admin_manage_cats')],
@@ -4749,6 +4766,69 @@ function showAdminPanel(ctx) {
         ])
     });
 }
+
+// ADMİN: AYRIŞTIRMA VE DAĞITMA BÖLÜMÜ MENÜSÜ
+async function renderAdminTriageMenu(ctx) {
+    if (!isAdminUser(ctx.from?.id)) {
+        if (ctx.answerCbQuery) await ctx.answerCbQuery('Bu bölüm sadece yöneticiye özeldir.');
+        return;
+    }
+
+    const dbData = db.loadDb();
+    const genelMedia = (dbData.media || []).filter(m => m.categoryId === 'cat_11');
+    const totalGenel = genelMedia.length;
+    const photoGenel = genelMedia.filter(m => m.type === 'photo').length;
+    const videoGenel = genelMedia.filter(m => m.type === 'video').length;
+    const dupStats = db.getDuplicateStats ? db.getDuplicateStats() : { duplicateCount: 0 };
+    const appUrl = activeWebAppUrl || process.env.WEBAPP_URL;
+
+    const text = 
+`⚡ <b>MEDYA AYRIŞTIRMA & DAĞITMA BÖLÜMÜ</b> 👑\n\n` +
+`📦 <b>Ayrıştırılmayı Bekleyen Medya:</b> <b>${totalGenel} Adet</b>\n` +
+`📸 <b>Fotoğraf:</b> <code>${photoGenel} Adet</code>\n` +
+`🎥 <b>Video:</b> <code>${videoGenel} Adet</code>\n` +
+(dupStats.duplicateCount > 0 ? `⚠️ <b>Kopya/Aynı Medya:</b> <b>${dupStats.duplicateCount} Adet</b> (${dupStats.duplicatePhotos} Foto, ${dupStats.duplicateVideos} Video)\n\n` : `\n`) +
+`👇 <b>Lütfen yapmak istediğiniz ayrıştırma yöntemini seçin:</b>\n\n` +
+`• <b>Tek Tek Ayrıştır:</b> Resim ve videoları tek tek ekranda görerek 10 kategoriden birine gönderebilir veya istemediğinizi tek tıkla silebilirsiniz.\n` +
+`• <b>Otomatik Dağıt:</b> 100 medyayı veya tüm havuzu 10 kategoriye eşit paylaştırır.\n` +
+`• <b>Uygulama İçi Stüdyo:</b> Mini App üzerinden görsel önizlemeli ve klavye kısayollu stüdyoyu açar.`;
+
+    const buttons = [
+        [
+            Markup.button.callback('⚡ Tek Tek Ayrıştırmaya Başla (Telegram İçi)', 'admin_tg_triage_0')
+        ]
+    ];
+
+    if (appUrl) {
+        buttons.push([
+            Markup.button.webApp('📱 Uygulama İçi Ayrıştırma Stüdyosu', appUrl)
+        ]);
+    }
+
+    buttons.push(
+        [
+            Markup.button.callback('🤖 100 Medyayı Otomatik Eşit Dağıt', 'admin_auto_dist_100'),
+            Markup.button.callback('🚀 Tümünü (Eşit) Dağıt', 'admin_auto_dist_all')
+        ],
+        [
+            Markup.button.callback(`🧹 Kopya/Benzer Medyaları Sil (${dupStats.duplicateCount || 0})`, 'admin_dup_panel')
+        ],
+        [
+            Markup.button.callback('👑 Yönetici Paneli', 'admin_panel'),
+            Markup.button.callback('🏠 Ana Menü', 'main_menu')
+        ]
+    );
+
+    return safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard(buttons)
+    });
+}
+
+bot.action('admin_triage_menu', async (ctx) => {
+    await ctx.answerCbQuery().catch(() => {});
+    return renderAdminTriageMenu(ctx);
+});
 
 // ==========================================
 // 🚨 GEÇMİŞ MEDYA KURTARMA MOTORU (/kurtar)

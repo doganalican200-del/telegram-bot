@@ -1658,7 +1658,37 @@ function createWebAppServer(options = {}) {
                     const initialCount = (dbData.media || []).length;
 
                     dbData.media = (dbData.media || []).filter(m => !targetIds.has(String(m.id)));
+                    dbData.media.forEach((m, idx) => {
+                        m.orderIndex = idx + 1;
+                    });
                     const deletedCount = initialCount - dbData.media.length;
+
+                    // Kullanıcı referanslarını temizle
+                    if (dbData.users) {
+                        for (const uid in dbData.users) {
+                            const u = dbData.users[uid];
+                            if (Array.isArray(u.seenMedia)) {
+                                u.seenMedia = u.seenMedia.filter(id => !targetIds.has(String(id)));
+                            }
+                            if (Array.isArray(u.favorites)) {
+                                u.favorites = u.favorites.filter(id => !targetIds.has(String(id)));
+                            }
+                        }
+                    }
+                    if (dbData.received) {
+                        for (const uid in dbData.received) {
+                            if (Array.isArray(dbData.received[uid])) {
+                                dbData.received[uid] = dbData.received[uid].filter(id => !targetIds.has(String(id)));
+                            }
+                        }
+                    }
+                    if (dbData.downloads) {
+                        for (const uid in dbData.downloads) {
+                            for (const id of targetIds) {
+                                delete dbData.downloads[uid][id];
+                            }
+                        }
+                    }
 
                     db.saveDb();
 
