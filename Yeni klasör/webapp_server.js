@@ -1707,6 +1707,46 @@ function createWebAppServer(options = {}) {
         }
 
         // ==========================================
+        // API: ADMİN TOPLU MEDYA SİLME MERKEZİ (Kategori / Tür / Sayı Bazlı)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/execute-bulk-delete' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, categoryId, type, count, order } = data;
+
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim.' }));
+                    }
+
+                    const numCount = count && count !== 'all' ? parseInt(count, 10) : null;
+                    const catId = categoryId === 'all' ? null : (categoryId || null);
+                    const mediaType = (type === 'video' || type === 'photo') ? type : null;
+
+                    const result = db.bulkDeleteMedia({
+                        categoryId: catId,
+                        type: mediaType,
+                        count: numCount,
+                        order: order || 'desc'
+                    });
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({
+                        success: true,
+                        ...result
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
         // 14K. API: ADMİN KURTARMA DURUMU & KONTROLÜ
         // ==========================================
         if (parsedUrl.pathname === '/api/webapp/admin/recovery-status' && req.method === 'GET') {

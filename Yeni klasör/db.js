@@ -639,6 +639,96 @@ function deleteMedia(mediaId) {
     return { success: true, media: deleted };
 }
 
+// Toplu Medya Silme Fonksiyonu (Kategori, Tür veya Sayı Bazlı)
+function bulkDeleteMedia(options = {}) {
+    const {
+        categoryId = null,  // 'cat_11' or any cat id, null for all
+        type = null,        // 'photo', 'video', or null for all
+        count = null,       // number of items to delete, or null for all matching
+        order = 'desc'      // 'desc' (newest first) or 'asc' (oldest first)
+    } = options;
+
+    const db = loadDb();
+    const media = db.media || [];
+    const targetToDelete = [];
+    const targetIds = new Set();
+
+    // Match items
+    for (let i = (order === 'desc' ? media.length - 1 : 0); 
+         (order === 'desc' ? i >= 0 : i < media.length); 
+         (order === 'desc' ? i-- : i++)) {
+        
+        const m = media[i];
+        if (categoryId && m.categoryId !== categoryId) continue;
+        if (type && m.type !== type) continue;
+
+        targetToDelete.push(m);
+        targetIds.add(m.id);
+
+        if (count && targetToDelete.length >= count) {
+            break;
+        }
+    }
+
+    if (targetIds.size === 0) {
+        return {
+            success: true,
+            deletedCount: 0,
+            remainingCount: media.length,
+            message: 'Silinecek medya bulunamadı.'
+        };
+    }
+
+    // Filter media
+    db.media = media.filter(m => !targetIds.has(m.id));
+
+    // Re-index remaining orderIndex
+    db.media.forEach((m, idx) => {
+        m.orderIndex = idx + 1;
+    });
+
+    // Clean user references
+    if (db.users) {
+        for (const uid in db.users) {
+            const u = db.users[uid];
+            if (Array.isArray(u.seenMedia)) {
+                u.seenMedia = u.seenMedia.filter(id => !targetIds.has(id));
+            }
+            if (Array.isArray(u.favorites)) {
+                u.favorites = u.favorites.filter(id => !targetIds.has(id));
+            }
+        }
+    }
+    if (db.received) {
+        for (const uid in db.received) {
+            if (Array.isArray(db.received[uid])) {
+                db.received[uid] = db.received[uid].filter(id => !targetIds.has(id));
+            }
+        }
+    }
+    if (db.downloads) {
+        for (const uid in db.downloads) {
+            for (const id of targetIds) {
+                delete db.downloads[uid][id];
+            }
+        }
+    }
+
+    saveDb();
+
+    const deletedPhotos = targetToDelete.filter(m => m.type === 'photo').length;
+    const deletedVideos = targetToDelete.filter(m => m.type === 'video').length;
+
+    return {
+        success: true,
+        deletedCount: targetIds.size,
+        deletedPhotos,
+        deletedVideos,
+        remainingCount: db.media.length,
+        message: `${targetIds.size} adet medya başarıyla silindi.`
+    };
+}
+
 // Aynı medya daha önce yüklendi mi kontrol et
 function findMediaByUniqueId(fileUniqueId) {
     if (!fileUniqueId) return null;
@@ -1335,6 +1425,7 @@ module.exports = {
     cleanDuplicateMedia,
     getDuplicateStats,
     deleteMedia,
+    bulkDeleteMedia,
     getStats,
     getAllUserIds,
     isTransactionProcessed,

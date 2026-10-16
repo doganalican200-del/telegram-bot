@@ -4745,7 +4745,10 @@ function showAdminPanel(ctx) {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
             [Markup.button.callback(`⚡ Medyaları Ayrıştır (${unclassifiedCount} Medya)`, 'admin_triage_menu')],
-            [Markup.button.callback('⚡ Bekleyen Medyaları Toplu Onayla', 'admin_bulk_approve')],
+            [
+                Markup.button.callback('🗑️ Toplu Medya Sil', 'admin_bulk_delete_menu'),
+                Markup.button.callback('⚡ Bekleyenleri Onayla', 'admin_bulk_approve')
+            ],
             [
                 Markup.button.callback('🔄 Geçmiş Medyaları Kurtar', 'admin_run_recovery'),
                 Markup.button.callback('💾 Canlı Yedeği İndir', 'admin_download_backup')
@@ -4755,7 +4758,7 @@ function showAdminPanel(ctx) {
                 Markup.button.callback('⭐ Yıldız & Gelir Raporu', 'admin_stars_report')
             ],
             [
-                Markup.button.callback(`🗑️ Benzer Medyaları Sil (${dupStats.duplicateCount || 0})`, 'admin_dup_panel'),
+                Markup.button.callback(`🧹 Benzerleri Sil (${dupStats.duplicateCount || 0})`, 'admin_dup_panel'),
                 Markup.button.callback('🚫 Banlı Kullanıcılar', 'admin_manage_bans')
             ],
             [Markup.button.callback('⚙️ Sekme / Kategori İsimlerini Düzenle', 'admin_manage_cats')],
@@ -4828,6 +4831,233 @@ async function renderAdminTriageMenu(ctx) {
 bot.action('admin_triage_menu', async (ctx) => {
     await ctx.answerCbQuery().catch(() => {});
     return renderAdminTriageMenu(ctx);
+});
+
+// ==========================================
+// 🗑️ ADMİN: TOPLU MEDYA SİLME MERKEZİ (BOT İÇİ)
+// ==========================================
+async function renderAdminBulkDeleteMenu(ctx) {
+    if (!isAdminUser(ctx.from?.id)) {
+        if (ctx.answerCbQuery) await ctx.answerCbQuery('Bu bölüm sadece yöneticiye özeldir.');
+        return;
+    }
+
+    const dbData = db.loadDb();
+    const media = dbData.media || [];
+    const genelMedia = media.filter(m => m.categoryId === 'cat_11');
+    const totalGenel = genelMedia.length;
+    const photoGenel = genelMedia.filter(m => m.type === 'photo').length;
+    const videoGenel = genelMedia.filter(m => m.type === 'video').length;
+    const dupStats = db.getDuplicateStats ? db.getDuplicateStats() : { duplicateCount: 0 };
+    const stats = db.getStats();
+
+    const text =
+`🗑️ <b>TOPLU MEDYA SİLME MERKEZİ</b> 👑\n\n` +
+`Sistemdeki içerikleri kategori, tür veya sayı bazında güvenli şekilde toplu olarak silebilirsiniz:\n\n` +
+`📊 <b>Toplam Sistem Havuzu:</b> 📸 <b>${stats.approvedPhotos} Resim</b> | 🎥 <b>${stats.approvedVideos} Video</b>\n` +
+`📦 <b>Genel Sekmesindeki Medya:</b> <b>${totalGenel} Adet</b> (📸 ${photoGenel} Resim, 🎥 ${videoGenel} Video)\n` +
+`⚠️ <b>Kopya/Mükerrer Medya:</b> <b>${dupStats.duplicateCount || 0} Adet</b>\n\n` +
+`👇 <b>Lütfen silmek istediğiniz işlemi seçin (Onay adımıyla güvenlidir):</b>`;
+
+    const buttons = [
+        [
+            Markup.button.callback(`🗑️ Genel Sekmesini Tamamen Sil (${totalGenel} Medya)`, 'admin_confirm_bulk_del_genel_all')
+        ],
+        [
+            Markup.button.callback(`📸 Genel: Sadece Resimleri Sil (${photoGenel})`, 'admin_confirm_bulk_del_genel_photo'),
+            Markup.button.callback(`🎥 Genel: Sadece Videoları Sil (${videoGenel})`, 'admin_confirm_bulk_del_genel_video')
+        ],
+        [
+            Markup.button.callback('🔢 Genel: Son 100 Medyayı Sil', 'admin_confirm_bulk_del_genel_100'),
+            Markup.button.callback('🔢 Genel: Son 500 Medyayı Sil', 'admin_confirm_bulk_del_genel_500')
+        ],
+        [
+            Markup.button.callback('📂 Belirli Bir Sekmedeki Medyaları Sil', 'admin_bulk_del_choose_cat')
+        ],
+        [
+            Markup.button.callback(`🧹 Benzer & Kopya Medyaları Sil (${dupStats.duplicateCount || 0})`, 'admin_dup_panel')
+        ],
+        [
+            Markup.button.callback('👑 Yönetici Paneli', 'admin_panel'),
+            Markup.button.callback('🏠 Ana Menü', 'main_menu')
+        ]
+    ];
+
+    return safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard(buttons)
+    });
+}
+
+bot.action('admin_bulk_delete_menu', async (ctx) => {
+    await ctx.answerCbQuery().catch(() => {});
+    return renderAdminBulkDeleteMenu(ctx);
+});
+
+// Kategori Seçip Toplu Silme Ekranı
+bot.action('admin_bulk_del_choose_cat', async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return ctx.answerCbQuery('Yetkisiz.');
+    await ctx.answerCbQuery().catch(() => {});
+    const cats = db.getCategories();
+    const dbData = db.loadDb();
+    const media = dbData.media || [];
+
+    const text = 
+`📂 <b>İÇERİĞİNİ TOPLU SİLMEK İSTEDİĞİNİZ SEKMEYİ SEÇİN:</b>\n\n` +
+`<i>Aşağıdaki sekmelerden birini seçtiğinizde o sekmedeki tüm medyalar için onay ekranı açılacaktır:</i>`;
+
+    const catButtons = [];
+    for (let i = 0; i < cats.length; i += 2) {
+        const c1 = cats[i];
+        const cnt1 = media.filter(m => m.categoryId === c1.id).length;
+        const row = [Markup.button.callback(`[${c1.key}] ${c1.name} (${cnt1})`, `admin_conf_bdel_cat_${c1.id}`)];
+        if (cats[i + 1]) {
+            const c2 = cats[i + 1];
+            const cnt2 = media.filter(m => m.categoryId === c2.id).length;
+            row.push(Markup.button.callback(`[${c2.key}] ${c2.name} (${cnt2})`, `admin_conf_bdel_cat_${c2.id}`));
+        }
+        catButtons.push(row);
+    }
+    catButtons.push([Markup.button.callback('⬅️ Toplu Silme Merkezine Dön', 'admin_bulk_delete_menu')]);
+
+    return safeEditOrReply(ctx, text, { parse_mode: 'HTML', ...Markup.inlineKeyboard(catButtons) });
+});
+
+// Belirli Bir Sekme İçin Silme Onay Ekranı
+bot.action(/^admin_conf_bdel_cat_(.+)$/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return ctx.answerCbQuery('Yetkisiz.');
+    await ctx.answerCbQuery().catch(() => {});
+    const catId = ctx.match[1];
+    const cat = db.getCategory(catId);
+    const dbData = db.loadDb();
+    const count = (dbData.media || []).filter(m => m.categoryId === catId).length;
+
+    const text = 
+`⚠️ <b>DİKKAT: TOPLU SİLME ONAYI</b>\n\n` +
+`📁 <b>Hedef Sekme:</b> [${cat?.key || '?'}] <b>${cat?.name || catId}</b>\n` +
+`🗑️ <b>Silinecek Medya:</b> <b>${count} Adet</b>\n\n` +
+`Bu sekmedeki tüm fotoğraf ve videolar sistemden ve kullanıcı listelerinden <b>tamamen silinecektir</b>. Bu işlem geri alınamaz!\n\n` +
+`Onaylıyor musunuz?`;
+
+    return safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback(`⚠️ Evet, Bu Sekmedeki ${count} Medyayı Sil`, `admin_exec_bdel_cat_${catId}`)],
+            [Markup.button.callback('❌ İptal / Vazgeç', 'admin_bulk_del_choose_cat')]
+        ])
+    });
+});
+
+// Belirli Bir Sekmedeki Medyaları Silme İşlemi (Çalıştır)
+bot.action(/^admin_exec_bdel_cat_(.+)$/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return ctx.answerCbQuery('Yetkisiz.');
+    const catId = ctx.match[1];
+    const cat = db.getCategory(catId);
+
+    const res = db.bulkDeleteMedia({ categoryId: catId });
+    await ctx.answerCbQuery(`🗑️ ${res.deletedCount} adet medya başarıyla silindi!`, { show_alert: true });
+
+    const resultText = 
+`🎉 <b>TOPLU SİLME İŞLEMİ TAMAMLANDI!</b>\n\n` +
+`📁 <b>Temizlenen Sekme:</b> [${cat?.key || '?'}] <b>${cat?.name || catId}</b>\n` +
+`🗑️ <b>Silinen Medya:</b> <b>${res.deletedCount} Adet</b> (📸 ${res.deletedPhotos} Resim, 🎥 ${res.deletedVideos} Video)\n` +
+`✅ <b>Sistem Havuzunda Kalan Toplam Medya:</b> <b>${res.remainingCount} Adet</b>`;
+
+    return safeEditOrReply(ctx, resultText, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback('🗑️ Toplu Silme Merkezine Dön', 'admin_bulk_delete_menu')],
+            [Markup.button.callback('👑 Yönetici Paneli', 'admin_panel')]
+        ])
+    });
+});
+
+// Genel Sekmesi İçin Onay Ekranları
+bot.action(/^admin_confirm_bulk_del_genel_(all|photo|video|100|500)$/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return ctx.answerCbQuery('Yetkisiz.');
+    await ctx.answerCbQuery().catch(() => {});
+    const mode = ctx.match[1];
+    const dbData = db.loadDb();
+    const genelMedia = (dbData.media || []).filter(m => m.categoryId === 'cat_11');
+
+    let label = '';
+    let count = 0;
+    if (mode === 'all') {
+        label = 'Genel Sekmesindeki TÜM Medyalar';
+        count = genelMedia.length;
+    } else if (mode === 'photo') {
+        label = 'Genel Sekmesindeki TÜM Fotoğraflar';
+        count = genelMedia.filter(m => m.type === 'photo').length;
+    } else if (mode === 'video') {
+        label = 'Genel Sekmesindeki TÜM Videolar';
+        count = genelMedia.filter(m => m.type === 'video').length;
+    } else if (mode === '100') {
+        count = Math.min(100, genelMedia.length);
+        label = `Genel Sekmesindeki Son ${count} Medya`;
+    } else if (mode === '500') {
+        count = Math.min(500, genelMedia.length);
+        label = `Genel Sekmesindeki Son ${count} Medya`;
+    }
+
+    const text = 
+`⚠️ <b>DİKKAT: TOPLU SİLME ONAYI</b>\n\n` +
+`🎯 <b>Silinecek İçerik:</b> <b>${label}</b>\n` +
+`🗑️ <b>Silinecek Adet:</b> <b>${count} Adet</b>\n\n` +
+`Seçilen içerikler sistemden ve kullanıcıların izleme geçmişinden <b>kalıcı olarak silinecektir</b>. Bu işlem geri alınamaz!\n\n` +
+`Onaylıyor musunuz?`;
+
+    return safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback(`⚠️ Evet, ${count} Medyayı Kalıcı Olarak Sil`, `admin_exec_bdel_genel_${mode}`)],
+            [Markup.button.callback('❌ İptal / Vazgeç', 'admin_bulk_delete_menu')]
+        ])
+    });
+});
+
+// Genel Sekmesi İçin Silme İşlemini Çalıştır
+bot.action(/^admin_exec_bdel_genel_(all|photo|video|100|500)$/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return ctx.answerCbQuery('Yetkisiz.');
+    const mode = ctx.match[1];
+
+    let typeFilter = null;
+    let countFilter = null;
+
+    if (mode === 'photo') typeFilter = 'photo';
+    else if (mode === 'video') typeFilter = 'video';
+    else if (mode === '100') countFilter = 100;
+    else if (mode === '500') countFilter = 500;
+
+    const res = db.bulkDeleteMedia({
+        categoryId: 'cat_11',
+        type: typeFilter,
+        count: countFilter,
+        order: 'desc'
+    });
+
+    await ctx.answerCbQuery(`🗑️ ${res.deletedCount} adet medya başarıyla silindi!`, { show_alert: true });
+
+    const resultText = 
+`🎉 <b>TOPLU SİLME İŞLEMİ TAMAMLANDI!</b>\n\n` +
+`📁 <b>Kategori:</b> [K] Genel Sekmesi\n` +
+`🗑️ <b>Silinen Medya Sayısı:</b> <b>${res.deletedCount} Adet</b>\n` +
+`📸 <b>Silinen Fotoğraf:</b> ${res.deletedPhotos} Adet\n` +
+`🎥 <b>Silinen Video:</b> ${res.deletedVideos} Adet\n\n` +
+`✅ <b>Sistem Havuzunda Kalan Toplam Medya:</b> <b>${res.remainingCount} Adet</b>`;
+
+    return safeEditOrReply(ctx, resultText, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback('🗑️ Toplu Silme Merkezine Dön', 'admin_bulk_delete_menu')],
+            [Markup.button.callback('👑 Yönetici Paneli', 'admin_panel')]
+        ])
+    });
+});
+
+// Toplu Silme Hızlı Komutları
+bot.command(['toplusil', 'toplumedyasil', 'silmemenusu', 'bulkdelete'], async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    return renderAdminBulkDeleteMenu(ctx);
 });
 
 // ==========================================

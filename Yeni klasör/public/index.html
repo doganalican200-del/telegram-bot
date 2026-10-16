@@ -1868,6 +1868,61 @@
                     <div id="admin-clean-dup-result" style="display:none; margin-top:10px; font-size:11px; padding:10px; border-radius:8px; line-height:1.45;"></div>
                 </div>
 
+                <!-- 🗑️ TOPLU MEDYA SİLME MERKEZİ -->
+                <div style="background: radial-gradient(circle at top right, rgba(239, 68, 68, 0.15), transparent 70%), rgba(26, 16, 24, 0.65); border: 1px solid rgba(239, 68, 68, 0.45); border-radius: 12px; padding: 12px; margin-bottom: 14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div style="font-size:13px; font-weight:800; color:#f87171; display:flex; align-items:center; gap:6px;">
+                            <span>🗑️</span> Toplu Medya Silme Merkezi
+                        </div>
+                        <span style="font-size:9.5px; background:rgba(239, 68, 68, 0.25); border:1px solid #ef4444; color:#fca5a5; font-weight:800; padding:2px 7px; border-radius:4px;">YÖNETİCİ ÖZEL</span>
+                    </div>
+                    <div style="font-size:11px; color:#cbd5e1; line-height:1.45; margin-bottom:10px;">
+                        Seçilen sekmedeki (örn. Genel sekmesi) veya filtrelediğiniz türdeki fotoğrafları/videoları tek tıkla toplu olarak sistemden siler.
+                    </div>
+                    <!-- Form Controls -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
+                        <div>
+                            <label style="font-size:10px; color:var(--hint-color); display:block; margin-bottom:2px;">Hedef Sekme:</label>
+                            <select id="adm-bdel-cat-select" style="width:100%; background:#0f172a; border:1px solid var(--card-border); color:#38bdf8; padding:6px; border-radius:6px; font-size:11px; font-weight:700;">
+                                <option value="cat_11">📂 [K] Genel (Dağıtılmamışlar)</option>
+                                <option value="all">🌐 TÜM SEKMELER (Tüm Sistem)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:10px; color:var(--hint-color); display:block; margin-bottom:2px;">Medya Türü:</label>
+                            <select id="adm-bdel-type-select" style="width:100%; background:#0f172a; border:1px solid var(--card-border); color:#fff; padding:6px; border-radius:6px; font-size:11px;">
+                                <option value="all">🎬 + 📸 Tüm Türler (Video & Foto)</option>
+                                <option value="video">🎥 Sadece Videolar</option>
+                                <option value="photo">📸 Sadece Fotoğraflar</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px;">
+                        <div>
+                            <label style="font-size:10px; color:var(--hint-color); display:block; margin-bottom:2px;">Silinecek Adet:</label>
+                            <select id="adm-bdel-count-select" style="width:100%; background:#0f172a; border:1px solid var(--card-border); color:#f59e0b; padding:6px; border-radius:6px; font-size:11px; font-weight:700;">
+                                <option value="all">🔥 Tümünü Sil (Sıfırla)</option>
+                                <option value="50">50 Adet</option>
+                                <option value="100">100 Adet</option>
+                                <option value="250">250 Adet</option>
+                                <option value="500">500 Adet</option>
+                                <option value="1000">1000 Adet</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:10px; color:var(--hint-color); display:block; margin-bottom:2px;">Sıralama:</label>
+                            <select id="adm-bdel-order-select" style="width:100%; background:#0f172a; border:1px solid var(--card-border); color:#fff; padding:6px; border-radius:6px; font-size:11px;">
+                                <option value="desc">⬇️ En Yeni Yüklenenlerden Başla</option>
+                                <option value="asc">⬆️ En Eski Yüklenenlerden Başla</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="executeAdminBulkDelete()" id="btn-admin-exec-bdel" style="width:100%; background:linear-gradient(135deg, #ef4444, #b91c1c); border:none; color:#fff; font-size:11.5px; font-weight:800; padding:10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 14px rgba(239, 68, 68, 0.4);">
+                        <span>🗑️</span> Seçilen Medyaları Toplu Sil
+                    </button>
+                    <div id="admin-bdel-result" style="display:none; margin-top:10px; font-size:11px; padding:10px; border-radius:8px; line-height:1.45;"></div>
+                </div>
+
                 <!-- ⚡ GELİŞMİŞ MEDYA KURTARMA & AKILLI KLASÖR DÜZENLEME -->
                 <div style="margin-top:14px; margin-bottom:14px; background:linear-gradient(145deg, rgba(30, 27, 75, 0.45), rgba(15, 23, 42, 0.6)); border:1px solid rgba(139, 92, 246, 0.4); border-radius:12px; padding:14px; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;">
@@ -4783,6 +4838,74 @@
         }
 
         // ==========================================
+        // 🗑️ ADMİN TOPLU MEDYA SİLME FONKSİYONU
+        // ==========================================
+        async function executeAdminBulkDelete() {
+            const catSelect = document.getElementById('adm-bdel-cat-select');
+            const typeSelect = document.getElementById('adm-bdel-type-select');
+            const countSelect = document.getElementById('adm-bdel-count-select');
+            const orderSelect = document.getElementById('adm-bdel-order-select');
+            const btn = document.getElementById('btn-admin-exec-bdel');
+            const resBox = document.getElementById('admin-bdel-result');
+
+            const categoryId = catSelect ? catSelect.value : 'cat_11';
+            const type = typeSelect ? typeSelect.value : 'all';
+            const count = countSelect ? countSelect.value : 'all';
+            const order = orderSelect ? orderSelect.value : 'desc';
+
+            const catLabel = catSelect && catSelect.options[catSelect.selectedIndex] ? catSelect.options[catSelect.selectedIndex].text : categoryId;
+            const countLabel = count === 'all' ? 'TÜMÜNÜ' : `${count} adet`;
+            const typeLabel = type === 'video' ? 'videoları' : (type === 'photo' ? 'fotoğrafları' : 'içerikleri');
+
+            if (!confirm(`⚠️ DİKKAT!\n\n${catLabel} sekmesindeki ${countLabel} ${typeLabel} kalıcı olarak silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!`)) {
+                return;
+            }
+
+            if (btn) btn.innerHTML = `<span>⏳</span> Siliniyor...`;
+
+            try {
+                const res = await fetch('/api/webapp/admin/execute-bulk-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        categoryId: categoryId,
+                        type: type,
+                        count: count,
+                        order: order
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    if (resBox) {
+                        resBox.style.display = 'block';
+                        resBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                        resBox.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+                        resBox.style.color = '#fca5a5';
+                        resBox.innerHTML = `
+                            <b>🎉 Toplu Silme Başarılı!</b><br>
+                            • Silinen Toplam: <b>${data.deletedCount} adet</b><br>
+                            • Silinen Resim: ${data.deletedPhotos} | Silinen Video: ${data.deletedVideos}<br>
+                            • Sistemde Kalan Toplam Medya: <b>${data.remainingCount} adet</b>
+                        `;
+                    }
+                    showToast(`🗑️ ${data.deletedCount} adet medya başarıyla silindi!`, '🎉');
+                    if (typeof loadAdminPanel === 'function') loadAdminPanel();
+                    if (typeof loadCategories === 'function') loadCategories();
+                    if (typeof updateAdminGenelStats === 'function') updateAdminGenelStats();
+                } else {
+                    showToast(data.message || 'Silme işlemi başarısız.', '❌');
+                }
+            } catch (err) {
+                showToast('Hata: ' + err.message, '❌');
+            } finally {
+                if (btn) btn.innerHTML = `<span>🗑️</span> Seçilen Medyaları Toplu Sil`;
+            }
+        }
+
+        // ==========================================
         // 👑 ADMİN KATEGORİ İÇERİK YÖNETİMİ & TOPLU AKTARIM
         // ==========================================
         let currentAdminCatId = null;
@@ -5550,6 +5673,16 @@
                     renderDuplicateStatsUI(data.duplicateStats);
                 } else {
                     fetchDuplicateStats();
+                }
+
+                // Toplu Silme Hedef Kategori Listesini Doldur
+                const bdelCatSelect = document.getElementById('adm-bdel-cat-select');
+                if (bdelCatSelect && categoriesData) {
+                    let catOptions = '<option value="cat_11">📂 [K] Genel (Dağıtılmamışlar)</option><option value="all">🌐 TÜM SEKMELER (Tüm Sistem)</option>';
+                    (categoriesData || []).filter(c => c.id !== 'cat_11').forEach(c => {
+                        catOptions += `<option value="${c.id}">[${c.key}] ${escapeHtml(c.name)}</option>`;
+                    });
+                    bdelCatSelect.innerHTML = catOptions;
                 }
 
                 // 1. Onay Bekleyen Medyalar
