@@ -1017,6 +1017,76 @@ function changeMediaCategory(mediaId, newCategoryId) {
     };
 }
 
+// Tüm medyaları tek bir kategoriye (varsayılan Genel: cat_11) taşı ve diğer sekmeleri boşalt
+function moveAllMediaToCategory(targetCategoryId = 'cat_11') {
+    const db = loadDb();
+    const targetCat = getCategory(targetCategoryId);
+    if (!targetCat) return { success: false, message: 'Geçersiz hedef sekme.' };
+
+    let count = 0;
+    (db.media || []).forEach(m => {
+        m.categoryId = targetCat.id;
+        count++;
+    });
+    saveDb();
+    return {
+        success: true,
+        count,
+        targetCategory: targetCat
+    };
+}
+
+// 👑 GEÇİCİ KRALLIK (VIP) SATIN ALMA (KREDİ İLE)
+function buyVipWithCredits(userId, days = 3, creditCost = 25) {
+    const db = loadDb();
+    const uid = String(userId);
+    const user = db.users[uid];
+    if (!user) return { success: false, message: 'Kullanıcı bulunamadı.' };
+
+    const totalCredits = (user.videoCredits || 0) + (user.photoCredits || 0);
+    if (totalCredits < creditCost) {
+        return { 
+            success: false, 
+            message: `Yetersiz kredi! ${days} Günlük Krallık için ${creditCost} kredi gereklidir. Mevcut toplam krediniz: ${totalCredits}` 
+        };
+    }
+
+    // Kredilerden düş (önce video sonra foto)
+    let remaining = creditCost;
+    if ((user.videoCredits || 0) >= remaining) {
+        user.videoCredits -= remaining;
+        remaining = 0;
+    } else {
+        remaining -= (user.videoCredits || 0);
+        user.videoCredits = 0;
+        user.photoCredits = Math.max(0, (user.photoCredits || 0) - remaining);
+    }
+
+    const durationMs = days * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const currentVipUntil = user.vipUntil && user.vipUntil > now ? user.vipUntil : now;
+    user.vipUntil = currentVipUntil + durationMs;
+
+    // Bonus 1 çark hakkı hediye
+    user.wheelSpins = (user.wheelSpins || 0) + 1;
+
+    saveDb();
+
+    return {
+        success: true,
+        message: `👑 Tebrikler! ${days} Günlük Geçici Krallık (VIP) aktif edildi! +1 Çark Hediyesi eklendi.`,
+        days,
+        vipUntil: user.vipUntil,
+        user: {
+            videoCredits: user.videoCredits,
+            photoCredits: user.photoCredits,
+            wheelSpins: user.wheelSpins,
+            isVip: true,
+            vipUntil: user.vipUntil
+        }
+    };
+}
+
 // İstatistikler
 function getStats() {
     const db = loadDb();
@@ -1117,6 +1187,8 @@ module.exports = {
     addMediaStars,
     rateMedia,
     changeMediaCategory,
+    moveAllMediaToCategory,
+    buyVipWithCredits,
     addApprovedMedia,
     findDuplicateMedia,
     findDuplicateMediaList,
@@ -1159,7 +1231,9 @@ module.exports = {
     dismissReportsForMedia,
     getAllUploadsWithUsers,
     ADMIN_IDS,
-    isAdminUser
+    isAdminUser,
+    autoHealUser,
+    autoHealSystem
 };
 
 // ==========================================
@@ -1537,7 +1611,7 @@ function setUserCredits(userId, videoCredits, photoCredits, isVip = false) {
 }
 
 function isMediaDownloadUnlocked(userId, mediaId) {
-    if (isAdminUser(userId)) return true;
+    if (isAdminUser(userId) || isUserVip(userId).isVip) return true;
     const db = loadDb();
     if (!db.downloads) db.downloads = {};
     const uid = String(userId);
@@ -1689,4 +1763,180 @@ function getAllUploadsWithUsers(limit = 150) {
         };
     });
 }
+
+// ==========================================
+// 🤖 NOVA AI • OTOMATİK KULLANICI HATA TEŞHİS & KENDİ KENDİNİ ONARMA MOTORU
+// ==========================================
+function autoHealUser(userId) {
+    const db = loadDb();
+    const uid = String(userId);
+    let user = db.users[uid];
+    if (!user) {
+        user = getOrCreateUser({ id: uid, first_name: 'Kullanıcı' }).user;
+    }
+
+    const fixes = [];
+    const now = Date.now();
+
+    // 1. Kredi Bütünlüğü Kontrolü ve Onarımı
+    if (typeof user.videoCredits !== 'number' || isNaN(user.videoCredits) || user.videoCredits < 0) {
+        user.videoCredits = Math.max(0, parseInt(user.videoCredits, 10) || 0);
+        fixes.push('Video kredisi sayı formatı ve negatif bakiye düzeltildi.');
+    }
+    if (typeof user.photoCredits !== 'number' || isNaN(user.photoCredits) || user.photoCredits < 0) {
+        user.photoCredits = Math.max(0, parseInt(user.photoCredits, 10) || 0);
+        fixes.push('Fotoğraf kredisi sayı formatı ve negatif bakiye düzeltildi.');
+    }
+    if (typeof user.wheelSpins !== 'number' || isNaN(user.wheelSpins) || user.wheelSpins < 0) {
+        user.wheelSpins = Math.max(0, parseInt(user.wheelSpins, 10) || 0);
+        fixes.push('Şans çarkı hakları senkronize edildi.');
+    }
+
+    // 2. VIP / Krallık Durumu Doğrulaması
+    if (user.vipUntil) {
+        const vipTime = typeof user.vipUntil === 'string' ? new Date(user.vipUntil).getTime() : Number(user.vipUntil);
+        if (vipTime <= now) {
+            user.vipUntil = null;
+            fixes.push('Süresi dolmuş eski VIP durumu temizlendi.');
+        }
+    }
+
+    // 3. Alınan Medyalar (Received) Doğrulaması & Ölü Kayıt Temizliği
+    if (!db.received) db.received = {};
+    const validMediaMap = new Map((db.media || []).map(m => [String(m.id), m]));
+    let userReceived = db.received[uid] || [];
+    let initialCount = userReceived.length;
+    
+    let cleanedReceived = userReceived.filter(item => {
+        const mId = typeof item === 'object' && item ? String(item.id) : String(item);
+        return validMediaMap.has(mId);
+    });
+
+    if (cleanedReceived.length !== initialCount) {
+        db.received[uid] = cleanedReceived;
+        fixes.push(`${initialCount - cleanedReceived.length} adet silinmiş/geçersiz medya referansı temizlendi.`);
+    }
+
+    // 4. İndirme Kilitleri (Downloads) Doğrulaması
+    if (!db.downloads) db.downloads = {};
+    if (db.downloads[uid]) {
+        let deadDownloadCount = 0;
+        for (const mId of Object.keys(db.downloads[uid])) {
+            if (!validMediaMap.has(mId)) {
+                delete db.downloads[uid][mId];
+                deadDownloadCount++;
+            }
+        }
+        if (deadDownloadCount > 0) {
+            fixes.push(`${deadDownloadCount} adet artık indirme referansı temizlendi.`);
+        }
+    }
+
+    // 5. 2 Yükle 1 Al İlerleme Telafisi (Gecikmiş Kredi Kontrolü)
+    const approvedUploads = (db.media || []).filter(m => String(m.uploadedBy) === uid && m.status === 'approved').length;
+    const progressCount = (user.videoProgress || 0);
+    if (approvedUploads > 0 && progressCount < approvedUploads) {
+        const diff = approvedUploads - progressCount;
+        const rewardOwed = Math.floor(diff / 2);
+        if (rewardOwed > 0) {
+            user.videoCredits = (user.videoCredits || 0) + rewardOwed;
+            user.videoProgress = approvedUploads;
+            fixes.push(`Onaylanan yüklemeleriniz taranarak eksik kalan +${rewardOwed} Video Kredisi hesabınıza eklendi!`);
+        }
+    }
+
+    if (fixes.length > 0) {
+        saveDb();
+    }
+
+    const vipStatus = isUserVip(uid);
+    return {
+        healthy: fixes.length === 0,
+        fixedCount: fixes.length,
+        fixes: fixes,
+        user: {
+            id: uid,
+            firstName: user.firstName,
+            username: user.username,
+            videoCredits: user.videoCredits || 0,
+            photoCredits: user.photoCredits || 0,
+            wheelSpins: user.wheelSpins || 0,
+            isVip: vipStatus.isVip,
+            vipUntil: vipStatus.until,
+            receivedCount: (db.received[uid] || []).length
+        }
+    };
+}
+
+// ==========================================
+// 🤖 NOVA AI • SİSTEMSEL VERİTABANI VE 2,146 MEDYA GENEL BAKIM & ONARIM (ADMIN)
+// ==========================================
+function autoHealSystem() {
+    const db = loadDb();
+    const media = db.media || [];
+    const users = db.users || {};
+    const fixes = [];
+    let repairedMedia = 0;
+    let repairedUsers = 0;
+
+    const validCatIds = new Set((db.categories || defaultCategories).map(c => c.id));
+
+    // 1. Medyaları tara
+    media.forEach((m, idx) => {
+        let changed = false;
+        if (!m.categoryId || !validCatIds.has(m.categoryId)) {
+            m.categoryId = 'cat_11'; // Genel
+            changed = true;
+        }
+        if (!m.orderIndex) {
+            m.orderIndex = idx + 1;
+            changed = true;
+        }
+        if (!m.status) {
+            m.status = 'approved';
+            changed = true;
+        }
+        if (changed) repairedMedia++;
+    });
+
+    if (repairedMedia > 0) {
+        fixes.push(`${repairedMedia} adet medyanın kategori ve indeks kaydı düzeltildi.`);
+    }
+
+    // 2. Kullanıcıları tara
+    for (const [uid, u] of Object.entries(users)) {
+        let userFixed = false;
+        if (typeof u.videoCredits !== 'number' || u.videoCredits < 0) {
+            u.videoCredits = Math.max(0, parseInt(u.videoCredits, 10) || 0);
+            userFixed = true;
+        }
+        if (typeof u.photoCredits !== 'number' || u.photoCredits < 0) {
+            u.photoCredits = Math.max(0, parseInt(u.photoCredits, 10) || 0);
+            userFixed = true;
+        }
+        if (typeof u.wheelSpins !== 'number' || u.wheelSpins < 0) {
+            u.wheelSpins = Math.max(0, parseInt(u.wheelSpins, 10) || 0);
+            userFixed = true;
+        }
+        if (userFixed) repairedUsers++;
+    }
+
+    if (repairedUsers > 0) {
+        fixes.push(`${repairedUsers} adet kullanıcının bakiye tutarsızlığı onarıldı.`);
+    }
+
+    if (repairedMedia > 0 || repairedUsers > 0) {
+        saveDb();
+    }
+
+    return {
+        healthy: fixes.length === 0,
+        totalMedia: media.length,
+        totalUsers: Object.keys(users).length,
+        repairedMedia,
+        repairedUsers,
+        fixes
+    };
+}
+
 

@@ -181,6 +181,54 @@ const MARKET_PACKAGES = [
     }
 ];
 
+// 🔗 Telegram Dosya Linki Önbelleği & Güçlü Çoklu Token Çözücü
+const fileLinkCache = new Map();
+let fallbackTelegrafInstance = null;
+function getFallbackBot() {
+    if (!fallbackTelegrafInstance) {
+        try {
+            fallbackTelegrafInstance = new Telegraf('8151413936:AAFbhwQNpaGkW1CdShixrq2PJMNzC7jamjM');
+        } catch (_) {}
+    }
+    return fallbackTelegrafInstance;
+}
+
+async function resolveTelegramFileLink(fileId, activeBot) {
+    if (!fileId) return null;
+    const now = Date.now();
+    const cached = fileLinkCache.get(fileId);
+    if (cached && cached.expiresAt > now) {
+        return cached.link;
+    }
+
+    let link = null;
+    // 1. Önce aktif bot örneği
+    if (activeBot) {
+        try { link = await activeBot.telegram.getFileLink(fileId); } catch (_) {}
+    }
+    // 2. Fallback Telegraf örneği (8151413936)
+    if (!link) {
+        try {
+            const fb = getFallbackBot();
+            if (fb) link = await fb.telegram.getFileLink(fileId);
+        } catch (_) {}
+    }
+    // 3. process.env.BOT_TOKEN
+    if (!link && process.env.BOT_TOKEN) {
+        try {
+            const envBot = new Telegraf(process.env.BOT_TOKEN);
+            link = await envBot.telegram.getFileLink(fileId);
+        } catch (_) {}
+    }
+
+    if (link) {
+        const linkStr = typeof link === 'object' && link.href ? link.href : String(link);
+        fileLinkCache.set(fileId, { link: linkStr, expiresAt: now + (30 * 60 * 1000) });
+        return linkStr;
+    }
+    return null;
+}
+
 function createWebAppServer(options = {}) {
     const ADMIN_IDS = ['8633136500'];
     const isAdminUser = options.isAdminUser || ((id) => String(id) === '8633136500');
@@ -555,8 +603,8 @@ function createWebAppServer(options = {}) {
         // ==========================================
         // 9. API: VİDEO & FOTOĞRAF İZLEME / STREAMING PROXY (HTTP Range & Redirect Destekli)
         // ==========================================
-        if (parsedUrl.pathname.startsWith('/api/webapp/stream/') && req.method === 'GET') {
-            const mediaId = parsedUrl.pathname.replace('/api/webapp/stream/', '').split('?')[0];
+        if ((parsedUrl.pathname.startsWith('/api/webapp/stream/') || parsedUrl.pathname.startsWith('/api/webapp/photo/')) && req.method === 'GET') {
+            const mediaId = parsedUrl.pathname.replace('/api/webapp/stream/', '').replace('/api/webapp/photo/', '').split('?')[0];
             const media = db.getMedia(mediaId);
 
             if (!media) {
@@ -570,23 +618,7 @@ function createWebAppServer(options = {}) {
             const isVideo = media.type === 'video';
             const defaultContentType = isVideo ? 'video/mp4' : 'image/jpeg';
 
-            let fileLink = null;
-            // 1. Önce aktif bot ile link almayı dene
-            try {
-                if (botInstance && media.fileId) {
-                    fileLink = await botInstance.telegram.getFileLink(media.fileId);
-                }
-            } catch (_) {}
-
-            // 2. Eğer yetersiz/hata olursa ana bot ile almayı dene
-            if (!fileLink && media.fileId) {
-                try {
-                    const fallbackBot = new Telegraf('8151413936:AAFbhwQNpaGkW1CdShixrq2PJMNzC7jamjM');
-                    fileLink = await fallbackBot.telegram.getFileLink(media.fileId);
-                } catch (e) {
-                    console.error('Medya link alma hatası:', e.message);
-                }
-            }
+            const fileLink = await resolveTelegramFileLink(media.fileId, botInstance);
 
             if (!fileLink) {
                 res.writeHead(502, { 
@@ -1339,17 +1371,13 @@ function createWebAppServer(options = {}) {
         }
 
         // ==========================================
-        // 14H. API: ADMİN KATEGORİ İÇERİK LİSTESİ & YÖNETİMİ
+        // 14H. API: KATEGORİ İÇERİK LİSTESİ (TÜM KULLANICILAR İÇİN DOSYA İÇİNDE İZLEME)
         // ==========================================
-        if (parsedUrl.pathname === '/api/webapp/admin/category-media' && req.method === 'GET') {
+        if ((parsedUrl.pathname === '/api/webapp/admin/category-media' || parsedUrl.pathname === '/api/webapp/category-media') && req.method === 'GET') {
             const userId = parsedUrl.searchParams.get('userId');
             const categoryId = parsedUrl.searchParams.get('categoryId');
             const typeFilter = parsedUrl.searchParams.get('type') || 'all';
-
-            if (!isAdminUser(userId)) {
-                res.writeHead(403, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim.' }));
-            }
+            const isAdmin = isAdminUser(userId);
 
             const dbData = db.loadDb();
             const cats = db.getCategories();
@@ -1358,25 +1386,59 @@ function createWebAppServer(options = {}) {
             const allCategoryMedia = (dbData.media || []).filter(m => m.categoryId === categoryId);
             const totalVideos = allCategoryMedia.filter(m => m.type === 'video').length;
             const totalPhotos = allCategoryMedia.filter(m => m.type === 'photo').length;
+            const totalAdmin = allCategoryMedia.filter(m => String(m.uploadedBy) === '8633136500').length;
 
             let filtered = allCategoryMedia;
             if (typeFilter === 'video') {
-                filtered = allCategoryMedia.filter(m => m.type === 'video');
+                filtered = filtered.filter(m => m.type === 'video');
             } else if (typeFilter === 'photo') {
-                filtered = allCategoryMedia.filter(m => m.type === 'photo');
+                filtered = filtered.filter(m => m.type === 'photo');
             }
 
-            // En son eklenenler en üstte
-            const items = filtered.slice().reverse().map(m => {
+            const uploaderFilter = parsedUrl.searchParams.get('uploader') || 'all';
+            if (uploaderFilter === 'admin') {
+                filtered = filtered.filter(m => String(m.uploadedBy) === '8633136500');
+            } else if (uploaderFilter && uploaderFilter !== 'all') {
+                filtered = filtered.filter(m => String(m.uploadedBy) === String(uploaderFilter));
+            }
+
+            const sortOrder = parsedUrl.searchParams.get('sort') || 'desc'; // 'desc' | 'asc' | 'size'
+            if (sortOrder === 'asc') {
+                filtered = filtered.slice().sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+            } else if (sortOrder === 'size') {
+                filtered = filtered.slice().sort((a, b) => (b.fileSize || 0) - (a.fileSize || 0));
+            } else {
+                // desc: en yeni önce
+                filtered = filtered.slice().reverse();
+            }
+
+            const searchKw = (parsedUrl.searchParams.get('search') || '').toLowerCase().trim();
+            if (searchKw) {
+                filtered = filtered.filter(m => {
+                    const uploader = dbData.users ? dbData.users[String(m.uploadedBy)] : null;
+                    const uName = (uploader?.firstName || '').toLowerCase();
+                    const uUser = (uploader?.username || '').toLowerCase();
+                    const idStr = String(m.id || '').toLowerCase();
+                    const idxStr = String(m.orderIndex || '');
+                    return idStr.includes(searchKw) || idxStr === searchKw || uName.includes(searchKw) || uUser.includes(searchKw);
+                });
+            }
+
+            const items = filtered.map((m, idx) => {
                 const uploader = dbData.users ? dbData.users[String(m.uploadedBy)] : null;
+                const isSuperAdmin = String(m.uploadedBy) === '8633136500';
                 return {
                     id: m.id,
+                    seqNumber: idx + 1,
+                    orderIndex: m.orderIndex || (idx + 1),
                     type: m.type,
                     categoryId: m.categoryId,
                     fileSize: m.fileSize || 0,
                     status: m.status || 'approved',
                     uploadedBy: m.uploadedBy,
-                    uploaderName: uploader?.firstName || (String(m.uploadedBy) === '8633136500' ? 'Admin' : 'Kullanıcı'),
+                    isAdminUpload: isSuperAdmin,
+                    uploaderName: uploader?.firstName ? (isSuperAdmin ? `${uploader.firstName} (Admin)` : uploader.firstName) : (isSuperAdmin ? 'Ömer (Admin)' : 'Kullanıcı'),
+                    uploaderUsername: uploader?.username ? `@${uploader.username.replace('@', '')}` : null,
                     reports: m.reports || 0,
                     createdAt: m.createdAt
                 };
@@ -1390,8 +1452,42 @@ function createWebAppServer(options = {}) {
                 total: allCategoryMedia.length,
                 totalVideos,
                 totalPhotos,
+                totalAdmin,
                 items
             }));
+        }
+
+        // ==========================================
+        // 14H2. API: KREDİ İLE GEÇİCİ KRALLIK (VIP) SATIN ALMA
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/buy-vip-with-credits' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, plan = '3_days' } = data;
+
+                    if (!userId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Kullanıcı ID gerekli.' }));
+                    }
+
+                    let days = data.days || 3;
+                    let creditCost = data.creditCost || 25;
+                    if (plan === '1_day') { days = 1; creditCost = 10; }
+                    else if (plan === '3_days') { days = 3; creditCost = 25; }
+                    else if (plan === '7_days') { days = 7; creditCost = 50; }
+
+                    const resDb = db.buyVipWithCredits(userId, days, creditCost);
+                    res.writeHead(resDb.success ? 200 : 400, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify(resDb));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
         }
 
         // ==========================================
@@ -1547,6 +1643,38 @@ function createWebAppServer(options = {}) {
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     return res.end(JSON.stringify(runRes));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 14M. API: ADMİN TÜM MEDYALARI GENELE AKTAR (DİĞER SEKMELERİ BOŞALT)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/move-all-to-genel' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, targetCategoryId = 'cat_11' } = data;
+
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim.' }));
+                    }
+
+                    const resDb = db.moveAllMediaToCategory(targetCategoryId);
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({
+                        success: true,
+                        message: `Tüm ${resDb.count} adet medya başarıyla '${resDb.targetCategory.name}' sekmesine aktarıldı, diğer tüm sekmeler boşaltıldı!`,
+                        count: resDb.count,
+                        targetCategory: resDb.targetCategory
+                    }));
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify({ success: false, message: e.message }));
@@ -2082,6 +2210,167 @@ function createWebAppServer(options = {}) {
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     return res.end(JSON.stringify({ success: true, invoiceLink }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 27. 🤖 NOVA AI: AKILLI HATA TEŞHİS, KENDİ KENDİNİ ONARMA VE ADMİN BİLDİRİM MOTORU
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/ai-assistant' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, action = 'diagnose', message = '', issueCategory = 'Genel' } = data;
+
+                    if (!userId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'userId parametresi zorunludur.' }));
+                    }
+
+                    const uid = String(userId);
+                    const dbData = db.loadDb();
+                    const user = dbData.users ? dbData.users[uid] : null;
+                    const userName = user?.firstName || 'Kullanıcı';
+                    const userUsername = user?.username || '';
+
+                    // 1. OTOMATİK TEŞHİS VE KENDİ KENDİNİ ONARMA (DIAGNOSE)
+                    if (action === 'diagnose') {
+                        const healResult = db.autoHealUser ? db.autoHealUser(uid) : { healthy: true, fixes: [], fixedCount: 0 };
+                        
+                        let aiSummary = '';
+                        if (healResult.fixedCount > 0) {
+                            aiSummary = `⚡ <b>Teşhis Başarılı!</b> Sisteminizde ${healResult.fixedCount} adet tutarsızlık tespit edildi ve otonom olarak düzeltildi:\n• ` + healResult.fixes.join('\n• ');
+                        } else {
+                            aiSummary = `🟢 <b>Sistem Mükemmel!</b> Hesap verileriniz, kredileriniz ve medya senkronizasyonunuz tamamen sağlıklı çalışıyor.`;
+                        }
+
+                        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({
+                            success: true,
+                            action: 'diagnose',
+                            healed: healResult.fixedCount > 0,
+                            fixedCount: healResult.fixedCount,
+                            fixes: healResult.fixes,
+                            aiMessage: aiSummary,
+                            user: healResult.user || user
+                        }));
+                    }
+
+                    // 2. YÖNETİCİYE DOĞRUDAN ESKALASYON / BİLDİRİM GÖNDERME (ESCALATE)
+                    if (action === 'escalate') {
+                        const healResult = db.autoHealUser ? db.autoHealUser(uid) : { healthy: true, fixes: [] };
+                        const targetAdminId = ADMIN_IDS[0] || '8633136500';
+
+                        if (botInstance) {
+                            const adminAlertText = 
+                                `🤖 <b>NOVA AI • HATA / DESTEK BİLDİRİMİ</b>\n` +
+                                `━━━━━━━━━━━━━━━━━━━━\n` +
+                                `👤 <b>Kullanıcı:</b> ${userName} ${userUsername ? '(@' + userUsername.replace('@', '') + ')' : ''}\n` +
+                                `🆔 <b>Telegram ID:</b> <code>${uid}</code>\n` +
+                                `🚨 <b>Kategori:</b> <code>${issueCategory}</code>\n\n` +
+                                `📝 <b>Kullanıcı Şikayeti:</b>\n` +
+                                `<i>"${message.trim() || 'Açıklama belirtilmedi'}"</i>\n\n` +
+                                `🔍 <b>AI Canlı Teşhis Raporu:</b>\n` +
+                                `• 🎬 Video Kredisi: <b>${user?.videoCredits ?? 0}</b> | 📷 Foto Kredisi: <b>${user?.photoCredits ?? 0}</b>\n` +
+                                `• 👑 Krallık (VIP): <b>${user?.vipUntil && user.vipUntil > Date.now() ? 'Aktif' : 'Standart'}</b>\n` +
+                                `• 🛠️ Otonom Onarım: ${healResult.fixes.length > 0 ? healResult.fixes.join(', ') : 'Denedi, manuel admin müdahalesi gerekebilir'}\n` +
+                                `• ⏰ Zaman: <code>${new Date().toLocaleString('tr-TR')}</code>\n` +
+                                `━━━━━━━━━━━━━━━━━━━━`;
+
+                            botInstance.telegram.sendMessage(targetAdminId, adminAlertText, {
+                                parse_mode: 'HTML',
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [{ text: `💬 Kullanıcıya Telegram'dan Yaz`, url: `tg://user?id=${uid}` }],
+                                        [{ text: `👑 Admin Panelini Aç`, callback_data: `admin_open_panel` }]
+                                    ]
+                                }
+                            }).catch(err => {
+                                console.error('Admin AI bildirim gönderim hatası:', err.message);
+                            });
+                        }
+
+                        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({
+                            success: true,
+                            action: 'escalate',
+                            escalated: true,
+                            message: `🚨 Talebiniz ve teşhis raporu doğrudan Admin'e (Ömer) iletildi! Telegram üzerinden incelenip en kısa sürede çözülecektir.`
+                        }));
+                    }
+
+                    // 3. AKILLI ETKİLEŞİMLİ SOHBET & OTOMATİK CEVAP (CHAT)
+                    const lowerMsg = (message || '').toLowerCase();
+                    let responseMsg = '';
+                    let suggestedAction = null;
+                    let shouldAutoHeal = false;
+
+                    if (lowerMsg.includes('açılmıyor') || lowerMsg.includes('oynamıyor') || lowerMsg.includes('video') || lowerMsg.includes('fotoğraf') || lowerMsg.includes('siyah') || lowerMsg.includes('yüklenmiyor')) {
+                        shouldAutoHeal = true;
+                        responseMsg = `🎬 <b>Medya Oynatma Rehberi & Kontrol:</b>\nMedya sunucumuz HTTP Range akışıyla çalışmaktadır. İnternet hızınız düşükse video ilk birkaç saniye ara belleğe alınabilir. Arka planda medya indeksleriniz doğrulandı. Uygulamayı bir kez aşağı çekerek yenilemeyi veya tarayıcı önbelleğinizi temizlemeyi deneyin. Sorun devam ederse lütfen aşağıdaki <b>'🚨 Yetkiliye Bildir'</b> butonuna basarak doğrudan admine iletmemi sağlayın.`;
+                        suggestedAction = 'verify_stream';
+                    } else if (lowerMsg.includes('kredi') || lowerMsg.includes('bakiye') || lowerMsg.includes('gelmedi') || lowerMsg.includes('eksik') || lowerMsg.includes('yansı')) {
+                        shouldAutoHeal = true;
+                        responseMsg = `💎 <b>Kredi Bakiye Analizi:</b>\nSistemimiz '2 Yükle 1 Al' kuralıyla çalışır ve yüklediğiniz medyalar yöneticimiz tarafından onaylandığı anda otomatik tanımlanır. Hesabınız taranıp eksik kalan veya takılan haklarınız varsa hemen onarıldı.`;
+                        suggestedAction = 'check_credits';
+                    } else if (lowerMsg.includes('krallık') || lowerMsg.includes('vip') || lowerMsg.includes('yıldız') || lowerMsg.includes('paket')) {
+                        responseMsg = `👑 <b>Geçici Krallık (VIP) Bilgisi:</b>\nKrallık üyeliği tüm sekmelerden kredisiz sınırsız izleme & çekme, ücretsiz doğrudan indirme ve +1 ile +5 arası Şans Çarkı Hediyesi kazandırır. Dilerseniz biriktirdiğiniz <b>Video/Foto kredilerinizle</b> (10, 25 veya 50 Kredi) dilerseniz <b>Telegram Yıldızları</b> ile anında başlatabilirsiniz!`;
+                        suggestedAction = 'view_kingdom';
+                    } else if (lowerMsg.includes('yetkili') || lowerMsg.includes('admin') || lowerMsg.includes('şikayet') || lowerMsg.includes('dolandır') || lowerMsg.includes('destek') || lowerMsg.includes('ömer')) {
+                        responseMsg = `👨‍💼 <b>Yetkili Desteği Talebi:</b>\nTalebinizi ve sistem teşhis raporunuzu tek dokunuşla kurucumuz ve yöneticimiz Ömer'e iletebilirim. İletmemi ister misiniz?`;
+                        suggestedAction = 'escalate_ready';
+                    } else {
+                        responseMsg = `🤖 <b>NOVA AI Çözüm Merkezi:</b>\nSorunuzu aldım. Hesabınızı ve sistem durumunu analiz ettim. Medya oynatma, kredi bakiyesi, indirme veya üyelik konularında anında işlem yapabilir veya doğrudan yöneticiye rapor gönderebilirim. Lütfen aşağıdaki hızlı butonlardan birini seçin:`;
+                        suggestedAction = 'general_menu';
+                    }
+
+                    let healResult = null;
+                    if (shouldAutoHeal) {
+                        healResult = db.autoHealUser ? db.autoHealUser(uid) : null;
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({
+                        success: true,
+                        action: 'chat',
+                        reply: responseMsg,
+                        suggestedAction: suggestedAction,
+                        healResult: healResult
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 28. 🤖 NOVA AI: SİSTEMSEL GENEL BAKIM VE ONARIM (ADMIN ÖZEL)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/system-auto-heal' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId } = data;
+
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Tek yönetici: 8633136500' }));
+                    }
+
+                    const result = db.autoHealSystem ? db.autoHealSystem() : { healthy: true, fixes: [] };
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ success: true, result }));
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify({ success: false, message: e.message }));

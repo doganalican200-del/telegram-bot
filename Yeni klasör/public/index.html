@@ -1594,6 +1594,9 @@
             <p>Telegram Yıldızları ile anında sınırsız VIP üyelik, video/fotoğraf kredileri veya şans çarkı hakları satın alın.</p>
         </div>
 
+        <!-- 👑 GEÇİCİ KRALLIK (VIP) ÖZEL BÖLÜMÜ (KREDİ VEYA YILDIZ İLE) -->
+        <div id="market-vip-kingdom-card" style="margin-top:14px; margin-bottom:14px;"></div>
+
         <!-- Filtre Butonları -->
         <div class="market-filter-chips">
             <button class="chip-btn active" onclick="filterMarket('all', this)">⭐ Tümü</button>
@@ -1667,6 +1670,9 @@
                 </div>
             </div>
 
+            <!-- 👑 Geçici Krallık Profil Rozeti / Uzatma -->
+            <div id="prof-vip-kingdom-widget" style="margin-bottom:14px;"></div>
+
             <div class="progress-container">
                 <div class="progress-label">
                     <span>Yükleme İlerlemesi</span>
@@ -1690,6 +1696,49 @@
                     <div style="font-size:16px; font-weight:800; margin-top:2px;" id="prof-total-received">0</div>
                 </div>
             </div>
+        </div>
+
+        <!-- 🤖 NOVA AI: AKILLI SİSTEM DOKTORU & OTONOM HATA ONARICI KARTI -->
+        <div class="profile-card" style="border: 1.5px solid rgba(56, 189, 248, 0.45); background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.2), transparent 70%), linear-gradient(145deg, #0b1329 0%, #030712 100%); position: relative; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
+            <!-- Neon Aydınlatma ve AI Rozeti -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:46px; height:46px; border-radius:14px; background:linear-gradient(135deg, #0284c7, #6366f1); display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px rgba(56, 189, 248, 0.4); font-size:24px; position:relative;">
+                        🤖
+                        <span style="position:absolute; bottom:-2px; right:-2px; width:12px; height:12px; border-radius:50%; background:#10b981; border:2px solid #030712; box-shadow:0 0 8px #10b981;"></span>
+                    </div>
+                    <div>
+                        <div style="font-size:15px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+                            NOVA AI <span style="background:linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-size:11px; font-weight:900;">• SİSTEM DOKTORU</span>
+                        </div>
+                        <div style="font-size:11px; color:#94a3b8; margin-top:2px; display:flex; align-items:center; gap:6px;">
+                            <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#10b981; box-shadow:0 0 6px #10b981;"></span>
+                            <span id="ai-status-indicator-text">Canlı İzleniyor & Hata Takibi Aktif</span>
+                        </div>
+                    </div>
+                </div>
+                <span style="background:rgba(56, 189, 248, 0.15); border:1px solid rgba(56, 189, 248, 0.4); color:#38bdf8; font-size:10px; font-weight:800; padding:3px 8px; border-radius:6px;">
+                    OTONOM ONARIM
+                </span>
+            </div>
+
+            <!-- Bilgilendirme -->
+            <div style="font-size:11.5px; color:#cbd5e1; line-height:1.45; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:10px 12px; margin-bottom:12px;">
+                💡 <b>Yapay Zeka Hata Teşhisi:</b> Oynatılamayan medya, eksik kalan bakiye veya senkronizasyon hatalarını anında otomatik onarır. Çözülemeyen teknik durumlarda ise <b>doğrudan sistem yöneticimize (Admin) acil bildirim</b> gönderir.
+            </div>
+
+            <!-- Canlı Teşhis & Sohbet Aksiyon Butonları -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <button onclick="runAiQuickDiagnose()" id="btn-ai-quick-diagnose" style="background:linear-gradient(135deg, #0284c7, #2563eb); border:none; color:#fff; font-size:11px; font-weight:800; padding:10px 8px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 14px rgba(2, 132, 199, 0.35);">
+                    <span>⚡</span> Akıllı Teşhis & Onar
+                </button>
+                <button onclick="openAiDoctorModal()" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18); color:#f8fafc; font-size:11px; font-weight:700; padding:10px 8px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                    <span>💬</span> Yapay Zekaya Sor
+                </button>
+            </div>
+
+            <!-- Teşhis Sonuç Kutusu (Dinamik) -->
+            <div id="ai-quick-diagnose-result" style="display:none; margin-top:10px; padding:10px 12px; border-radius:10px; font-size:11.5px; line-height:1.4;"></div>
         </div>
 
         <!-- Şans Çarkı Hızlı Erişim Kartı -->
@@ -1756,6 +1805,23 @@
                     </div>
                 </div>
 
+                <!-- 🤖 NOVA AI GLOBAL SİSTEM DOKTORU & BAKIM (YALNIZCA ADMİN) -->
+                <div style="background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.15), transparent 70%), rgba(11, 19, 41, 0.6); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 12px; padding: 12px; margin-bottom: 14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div style="font-size:13px; font-weight:800; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+                            <span>🤖</span> NOVA AI Global Sistem Doktoru
+                        </div>
+                        <span style="font-size:9.5px; background:#38bdf8; color:#000; font-weight:800; padding:2px 7px; border-radius:4px;">TAM OTOMATİK</span>
+                    </div>
+                    <div style="font-size:11px; color:#cbd5e1; line-height:1.45; margin-bottom:10px;">
+                        Tüm veritabanını, 2,146 medyayı, kategori bağlantılarını ve 135 kullanıcının hesaplarını tarayarak tutarsızlıkları tek tıkla otonom onarır.
+                    </div>
+                    <button onclick="runAdminSystemAutoHeal()" id="btn-admin-system-autoheal" style="width:100%; background:linear-gradient(135deg, #0284c7, #6366f1); border:none; color:#fff; font-size:11.5px; font-weight:800; padding:10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 14px rgba(2, 132, 199, 0.35);">
+                        <span>🚀</span> 2,146 Medya & Tüm Sistemi Otomatik Onar
+                    </button>
+                    <div id="admin-system-autoheal-result" style="display:none; margin-top:10px; font-size:11px; padding:10px; border-radius:8px; line-height:1.45;"></div>
+                </div>
+
                 <!-- ⚡ GELİŞMİŞ MEDYA KURTARMA & AKILLI KLASÖR DÜZENLEME -->
                 <div style="margin-top:14px; margin-bottom:14px; background:linear-gradient(145deg, rgba(30, 27, 75, 0.45), rgba(15, 23, 42, 0.6)); border:1px solid rgba(139, 92, 246, 0.4); border-radius:12px; padding:14px; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;">
@@ -1818,6 +1884,48 @@
                         </button>
                         <button id="adm-recov-btn-fixcat" onclick="handleAdminRecoveryAction('fix_categories')" style="background:linear-gradient(135deg, #7c3aed, #a855f7); border:none; color:#fff; font-size:11px; font-weight:800; padding:9px 10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
                             🎯 Klasörleri Akıllı Düzenle
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 📦 GENEL HAVUZ & HIZLI AYRIŞTIRMA (SIFIRDAN DÜZENLEME) -->
+                <div style="margin-top:14px; margin-bottom:14px; background:linear-gradient(145deg, rgba(16, 185, 129, 0.15), rgba(15, 23, 42, 0.8)); border:1px solid rgba(16, 185, 129, 0.5); border-radius:12px; padding:14px; box-shadow:0 4px 20px rgba(0,0,0,0.35);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;">
+                        <div style="font-size:13px; font-weight:800; color:#34d399; display:flex; align-items:center; gap:6px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                            <span>Genel Havuz & Hızlı Ayrıştırma (Sıfırdan Düzenle)</span>
+                        </div>
+                        <span id="adm-genel-stat-badge" style="background:rgba(16, 185, 129, 0.2); color:#34d399; border:1px solid rgba(16, 185, 129, 0.4); font-size:10px; font-weight:800; padding:2px 8px; border-radius:10px;">
+                            Aktif
+                        </span>
+                    </div>
+
+                    <div style="font-size:11px; color:#cbd5e1; line-height:1.4; margin-bottom:10px;">
+                        Kanal kurtarma yerine mevcut tüm video ve fotoğrafları <b>Genel sekmesine aktarabilir</b>, diğer tüm sekmeleri boşaltabilir ve klavye/dokunmatik tuşlarla <b>ultra hızlı şekilde</b> kategorilere ayrıştırabilirsiniz.
+                    </div>
+
+                    <!-- İstatistik Göstergeleri -->
+                    <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; margin-bottom:12px;">
+                        <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); padding:8px 10px; border-radius:8px; text-align:center;">
+                            <div style="font-size:10px; color:var(--hint-color);">Genel Sekmesindeki Medya</div>
+                            <div style="font-size:16px; font-weight:900; color:#34d399;" id="adm-genel-media-count">0</div>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); padding:8px 10px; border-radius:8px; text-align:center;">
+                            <div style="font-size:10px; color:var(--hint-color);">Diğer Sekmelerdeki Toplam</div>
+                            <div style="font-size:16px; font-weight:900; color:#38bdf8;" id="adm-other-media-count">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Butonlar Grubu -->
+                    <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px;">
+                        <button onclick="handleMoveAllToGenelAction()" style="grid-column:span 2; background:linear-gradient(135deg, #059669, #10b981); border:none; color:#fff; font-size:12px; font-weight:800; padding:11px 12px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 12px rgba(16, 185, 129, 0.4);">
+                            🚀 Tüm Medyaları Genel'e Aktar (Diğer Sekmeleri Boşalt)
+                        </button>
+                        <button onclick="openFastTriageStudio('cat_11')" style="background:linear-gradient(135deg, #7c3aed, #a855f7); border:none; color:#fff; font-size:11px; font-weight:800; padding:10px 10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 2px 10px rgba(168, 85, 247, 0.3);">
+                            ⚡ Ultra Hızlı Ayrıştır
+                        </button>
+                        <button onclick="openAdminCategoryModal('cat_11')" style="background:rgba(56, 189, 248, 0.15); border:1px solid #38bdf8; color:#38bdf8; font-size:11px; font-weight:800; padding:10px 10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            📂 Genel Klasörünü Aç
                         </button>
                     </div>
                 </div>
@@ -2067,29 +2175,49 @@
             <div class="modal-header" style="margin-bottom: 10px;">
                 <div>
                     <div style="display:flex; align-items:center; gap:6px;">
-                        <span style="background:rgba(56,189,248,0.2); color:#38bdf8; font-size:10px; font-weight:800; padding:2px 7px; border-radius:6px; text-transform:uppercase;">👑 Admin Yönetim</span>
+                        <span id="admin-cat-modal-badge" style="background:rgba(56,189,248,0.2); color:#38bdf8; font-size:10px; font-weight:800; padding:2px 7px; border-radius:6px; text-transform:uppercase;">📂 Klasör İçeriği</span>
                         <h3 id="admin-cat-title" style="margin:0; font-size:17px; font-weight:800;">Sekme Adı</h3>
                     </div>
                     <div id="admin-cat-counts" style="font-size:12px; color:var(--hint-color); margin-top:3px;">İçerikler yükleniyor...</div>
                 </div>
-                <button class="close-btn" onclick="closeAdminCatModal()">✕</button>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button id="admin-btn-fast-triage" onclick="openFastTriageStudio(currentAdminCatId)" style="background:linear-gradient(135deg, #7c3aed, #ec4899); border:none; color:#fff; font-size:11px; font-weight:800; padding:6px 10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 2px 8px rgba(168, 85, 247, 0.4);">
+                        <span>⚡</span> Hızlı Ayrıştır
+                    </button>
+                    <button class="close-btn" onclick="closeAdminCatModal()">✕</button>
+                </div>
             </div>
 
             <!-- Filter tabs -->
-            <div style="display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; padding-bottom:4px;">
+            <div style="display:flex; gap:6px; margin-bottom:10px; overflow-x:auto; padding-bottom:4px;">
                 <button class="admin-tab-btn active" id="admin-tab-all" onclick="filterAdminCatMedia('all')">Tümü (<span id="admin-cnt-all">0</span>)</button>
                 <button class="admin-tab-btn" id="admin-tab-video" onclick="filterAdminCatMedia('video')">🎬 Videolar (<span id="admin-cnt-vid">0</span>)</button>
                 <button class="admin-tab-btn" id="admin-tab-photo" onclick="filterAdminCatMedia('photo')">🖼️ Fotoğraflar (<span id="admin-cnt-pho">0</span>)</button>
+                <button class="admin-tab-btn" id="admin-tab-admin" onclick="filterAdminCatUploader('admin')" style="background:rgba(245, 158, 11, 0.15); border-color:#f59e0b; color:#fbbf24; display:none;">👑 Admin İçerikleri (<span id="admin-cnt-mine">0</span>)</button>
+            </div>
+
+            <!-- Sıralama ve Arama Çubuğu -->
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+                <input type="text" id="admin-cat-search-input" placeholder="🔍 No, İsim veya ID ara..." oninput="debounceAdminCatSearch(this.value)" style="flex:1; background:#0f172a; border:1px solid var(--card-border); color:#fff; padding:7px 10px; border-radius:8px; font-size:11px; outline:none;">
+                <select id="admin-cat-sort-select" onchange="changeAdminCatSort(this.value)" style="background:#0f172a; border:1px solid var(--card-border); color:#38bdf8; padding:7px 10px; border-radius:8px; font-size:11px; font-weight:700; outline:none;">
+                    <option value="desc">🔽 En Yeni Önce</option>
+                    <option value="asc">🔼 En Eski (Sıralı)</option>
+                    <option value="size">📦 En Büyük Boyut</option>
+                </select>
             </div>
 
             <!-- Bulk Toolbar -->
-            <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px 12px; margin-bottom:12px;">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <div id="admin-bulk-toolbar" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px 12px; margin-bottom:12px; display:none;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
                     <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; cursor:pointer;">
                         <input type="checkbox" id="admin-select-all-chk" onchange="toggleSelectAllAdminMedia(this.checked)" style="width:16px; height:16px; accent-color:#0284c7; cursor:pointer;">
                         <span>Tümünü Seç</span>
                     </label>
-                    <span id="admin-selected-badge" style="font-size:11px; color:#38bdf8; font-weight:700;">0 seçildi</span>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <button onclick="selectQuickAdminBatch(20)" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#cbd5e1; font-size:10px; font-weight:700; padding:3px 7px; border-radius:5px; cursor:pointer;">İlk 20</button>
+                        <button onclick="selectQuickAdminBatch(50)" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#cbd5e1; font-size:10px; font-weight:700; padding:3px 7px; border-radius:5px; cursor:pointer;">İlk 50</button>
+                        <span id="admin-selected-badge" style="font-size:11px; color:#38bdf8; font-weight:700; background:rgba(56,189,248,0.1); padding:2px 7px; border-radius:6px;">0 seçildi</span>
+                    </div>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <select id="admin-bulk-target-cat" style="flex:1; min-width:140px; background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:7px 10px; font-size:12px; outline:none;">
@@ -2116,6 +2244,92 @@
                 </button>
                 <button onclick="requestAdminQuickMedia('photo')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#fff; border-radius:8px; padding:9px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
                     <span>📸</span> Rastgele Foto Çek
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚡ ULTRA HIZLI AYRIŞTIRMA & SINIFLANDIRMA STÜDYOSU (FAST TRIAGE MODAL) -->
+    <div class="modal-overlay" id="fast-triage-modal" onclick="closeFastTriageOnOverlay(event)" style="z-index: 10000;">
+        <div class="modal-sheet" style="max-height: 94vh; display: flex; flex-direction: column; padding: 14px; background:#0b1120; border:1px solid rgba(168, 85, 247, 0.5); box-shadow:0 10px 40px rgba(0,0,0,0.85);">
+            <!-- Header -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.08);">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="background:linear-gradient(135deg, #7c3aed, #ec4899); color:#fff; font-size:10px; font-weight:900; padding:2px 7px; border-radius:6px;">⚡ AYRIŞTIRMA</span>
+                    <h3 style="margin:0; font-size:15px; font-weight:800; color:#fff;">Hızlı Sınıflandırma Stüdyosu</h3>
+                </div>
+                <button class="close-btn" onclick="closeFastTriageModal()" style="font-size:18px; padding:4px 8px;">✕</button>
+            </div>
+
+            <!-- Kaynak Klasör ve Tip Filtresi -->
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+                <label style="font-size:11px; color:var(--hint-color); white-space:nowrap;">Kaynak:</label>
+                <select id="triage-source-cat-select" onchange="changeTriageSource(this.value)" style="flex:1; min-width:130px; background:#1e293b; color:#38bdf8; border:1px solid rgba(56,189,248,0.3); border-radius:6px; padding:5px 8px; font-size:11px; font-weight:700; outline:none;">
+                    <!-- JS ile dolar -->
+                </select>
+                <div style="display:flex; gap:4px;">
+                    <button class="admin-tab-btn active" id="triage-filter-all" onclick="setTriageTypeFilter('all')">Tümü</button>
+                    <button class="admin-tab-btn" id="triage-filter-video" onclick="setTriageTypeFilter('video')">🎬 Video</button>
+                    <button class="admin-tab-btn" id="triage-filter-photo" onclick="setTriageTypeFilter('photo')">🖼️ Foto</button>
+                </div>
+            </div>
+
+            <!-- İlerleme Çubuğu & Medya Bilgisi -->
+            <div style="background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:8px 10px; margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-bottom:4px;">
+                    <span style="color:#e2e8f0;">
+                        İlerleme: <b id="triage-current-seq" style="color:#38bdf8;">#1</b> / <span id="triage-total-count" style="color:#94a3b8;">0</span>
+                    </span>
+                    <span id="triage-progress-percent" style="color:#a855f7; font-weight:800;">0%</span>
+                </div>
+                <div style="width:100%; height:6px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden; margin-bottom:6px;">
+                    <div id="triage-progress-bar" style="width:0%; height:100%; background:linear-gradient(90deg, #38bdf8, #a855f7); border-radius:3px; transition:width 0.2s ease;"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:var(--hint-color); flex-wrap:wrap; gap:4px;">
+                    <div id="triage-media-meta">Yükleyen: Bilinmiyor</div>
+                    <div id="triage-media-size" style="background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px;">0 MB</div>
+                </div>
+            </div>
+
+            <!-- Medya Önizleme Alanı -->
+            <div style="position:relative; width:100%; height:250px; background:#000; border-radius:10px; overflow:hidden; display:flex; align-items:center; justify-content:center; margin-bottom:8px; border:1px solid rgba(255,255,255,0.1);">
+                <video id="triage-active-video" playsinline webkit-playsinline controls autoplay loop muted style="width:100%; height:100%; object-fit:contain; display:none; background:#000;"></video>
+                <img id="triage-active-photo" style="width:100%; height:100%; object-fit:contain; display:none; background:#000;" alt="Fotoğraf Önizleme">
+                <div id="triage-media-spinner" style="position:absolute; inset:0; background:rgba(0,0,0,0.6); display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+                    <div style="width:30px; height:30px; border:3px solid rgba(56,189,248,0.2); border-top-color:#38bdf8; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
+                    <span style="font-size:11px; color:#38bdf8;">Yükleniyor...</span>
+                </div>
+                <div id="triage-empty-box" style="display:none; text-align:center; padding:20px; color:var(--hint-color);">
+                    <div style="font-size:36px; margin-bottom:8px;">🎉</div>
+                    <div style="font-size:13px; font-weight:700; color:#fff;">Tüm Medyalar Ayrıştırıldı!</div>
+                    <div style="font-size:11px; margin-top:4px;">Bu sekmede ayrıştırılacak başka içerik kalmadı.</div>
+                </div>
+            </div>
+
+            <!-- Klavye Kısayolları İpucu -->
+            <div style="text-align:center; font-size:10px; color:#94a3b8; margin-bottom:6px;">
+                💡 <b>Hızlı Kısayollar:</b> <b>1-9, 0</b> tuşlarına basarak anında taşıyın! <b>Boşluk / ➡️</b> ile atlayın.
+            </div>
+
+            <!-- Hızlı Ayrıştırma Butonları Grid'i -->
+            <div id="triage-category-buttons-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:6px; max-height:190px; overflow-y:auto; padding-right:2px; margin-bottom:8px;">
+                <!-- JS ile 10 kategori butonu gelir -->
+            </div>
+
+            <!-- Alt Kontrol Çubuğu (Önceki, Sonraki, Sil, Sıraya Git) -->
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.08);">
+                <button onclick="navigateTriage(-1)" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#fff; font-size:11px; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer;">
+                    ◀️ Önceki
+                </button>
+                <div style="display:flex; gap:4px; align-items:center;">
+                    <input type="number" id="triage-jump-input" placeholder="No..." style="width:50px; background:#1e293b; border:1px solid rgba(255,255,255,0.2); color:#fff; padding:5px 6px; border-radius:6px; font-size:11px; text-align:center;">
+                    <button onclick="jumpToTriageSeq()" style="background:#0284c7; border:none; color:#fff; font-size:11px; font-weight:700; padding:6px 8px; border-radius:6px; cursor:pointer;">Git</button>
+                </div>
+                <button onclick="deleteCurrentTriageMedia()" style="background:rgba(239, 68, 68, 0.2); border:1px solid #ef4444; color:#f87171; font-size:11px; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer;">
+                    🗑️ Sil
+                </button>
+                <button onclick="navigateTriage(1)" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#fff; font-size:11px; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer;">
+                    ⏭️ Atla / Sonraki
                 </button>
             </div>
         </div>
@@ -2378,6 +2592,55 @@
         </div>
     </div>
 
+    <!-- 🤖 NOVA AI INTERACTIVE CHAT & DIAGNOSTIC MODAL -->
+    <div class="modal-overlay" id="ai-doctor-modal" onclick="closeAiDoctorModalOnOverlay(event)" style="z-index: 9999;">
+        <div class="modal-sheet" style="max-height: 92vh; display: flex; flex-direction: column; padding: 16px; background:#070d1e; border: 1.5px solid rgba(56, 189, 248, 0.4); box-shadow: 0 10px 40px rgba(0,0,0,0.85);">
+            <!-- Modal Header -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.08);">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #0284c7, #6366f1); display:flex; align-items:center; justify-content:center; font-size:18px;">
+                        🤖
+                    </div>
+                    <div>
+                        <div style="font-size:14px; font-weight:800; color:#fff;">NOVA AI Asistanı</div>
+                        <div style="font-size:11px; color:#10b981; font-weight:600;">● Çevrimiçi • Otonom Onarım & Admin Köprüsü</div>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="closeAiDoctorModal()" style="font-size:18px; padding:4px 8px;">✕</button>
+            </div>
+
+            <!-- Hızlı Sorular / Aksiyon Çipleri -->
+            <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:8px; scrollbar-width:none;">
+                <button onclick="sendAiQuickPrompt('⚡ Akıllı teşhis ve hesap onarımı yap')" style="background:rgba(56, 189, 248, 0.12); border:1px solid rgba(56, 189, 248, 0.3); color:#38bdf8; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:20px; white-space:nowrap; cursor:pointer;">⚡ Akıllı Teşhis Yap</button>
+                <button onclick="sendAiQuickPrompt('🎬 Video veya fotoğraf açılmıyor, donuyor')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:20px; white-space:nowrap; cursor:pointer;">🎬 Medya Açılmıyor</button>
+                <button onclick="sendAiQuickPrompt('💎 Kredim veya bakiyem eksik görünüyor')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:20px; white-space:nowrap; cursor:pointer;">💎 Kredim Eksik</button>
+                <button onclick="sendAiQuickPrompt('👑 Geçici Krallık durumumu kontrol et')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:20px; white-space:nowrap; cursor:pointer;">👑 Krallık Durumu</button>
+                <button onclick="triggerAiAdminEscalate()" style="background:rgba(239, 68, 68, 0.15); border:1px solid rgba(239, 68, 68, 0.4); color:#ef4444; font-size:10.5px; font-weight:800; padding:5px 10px; border-radius:20px; white-space:nowrap; cursor:pointer;">🚨 Yetkiliye (Admin) Bildir</button>
+            </div>
+
+            <!-- Mesaj Listesi (Scrollable) -->
+            <div id="ai-chat-messages-container" style="flex:1; overflow-y:auto; padding-right:4px; display:flex; flex-direction:column; gap:10px; min-height:220px; max-height:48vh; margin-bottom:10px;">
+                <!-- Başlangıç Mesajı -->
+                <div style="display:flex; gap:8px; align-items:flex-start;">
+                    <div style="width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg, #0284c7, #6366f1); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🤖</div>
+                    <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; border-top-left-radius:2px; padding:10px 12px; font-size:12px; line-height:1.45; color:#f8fafc; max-width:85%;">
+                        Merhaba! Ben botun yapay zeka sistem koruyucusuyum. 🛡️<br><br>
+                        Medya oynatma aksaklıkları, eksik kredi, indirme problemleri gibi durumlarda veritabanı kayıtlarınızı inceleyip <b>anında otonom düzeltme</b> yapabilirim. Eğer çözülemeyen sistemsel bir hata varsa tek tuşla <b>doğrudan kurucu adminimiz Ömer'e</b> anlık Telegram bildirimi iletirim.<br><br>
+                        Aşağıdaki butonları seçebilir veya sorununuzu doğrudan yazabilirsiniz!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Bar -->
+            <div style="display:flex; gap:6px; align-items:center; background:#030712; border:1px solid rgba(56, 189, 248, 0.3); border-radius:12px; padding:4px 6px;">
+                <input type="text" id="ai-chat-input" placeholder="Sorununuzu veya sorunuzu yazın..." onkeydown="if(event.key==='Enter') sendAiChatMessage()" style="flex:1; background:none; border:none; color:#fff; font-size:12px; padding:8px 8px; outline:none;">
+                <button onclick="sendAiChatMessage()" id="btn-ai-send-msg" style="background:linear-gradient(135deg, #0284c7, #0369a1); border:none; color:#fff; font-size:12px; font-weight:800; padding:8px 14px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <span>Gönder</span> 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Telegram WebApp Başlatma
         const tg = window.Telegram?.WebApp;
@@ -2569,6 +2832,9 @@
                     spinBtn.innerHTML = `<span>🎰</span> Çarkı Çevir (${isAdmin ? '∞' : data.wheelSpins})`;
                 }
 
+                // 👑 Geçici Krallık Kartını ve Profil Rozetini Güncelle
+                renderVipKingdomCard();
+
                 // Tek Yönetici Kontrolü (8633136500)
                 if (isAdmin) {
                     loadAdminPanel();
@@ -2676,21 +2942,56 @@
 
                 let html = '';
                 const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
+
+                const CAT_THEMES = {
+                    'cat_1': { color: '#f43f5e', bg: 'linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(244, 63, 94, 0.45)', icon: '🔥' },
+                    'cat_2': { color: '#06b6d4', bg: 'linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(6, 182, 212, 0.45)', icon: '⚡' },
+                    'cat_3': { color: '#ef4444', bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(239, 68, 68, 0.45)', icon: '🚨' },
+                    'cat_4': { color: '#a855f7', bg: 'linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(168, 85, 247, 0.45)', icon: '👑' },
+                    'cat_5': { color: '#38bdf8', bg: 'linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(56, 189, 248, 0.45)', icon: '💎' },
+                    'cat_6': { color: '#10b981', bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(16, 185, 129, 0.45)', icon: '🎯' },
+                    'cat_7': { color: '#f59e0b', bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(245, 158, 11, 0.45)', icon: '🌟' },
+                    'cat_8': { color: '#fb7185', bg: 'linear-gradient(135deg, rgba(251, 113, 133, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(251, 113, 133, 0.45)', icon: '📹' },
+                    'cat_9': { color: '#818cf8', bg: 'linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(129, 140, 248, 0.45)', icon: '📱' },
+                    'cat_10': { color: '#ec4899', bg: 'linear-gradient(135deg, rgba(236, 72, 153, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(236, 72, 153, 0.45)', icon: '🔞' },
+                    'cat_11': { color: '#0ea5e9', bg: 'linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(14, 165, 233, 0.45)', icon: '📦' }
+                };
+
                 categoriesData.forEach(c => {
                     const isStar = !isAdmin && !!c.starCfg;
-                    const starTag = isStar 
-                        ? `<span class="star-tag" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>${c.starCfg.videoPrice} Yıldız</span>` 
-                        : `<span style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="#38bdf8"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>${c.stats.approvedVideos}</span>`;
+                    const theme = CAT_THEMES[c.id] || { color: '#38bdf8', bg: 'rgba(15,23,42,0.85)', border: 'var(--card-border)', icon: '📁' };
 
                     html += `
-                        <div class="cat-card ${isStar ? 'star-card' : ''}" onclick="openCatModal('${c.id}')">
-                            <div>
-                                <div class="cat-key-badge">${c.key}</div>
-                                <div class="cat-name">${c.name}</div>
+                        <div class="cat-card ${isStar ? 'star-card' : ''}" onclick="openCatModal('${c.id}')" style="background:${theme.bg}; border:1px solid ${theme.border}; position:relative; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.3);">
+                            <!-- Arka Plan Görseli -->
+                            <img src="/bot_banner.jpg" alt="" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; opacity:0.12; pointer-events:none; filter:contrast(1.2);">
+
+                            <div style="position:relative; z-index:2;">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                                    <div class="cat-key-badge" style="background:rgba(0,0,0,0.5); border:1px solid ${theme.border}; color:${theme.color};">${c.key}</div>
+                                    <span style="font-size:14px; opacity:0.75;">${theme.icon}</span>
+                                </div>
+                                <div class="cat-name" style="font-size:13px; font-weight:800; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,0.8);">${escapeHtml(c.name)}</div>
                             </div>
-                            <div class="cat-meta">
-                                <span style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="#ec4899"><path d="M12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>${c.stats.approvedPhotos}</span>
-                                ${starTag}
+
+                            <!-- Alt Kısım: Sayıların Tamamı Solda, Yıldız Sağda -->
+                            <div class="cat-meta" style="position:relative; z-index:2; margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="display:inline-flex; align-items:center; gap:3px; color:#f472b6; font-weight:700;">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#f472b6"><path d="M12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+                                        ${c.stats.approvedPhotos}
+                                    </span>
+                                    <span style="display:inline-flex; align-items:center; gap:3px; color:#38bdf8; font-weight:700;">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#38bdf8"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+                                        ${c.stats.approvedVideos}
+                                    </span>
+                                </div>
+                                ${isStar ? `
+                                    <span class="star-tag" style="display:inline-flex; align-items:center; gap:3px; background:rgba(245, 158, 11, 0.2); border:1px solid rgba(245, 158, 11, 0.45); color:#fbbf24; font-weight:800; font-size:10px; padding:2px 6px; border-radius:6px;">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                                        ${c.starCfg.videoPrice} Yıldız
+                                    </span>
+                                ` : ''}
                             </div>
                         </div>
                     `;
@@ -2700,6 +3001,7 @@
                 // Aldıklarım filtrelerini ve Yükleme sekmesi kategori seçimini de güncelle
                 renderReceivedFilterChips();
                 renderUploadCategories();
+                if (typeof updateAdminGenelStats === 'function') updateAdminGenelStats();
             } catch (err) {
                 console.error('Kategoriler alınamadı:', err);
             }
@@ -2934,12 +3236,14 @@
                 if (isVideo) {
                     html += `
                         <div class="media-item-card" onclick="openVideoPlayer(${index})">
-                            <div class="video-thumb-box">
-                                <span class="media-card-badge">[${item.categoryKey || 'K'}] ${item.categoryName || 'Sekme'}</span>
-                                <div class="video-play-btn">▶</div>
+                            <div class="video-thumb-box" style="position:relative; overflow:hidden; background:#000; min-height:115px;">
+                                <video class="video-thumb-elem" src="/api/webapp/stream/${item.id}?userId=${tgUser.id}#t=0.5" preload="metadata" muted playsinline style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none;"></video>
+                                <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%); pointer-events:none;"></div>
+                                <span class="media-card-badge" style="z-index:2;">[${item.categoryKey || 'K'}] ${item.categoryName || 'Sekme'}</span>
+                                <div class="video-play-btn" style="z-index:2;">▶</div>
                             </div>
                             <div class="media-card-body">
-                                <div class="media-card-title">Video #${item.id.split('_').slice(-2).join('_')}</div>
+                                <div class="media-card-title">Video #${item.orderIndex || item.id.split('_').slice(-2).join('_')}</div>
                                 <div class="media-card-footer">
                                     <span>📅 ${dateStr}</span>
                                     <span class="watch-pill">${sizeMb || 'İzle ▶'}</span>
@@ -2950,13 +3254,14 @@
                 } else {
                     html += `
                         <div class="media-item-card" onclick="openPhotoViewer(${index})">
-                            <div class="photo-thumb-box">
-                                <img class="photo-thumb-img" src="/api/webapp/stream/${item.id}?userId=${tgUser.id}" alt="Fotoğraf" loading="lazy" />
-                                <span class="media-card-badge photo-badge">[${item.categoryKey || 'K'}] ${item.categoryName || 'Sekme'}</span>
-                                <div class="photo-view-badge">🔍</div>
+                            <div class="photo-thumb-box" style="position:relative; overflow:hidden; background:#0b1120; min-height:115px;">
+                                <img class="photo-thumb-img" src="/api/webapp/stream/${item.id}?userId=${tgUser.id}" alt="Fotoğraf" loading="lazy" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" />
+                                <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.45) 100%); pointer-events:none;"></div>
+                                <span class="media-card-badge photo-badge" style="z-index:2;">[${item.categoryKey || 'K'}] ${item.categoryName || 'Sekme'}</span>
+                                <div class="photo-view-badge" style="z-index:2;">🔍</div>
                             </div>
                             <div class="media-card-body">
-                                <div class="media-card-title">Foto #${item.id.split('_').slice(-2).join('_')}</div>
+                                <div class="media-card-title">Foto #${item.orderIndex || item.id.split('_').slice(-2).join('_')}</div>
                                 <div class="media-card-footer">
                                     <span>📅 ${dateStr}</span>
                                     <span class="watch-pill" style="color:#f472b6;">Gör 🔍</span>
@@ -2971,170 +3276,83 @@
         }
 
         let activeViewingMediaId = null;
+        let currentViewerItems = [];
+        let currentViewerIndex = 0;
 
-        // 🎬 VİDEO OYNATICI MODAL
-        function openVideoPlayer(index) {
-            const items = receivedData.items || [];
-            if (items.length === 0) return;
-            currentPlayingIndex = Math.max(0, Math.min(index, items.length - 1));
-            const video = items[currentPlayingIndex];
+        // 🌟 BİRLEŞİK EVRENSEL MEDYA OYNATICI (VİDEO & FOTOĞRAF KESİNTİSİZ GEÇİŞ)
+        function openUnifiedMediaViewer(items, index) {
+            if (!items || items.length === 0) return;
+            currentViewerItems = items;
+            currentViewerIndex = Math.max(0, Math.min(index, items.length - 1));
+            const item = currentViewerItems[currentViewerIndex];
+            if (!item) return;
+
+            const isVideo = item.type === 'video';
+            if (isVideo) {
+                closePhotoViewer();
+                renderVideoViewer(item, currentViewerIndex, currentViewerItems.length);
+            } else {
+                closeVideoPlayer();
+                renderPhotoViewer(item, currentViewerIndex, currentViewerItems.length);
+            }
+        }
+
+        function playAdjacentUnifiedMedia(offset) {
+            if (!currentViewerItems || currentViewerItems.length === 0) {
+                showToast('Görüntülenecek başka medya yok.', 'ℹ️');
+                return;
+            }
+            const newIndex = currentViewerIndex + offset;
+            if (newIndex >= 0 && newIndex < currentViewerItems.length) {
+                openUnifiedMediaViewer(currentViewerItems, newIndex);
+            } else {
+                showToast(offset > 0 ? 'Son içeriktesiniz.' : 'İlk içeriktesiniz.', 'ℹ️');
+            }
+        }
+
+        // 🎬 VİDEO OYNATICI RENDERING
+        function renderVideoViewer(video, index, total) {
+            currentPlayingIndex = index;
             activeViewingMediaId = video.id;
 
-            document.getElementById('vp-title').innerText = `Video #${video.id.split('_').slice(-2).join('_')}`;
-            document.getElementById('vp-category-text').innerText = `📁 [${video.categoryKey || ''}] ${video.categoryName || 'Sekme'}`;
-            document.getElementById('vp-counter').innerText = `${currentPlayingIndex + 1} / ${items.length}`;
+            const orderNum = video.orderIndex || video.seqNumber || (index + 1);
+            const catName = video.categoryName || 'Sekme';
+            const catKey = video.categoryKey ? `[${video.categoryKey}] ` : '';
+
+            const titleEl = document.getElementById('vp-title');
+            const catEl = document.getElementById('vp-category-text');
+            const counterEl = document.getElementById('vp-counter');
+
+            if (titleEl) titleEl.innerText = `Video #${orderNum}`;
+            if (catEl) catEl.innerText = `📁 ${catKey}${catName}`;
+            if (counterEl) counterEl.innerText = `${index + 1} / ${total}`;
 
             const vLoading = document.getElementById('video-loading-spinner');
             const vError = document.getElementById('video-error-banner');
             if (vLoading) vLoading.style.display = 'flex';
             if (vError) vError.style.display = 'none';
 
-            // İndirme / Telefona Kaydetme Buton Durumu (Video: 25 Yıldız, Admin: Ücretsiz)
             const dlBtn = document.getElementById('vp-btn-download');
             const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
+            const isVip = !!(currentUser?.isVip);
             const dlSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
             const checkSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
 
-            if (isAdmin) {
-                dlBtn.innerHTML = `${dlSvg} Telefona Kaydet (Admin Ücretsiz)`;
-                dlBtn.style.background = `linear-gradient(135deg, #0284c7, #0369a1)`;
-            } else if (video.isDownloadUnlocked) {
-                dlBtn.innerHTML = `${checkSvg} Telefona Kaydedildi (Sohbete Tekrar İndir)`;
-                dlBtn.style.background = `linear-gradient(135deg, #10b981, #059669)`;
-            } else {
-                dlBtn.innerHTML = `${dlSvg} Telefona Kaydet / İndir (25⭐ Yıldız)`;
-                dlBtn.style.background = `linear-gradient(135deg, #10b981, #059669)`;
-            }
-
-            const videoPlayer = document.getElementById('active-video-elem');
-            videoPlayer.onloadstart = () => { if (vLoading) vLoading.style.display = 'flex'; if (vError) vError.style.display = 'none'; };
-            videoPlayer.oncanplay = () => { if (vLoading) vLoading.style.display = 'none'; };
-            videoPlayer.onplaying = () => { if (vLoading) vLoading.style.display = 'none'; };
-            videoPlayer.onerror = () => {
-                if (vLoading) vLoading.style.display = 'none';
-                if (vError) vError.style.display = 'flex';
-            };
-
-            videoPlayer.src = `/api/webapp/stream/${video.id}?userId=${tgUser.id}`;
-            videoPlayer.load();
-            videoPlayer.play().catch(() => {});
-            updateWatermarkUserId(tgUser?.id);
-            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            document.getElementById('video-player-modal').classList.add('active');
-        }
-
-        function closeVideoPlayer() {
-            const videoPlayer = document.getElementById('active-video-elem');
-            videoPlayer.pause();
-            videoPlayer.src = '';
-            const vLoading = document.getElementById('video-loading-spinner');
-            const vError = document.getElementById('video-error-banner');
-            if (vLoading) vLoading.style.display = 'none';
-            if (vError) vError.style.display = 'none';
-            document.getElementById('video-player-modal').classList.remove('active');
-        }
-
-        function closeVideoPlayerOnOverlay(e) {
-            if (e.target.id === 'video-player-modal') closeVideoPlayer();
-        }
-
-        function playAdjacentVideo(offset) {
-            const items = receivedData.items || [];
-            const newIndex = currentPlayingIndex + offset;
-            if (newIndex >= 0 && newIndex < items.length) {
-                openVideoPlayer(newIndex);
-            } else {
-                showToast(offset > 0 ? 'Son videodasınız.' : 'İlk videodasınız.', 'ℹ️');
-            }
-        }
-
-        // 📸 FOTOĞRAF GÖRÜNTÜLEYİCİ MODAL
-        function openPhotoViewer(index) {
-            const items = receivedData.items || [];
-            if (items.length === 0) return;
-            currentPhotoIndex = Math.max(0, Math.min(index, items.length - 1));
-            const photo = items[currentPhotoIndex];
-            activeViewingMediaId = photo.id;
-
-            document.getElementById('pv-title').innerText = `Fotoğraf #${photo.id.split('_').slice(-2).join('_')}`;
-            document.getElementById('pv-category-text').innerText = `📁 [${photo.categoryKey || ''}] ${photo.categoryName || 'Sekme'}`;
-            document.getElementById('pv-counter').innerText = `${currentPhotoIndex + 1} / ${items.length}`;
-
-            const pLoading = document.getElementById('photo-loading-spinner');
-            const pError = document.getElementById('photo-error-banner');
-            if (pLoading) pLoading.style.display = 'flex';
-            if (pError) pError.style.display = 'none';
-
-            // İndirme / Telefona Kaydetme Buton Durumu (Fotoğraf: 10 Yıldız, Admin: Ücretsiz)
-            const dlBtn = document.getElementById('pv-btn-download');
-            const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
-            const dlSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-            const checkSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
-
-            if (isAdmin) {
-                dlBtn.innerHTML = `${dlSvg} Telefona Kaydet (Admin Ücretsiz)`;
-                dlBtn.style.background = `linear-gradient(135deg, #0284c7, #0369a1)`;
-            } else if (photo.isDownloadUnlocked) {
-                dlBtn.innerHTML = `${checkSvg} Telefona Kaydedildi (Sohbete Tekrar İndir)`;
-                dlBtn.style.background = `linear-gradient(135deg, #10b981, #059669)`;
-            } else {
-                dlBtn.innerHTML = `${dlSvg} Telefona Kaydet / İndir (10⭐ Yıldız)`;
-                dlBtn.style.background = `linear-gradient(135deg, #10b981, #059669)`;
-            }
-
-            const photoElem = document.getElementById('active-photo-elem');
-            photoElem.onload = () => { if (pLoading) pLoading.style.display = 'none'; };
-            photoElem.onerror = () => {
-                if (pLoading) pLoading.style.display = 'none';
-                if (pError) pError.style.display = 'flex';
-            };
-
-            photoElem.src = `/api/webapp/stream/${photo.id}?userId=${tgUser.id}`;
-            updateWatermarkUserId(tgUser?.id);
-
-            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            document.getElementById('photo-viewer-modal').classList.add('active');
-        }
-
-        function closePhotoViewer() {
-            const photoElem = document.getElementById('active-photo-elem');
-            photoElem.src = '';
-            const pLoading = document.getElementById('photo-loading-spinner');
-            const pError = document.getElementById('photo-error-banner');
-            if (pLoading) pLoading.style.display = 'none';
-            if (pError) pError.style.display = 'none';
-            document.getElementById('photo-viewer-modal').classList.remove('active');
-        }
-
-        function closePhotoViewerOnOverlay(e) {
-            if (e.target.id === 'photo-viewer-modal') closePhotoViewer();
-        }
-
-        // 🌟 TEKİL / HERHANGİ BİR EKRANDAN DOĞRUDAN MEDYA İZLEME / GÖRÜNTÜLEME
-        function openDirectMediaViewer(mediaId, mediaType) {
-            if (!mediaId) return;
-            activeViewingMediaId = mediaId;
-            const isVideo = mediaType === 'video';
-
-            if (isVideo) {
-                document.getElementById('vp-title').innerText = `Video #${mediaId.split('_').slice(-2).join('_')}`;
-                document.getElementById('vp-category-text').innerText = `🎬 Medya Önizleme`;
-                document.getElementById('vp-counter').innerText = `1 / 1`;
-
-                const vLoading = document.getElementById('video-loading-spinner');
-                const vError = document.getElementById('video-error-banner');
-                if (vLoading) vLoading.style.display = 'flex';
-                if (vError) vError.style.display = 'none';
-
-                const dlBtn = document.getElementById('vp-btn-download');
-                const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
-                const dlSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-                if (isAdmin) {
-                    dlBtn.innerHTML = `${dlSvg} Telefona Kaydet (Admin Ücretsiz)`;
+            if (dlBtn) {
+                if (isAdmin || isVip) {
+                    dlBtn.innerHTML = `${dlSvg} Telefona Kaydet (${isAdmin ? 'Admin' : 'Krallık VIP'} Ücretsiz)`;
                     dlBtn.style.background = `linear-gradient(135deg, #0284c7, #0369a1)`;
+                } else if (video.isDownloadUnlocked) {
+                    dlBtn.innerHTML = `${checkSvg} Telefona Kaydedildi (Sohbete Tekrar İndir)`;
+                    dlBtn.style.background = `linear-gradient(135deg, #10b981, #059669)`;
+                } else {
+                    dlBtn.innerHTML = `${dlSvg} Telefona Kaydet / İndir (25⭐ Yıldız)`;
+                    dlBtn.style.background = `linear-gradient(135deg, #10b981, #059669)`;
                 }
+            }
 
-                const videoPlayer = document.getElementById('active-video-elem');
+            const videoPlayer = document.getElementById('active-video-elem');
+            if (videoPlayer) {
                 videoPlayer.onloadstart = () => { if (vLoading) vLoading.style.display = 'flex'; if (vError) vError.style.display = 'none'; };
                 videoPlayer.oncanplay = () => { if (vLoading) vLoading.style.display = 'none'; };
                 videoPlayer.onplaying = () => { if (vLoading) vLoading.style.display = 'none'; };
@@ -3143,50 +3361,137 @@
                     if (vError) vError.style.display = 'flex';
                 };
 
-                videoPlayer.src = `/api/webapp/stream/${mediaId}?userId=${tgUser.id}`;
+                videoPlayer.src = `/api/webapp/stream/${video.id}?userId=${tgUser.id}`;
                 videoPlayer.load();
                 videoPlayer.play().catch(() => {});
-                updateWatermarkUserId(tgUser?.id);
-                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-                document.getElementById('video-player-modal').classList.add('active');
-            } else {
-                document.getElementById('pv-title').innerText = `Fotoğraf #${mediaId.split('_').slice(-2).join('_')}`;
-                document.getElementById('pv-category-text').innerText = `🖼️ Fotoğraf Önizleme`;
-                document.getElementById('pv-counter').innerText = `1 / 1`;
+            }
 
-                const pLoading = document.getElementById('photo-loading-spinner');
-                const pError = document.getElementById('photo-error-banner');
-                if (pLoading) pLoading.style.display = 'flex';
-                if (pError) pError.style.display = 'none';
+            updateWatermarkUserId(tgUser?.id);
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            document.getElementById('video-player-modal').classList.add('active');
+        }
 
-                const photoElem = document.getElementById('active-photo-elem');
+        // 📸 FOTOĞRAF GÖRÜNTÜLEYİCİ RENDERING
+        function renderPhotoViewer(photo, index, total) {
+            currentPhotoIndex = index;
+            activeViewingMediaId = photo.id;
+
+            const orderNum = photo.orderIndex || photo.seqNumber || (index + 1);
+            const catName = photo.categoryName || 'Sekme';
+            const catKey = photo.categoryKey ? `[${photo.categoryKey}] ` : '';
+
+            const titleEl = document.getElementById('pv-title');
+            const catEl = document.getElementById('pv-category-text');
+            const counterEl = document.getElementById('pv-counter');
+
+            if (titleEl) titleEl.innerText = `Fotoğraf #${orderNum}`;
+            if (catEl) catEl.innerText = `📁 ${catKey}${catName}`;
+            if (counterEl) counterEl.innerText = `${index + 1} / ${total}`;
+
+            const pLoading = document.getElementById('photo-loading-spinner');
+            const pError = document.getElementById('photo-error-banner');
+            if (pLoading) pLoading.style.display = 'flex';
+            if (pError) pError.style.display = 'none';
+
+            const dlBtn = document.getElementById('pv-btn-download');
+            const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
+            const isVip = !!(currentUser?.isVip);
+            const dlSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+            const checkSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
+
+            if (dlBtn) {
+                if (isAdmin || isVip) {
+                    dlBtn.innerHTML = `${dlSvg} Telefona Kaydet (${isAdmin ? 'Admin' : 'Krallık VIP'} Ücretsiz)`;
+                    dlBtn.style.background = `linear-gradient(135deg, #0284c7, #0369a1)`;
+                } else if (photo.isDownloadUnlocked) {
+                    dlBtn.innerHTML = `${checkSvg} Telefona Kaydedildi (Sohbete Tekrar İndir)`;
+                    dlBtn.style.background = `linear-gradient(135deg, #10b981, #059669)`;
+                } else {
+                    dlBtn.innerHTML = `${dlSvg} Telefona Kaydet / İndir (10⭐ Yıldız)`;
+                    dlBtn.style.background = `linear-gradient(135deg, #10b981, #059669)`;
+                }
+            }
+
+            const photoElem = document.getElementById('active-photo-elem');
+            if (photoElem) {
                 photoElem.onload = () => { if (pLoading) pLoading.style.display = 'none'; };
                 photoElem.onerror = () => {
                     if (pLoading) pLoading.style.display = 'none';
                     if (pError) pError.style.display = 'flex';
                 };
 
-                photoElem.src = `/api/webapp/stream/${mediaId}?userId=${tgUser.id}`;
-                updateWatermarkUserId(tgUser?.id);
-
-                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-                document.getElementById('photo-viewer-modal').classList.add('active');
+                photoElem.src = `/api/webapp/stream/${photo.id}?userId=${tgUser.id}`;
             }
+
+            updateWatermarkUserId(tgUser?.id);
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            document.getElementById('photo-viewer-modal').classList.add('active');
+        }
+
+        function openVideoPlayer(index) {
+            openUnifiedMediaViewer(receivedData.items || [], index);
+        }
+
+        function closeVideoPlayer() {
+            const videoPlayer = document.getElementById('active-video-elem');
+            if (videoPlayer) {
+                videoPlayer.pause();
+                videoPlayer.src = '';
+            }
+            const vLoading = document.getElementById('video-loading-spinner');
+            const vError = document.getElementById('video-error-banner');
+            if (vLoading) vLoading.style.display = 'none';
+            if (vError) vError.style.display = 'none';
+            const modal = document.getElementById('video-player-modal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function closeVideoPlayerOnOverlay(e) {
+            if (e.target.id === 'video-player-modal') closeVideoPlayer();
+        }
+
+        function playAdjacentVideo(offset) {
+            playAdjacentUnifiedMedia(offset);
+        }
+
+        function openPhotoViewer(index) {
+            openUnifiedMediaViewer(receivedData.items || [], index);
+        }
+
+        function closePhotoViewer() {
+            const photoElem = document.getElementById('active-photo-elem');
+            if (photoElem) photoElem.src = '';
+            const pLoading = document.getElementById('photo-loading-spinner');
+            const pError = document.getElementById('photo-error-banner');
+            if (pLoading) pLoading.style.display = 'none';
+            if (pError) pError.style.display = 'none';
+            const modal = document.getElementById('photo-viewer-modal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function closePhotoViewerOnOverlay(e) {
+            if (e.target.id === 'photo-viewer-modal') closePhotoViewer();
+        }
+
+        function playAdjacentPhoto(offset) {
+            playAdjacentUnifiedMedia(offset);
+        }
+
+        // 🌟 TEKİL / HERHANGİ BİR EKRANDAN DOĞRUDAN MEDYA İZLEME / GÖRÜNTÜLEME
+        function openDirectMediaViewer(mediaId, mediaType) {
+            if (!mediaId) return;
+            let targetList = currentAdminCatItems || [];
+            let idx = targetList.findIndex(m => String(m.id) === String(mediaId));
+            if (idx === -1) {
+                targetList = [{ id: mediaId, type: mediaType || 'video', orderIndex: 1 }];
+                idx = 0;
+            }
+            openUnifiedMediaViewer(targetList, idx);
         }
 
         async function sendActiveMediaToTelegramChat() {
             if (!activeViewingMediaId) return;
             quickAdminViewMedia(activeViewingMediaId);
-        }
-
-        function playAdjacentPhoto(offset) {
-            const items = receivedData.items || [];
-            const newIndex = currentPhotoIndex + offset;
-            if (newIndex >= 0 && newIndex < items.length) {
-                openPhotoViewer(newIndex);
-            } else {
-                showToast(offset > 0 ? 'Son fotoğraftasınız.' : 'İlk fotoğraftasınız.', 'ℹ️');
-            }
         }
 
         // 📥 TELEFONA KAYDET / İNDİR (Video: 25⭐ | Fotoğraf: 10⭐)
@@ -3688,6 +3993,153 @@
             }
         }
 
+        // 👑 GEÇİCİ KRALLIK (VIP) SATIN ALMA (KREDİ İLE)
+        async function buyVipWithCreditsUI(plan, days, creditCost) {
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            const userCredits = (currentUser?.videoCredits || 0) + (currentUser?.photoCredits || 0);
+            if (userCredits < creditCost) {
+                showToast(`Yetersiz kredi! ${days} günlük Krallık için ${creditCost} kredi gereklidir. Toplam krediniz: ${userCredits}`, '⚠️');
+                return;
+            }
+
+            if (!confirm(`${creditCost} adet kredinizi kullanarak ${days} günlük 'Geçici Krallık (VIP)' ayrıcalığını başlatmak istiyor musunuz?`)) {
+                return;
+            }
+
+            showToast('👑 Krallık yetkisi başlatılıyor...', '⏳');
+            try {
+                const res = await fetch('/api/webapp/buy-vip-with-credits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: tgUser.id, plan, days, creditCost })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    showToast(data.message || '👑 Tebrikler, Geçici Krallık aktif edildi!', '🎉');
+                    await loadUserData();
+                    renderMarket();
+                } else {
+                    showToast(data.message || 'İşlem tamamlanamadı.', '❌');
+                }
+            } catch (err) {
+                showToast('Bağlantı hatası oluştu.', '❌');
+            }
+        }
+
+        // 👑 GEÇİCİ KRALLIK (VIP) KARTINI VE PROFİL BİLGİSİNİ RENDER ET
+        function renderVipKingdomCard() {
+            const mktContainer = document.getElementById('market-vip-kingdom-card');
+            const profContainer = document.getElementById('prof-vip-kingdom-widget');
+
+            const isVip = !!(currentUser?.isVip);
+            const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
+
+            let vipDateStr = '';
+            let daysLeft = 0;
+            if (currentUser?.vipUntil) {
+                const diff = new Date(currentUser.vipUntil).getTime() - Date.now();
+                daysLeft = Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
+                vipDateStr = new Date(currentUser.vipUntil).toLocaleDateString('tr-TR');
+            }
+
+            const html = `
+                <div style="background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.25), transparent 70%), linear-gradient(145deg, #182032 0%, #0c1222 100%); border: 1.5px solid rgba(245, 158, 11, 0.45); border-radius: 16px; padding: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 10px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg, #f59e0b, #d97706); display:flex; align-items:center; justify-content:center; box-shadow:0 0 15px rgba(245, 158, 11, 0.4); font-size:22px;">
+                                👑
+                            </div>
+                            <div>
+                                <div style="font-size:15px; font-weight:800; color:#fbbf24; text-shadow:0 1px 4px rgba(0,0,0,0.8);">Geçici Krallık (VIP)</div>
+                                <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">
+                                    ${isAdmin ? '👑 Sınırsız Yönetici Krallığı' : (isVip ? `👑 <b>Krallık Aktif:</b> ${daysLeft} Gün Kaldı (${vipDateStr})` : 'Kredilerinizle veya Yıldızla Geçici Hükümdar Olun')}
+                                </div>
+                            </div>
+                        </div>
+                        <span style="font-size:10px; font-weight:800; background:${isAdmin || isVip ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.15)'}; color:${isAdmin || isVip ? '#10b981' : '#fbbf24'}; border:1px solid ${isAdmin || isVip ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)'}; padding:3px 8px; border-radius:6px; text-transform:uppercase;">
+                            ${isAdmin ? 'YÖNETİCİ' : (isVip ? 'AKTİF 👑' : 'STANDART')}
+                        </span>
+                    </div>
+
+                    <div style="font-size:11.5px; color:#94a3b8; line-height:1.45; margin-bottom:12px; background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);">
+                        ✨ <b>Krallık Ayrıcalıkları:</b> Tüm sekmelerden kredisiz sınırsız izleme & çekme, bekleme süresi yok, telefona/TG sohbete ücretsiz indirme ve her alımda <b>+1 ile +5 arası Şans Çarkı Hediyesi</b> 🎡!
+                    </div>
+
+                    <!-- 3 Seçenek (1 Gün, 3 Gün, 7 Gün) -->
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
+                        <!-- 1 Günlük -->
+                        <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px; display:flex; flex-direction:column; justify-content:space-between; gap:6px;">
+                            <div>
+                                <div style="font-size:12px; font-weight:800; color:#fff;">⚡ 1 Günlük</div>
+                                <div style="font-size:10px; color:#10b981; font-weight:700;">+1 Şans Çarkı 🎡</div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px; margin-top:4px;">
+                                <button onclick="buyVipWithCreditsUI('1_day', 1, 10)" style="background:linear-gradient(135deg, #0284c7, #0369a1); border:none; color:#fff; font-size:10px; font-weight:700; padding:5px 6px; border-radius:6px; cursor:pointer;">
+                                    💎 10 Kredi ile Al
+                                </button>
+                                <button onclick="buyMarketPackage('vip_1_day')" style="background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:10px; font-weight:800; padding:5px 6px; border-radius:6px; cursor:pointer;">
+                                    ⭐ 100 Yıldız
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 3 Günlük -->
+                        <div style="background:rgba(245, 158, 11, 0.08); border:1.5px solid rgba(245, 158, 11, 0.4); border-radius:10px; padding:10px; display:flex; flex-direction:column; justify-content:space-between; gap:6px; position:relative; overflow:hidden;">
+                            <div style="position:absolute; top:0; right:0; background:#f59e0b; color:#000; font-size:8px; font-weight:900; padding:1px 6px; border-bottom-left-radius:6px;">POPÜLER</div>
+                            <div>
+                                <div style="font-size:12px; font-weight:800; color:#fbbf24;">👑 3 Günlük</div>
+                                <div style="font-size:10px; color:#10b981; font-weight:700;">+2 Şans Çarkı 🎡</div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px; margin-top:4px;">
+                                <button onclick="buyVipWithCreditsUI('3_days', 3, 25)" style="background:linear-gradient(135deg, #0284c7, #0369a1); border:none; color:#fff; font-size:10px; font-weight:700; padding:5px 6px; border-radius:6px; cursor:pointer;">
+                                    💎 25 Kredi ile Al
+                                </button>
+                                <button onclick="buyMarketPackage('vip_3_days')" style="background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:10px; font-weight:800; padding:5px 6px; border-radius:6px; cursor:pointer;">
+                                    ⭐ 250 Yıldız
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 7 Günlük -->
+                        <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px; display:flex; flex-direction:column; justify-content:space-between; gap:6px;">
+                            <div>
+                                <div style="font-size:12px; font-weight:800; color:#fff;">💎 7 Günlük</div>
+                                <div style="font-size:10px; color:#10b981; font-weight:700;">+5 Şans Çarkı 🎡</div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px; margin-top:4px;">
+                                <button onclick="buyVipWithCreditsUI('7_days', 7, 50)" style="background:linear-gradient(135deg, #0284c7, #0369a1); border:none; color:#fff; font-size:10px; font-weight:700; padding:5px 6px; border-radius:6px; cursor:pointer;">
+                                    💎 50 Kredi ile Al
+                                </button>
+                                <button onclick="buyMarketPackage('vip_unlimited')" style="background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:10px; font-weight:800; padding:5px 6px; border-radius:6px; cursor:pointer;">
+                                    ⭐ 450 Yıldız
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (mktContainer) mktContainer.innerHTML = html;
+            if (profContainer) {
+                profContainer.innerHTML = `
+                    <div style="background:rgba(245, 158, 11, 0.1); border:1px solid rgba(245, 158, 11, 0.35); border-radius:12px; padding:12px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <div>
+                            <div style="font-size:13px; font-weight:800; color:#fbbf24; display:flex; align-items:center; gap:6px;">
+                                <span>👑</span> ${isAdmin ? 'Yönetici Krallığı (Sınırsız)' : (isVip ? `Geçici Krallık: ${daysLeft} Gün Kaldı` : 'Geçici Krallık (VIP)')}
+                            </div>
+                            <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">
+                                ${isVip ? `Bitiş: ${vipDateStr}` : 'Kredileriniz veya Yıldız ile krallığını başlat'}
+                            </div>
+                        </div>
+                        <button onclick="switchNav('packages')" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#000; border:none; font-size:11px; font-weight:800; padding:6px 12px; border-radius:8px; cursor:pointer; flex-shrink:0;">
+                            ${isVip ? 'Uzat 👑' : 'Başlat 👑'}
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
         function filterMarket(category, el) {
             activeMarketFilter = category;
             document.querySelectorAll('.market-filter-chips .chip-btn').forEach(b => b.classList.remove('active'));
@@ -3696,6 +4148,7 @@
         }
 
         function renderMarket() {
+            renderVipKingdomCard();
             const container = document.getElementById('market-container');
             if (!container) return;
 
@@ -3893,6 +4346,248 @@
         }
 
         // ==========================================
+        // 🤖 NOVA AI: OTONOM HATA TEŞHİS, ONARIM VE ADMİN BİLDİRİM SİSTEMİ
+        // ==========================================
+        let isAiDiagnosing = false;
+
+        async function runAiQuickDiagnose() {
+            if (isAiDiagnosing) return;
+            isAiDiagnosing = true;
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            const btn = document.getElementById('btn-ai-quick-diagnose');
+            const resultBox = document.getElementById('ai-quick-diagnose-result');
+            if (btn) btn.innerHTML = `<span>⏳</span> Teşhis Ediliyor...`;
+
+            if (resultBox) {
+                resultBox.style.display = 'block';
+                resultBox.style.background = 'rgba(56, 189, 248, 0.1)';
+                resultBox.style.border = '1px solid rgba(56, 189, 248, 0.3)';
+                resultBox.style.color = '#38bdf8';
+                resultBox.innerHTML = `🤖 <b>NOVA AI Taraması:</b> Kredi hesapları taranıyor, medya bağlantıları test ediliyor...`;
+            }
+
+            try {
+                const res = await fetch('/api/webapp/ai-assistant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: tgUser?.id || '8633136500', action: 'diagnose' })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    if (data.healed && data.fixes && data.fixes.length > 0) {
+                        resultBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                        resultBox.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+                        resultBox.style.color = '#10b981';
+                        resultBox.innerHTML = `
+                            <div style="font-weight:800; margin-bottom:4px;">✅ ${data.fixedCount} Aksaklık Otonom Olarak Onarıldı:</div>
+                            <ul style="margin:0; padding-left:18px;">
+                                ${data.fixes.map(f => `<li>${escapeHtml(f)}</li>`).join('')}
+                            </ul>
+                        `;
+                        await loadUserData();
+                    } else {
+                        resultBox.style.background = 'rgba(16, 185, 129, 0.1)';
+                        resultBox.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+                        resultBox.style.color = '#10b981';
+                        resultBox.innerHTML = `🟢 <b>Mükemmel!</b> Veritabanı kayıtlarınız ve hesap bütünlüğünüz tamamen sağlıklı. Hiçbir hata veya tutarsızlık bulunamadı.`;
+                    }
+                } else {
+                    resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    resultBox.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+                    resultBox.style.color = '#ef4444';
+                    resultBox.innerHTML = `⚠️ <b>Teşhis tamamlanamadı:</b> ${escapeHtml(data.message || 'Hata oluştu')}`;
+                }
+            } catch (err) {
+                if (resultBox) {
+                    resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    resultBox.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+                    resultBox.style.color = '#ef4444';
+                    resultBox.innerHTML = `❌ Bağlantı hatası: ${escapeHtml(err.message)}`;
+                }
+            } finally {
+                if (btn) btn.innerHTML = `<span>⚡</span> Akıllı Teşhis & Onar`;
+                isAiDiagnosing = false;
+            }
+        }
+
+        function openAiDoctorModal() {
+            const modal = document.getElementById('ai-doctor-modal');
+            if (modal) modal.classList.add('active');
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function closeAiDoctorModal() {
+            const modal = document.getElementById('ai-doctor-modal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function closeAiDoctorModalOnOverlay(e) {
+            if (e.target.id === 'ai-doctor-modal') closeAiDoctorModal();
+        }
+
+        function appendAiChatMessage(sender, text, isActionHtml = false) {
+            const container = document.getElementById('ai-chat-messages-container');
+            if (!container) return;
+
+            const isUser = sender === 'user';
+            const msgEl = document.createElement('div');
+            msgEl.style.display = 'flex';
+            msgEl.style.gap = '8px';
+            msgEl.style.alignItems = 'flex-start';
+            if (isUser) {
+                msgEl.style.justifyContent = 'flex-end';
+            }
+
+            if (!isUser) {
+                msgEl.innerHTML = `
+                    <div style="width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg, #0284c7, #6366f1); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🤖</div>
+                    <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; border-top-left-radius:2px; padding:10px 12px; font-size:12px; line-height:1.45; color:#f8fafc; max-width:85%;">
+                        ${isActionHtml ? text : escapeHtml(text)}
+                    </div>
+                `;
+            } else {
+                msgEl.innerHTML = `
+                    <div style="background:linear-gradient(135deg, #0284c7, #0369a1); border-radius:12px; border-top-right-radius:2px; padding:10px 12px; font-size:12px; line-height:1.45; color:#fff; max-width:85%;">
+                        ${escapeHtml(text)}
+                    </div>
+                    <div style="width:28px; height:28px; border-radius:8px; background:rgba(56, 189, 248, 0.2); border:1px solid rgba(56, 189, 248, 0.4); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">👤</div>
+                `;
+            }
+
+            container.appendChild(msgEl);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendAiChatMessage(customText) {
+            const input = document.getElementById('ai-chat-input');
+            const message = (customText || input?.value || '').trim();
+            if (!message) return;
+
+            if (input) input.value = '';
+            appendAiChatMessage('user', message);
+
+            const typingId = 'ai-typing-' + Date.now();
+            const container = document.getElementById('ai-chat-messages-container');
+            const typingEl = document.createElement('div');
+            typingEl.id = typingId;
+            typingEl.style.display = 'flex';
+            typingEl.style.gap = '8px';
+            typingEl.style.alignItems = 'center';
+            typingEl.innerHTML = `
+                <div style="width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg, #0284c7, #6366f1); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🤖</div>
+                <div style="font-size:11px; color:var(--hint-color); font-style:italic;">Yapay zeka analiz ediyor ve onarıyor...</div>
+            `;
+            if (container) {
+                container.appendChild(typingEl);
+                container.scrollTop = container.scrollHeight;
+            }
+
+            try {
+                const res = await fetch('/api/webapp/ai-assistant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        action: 'chat',
+                        message: message
+                    })
+                });
+                const data = await res.json();
+                const tEl = document.getElementById(typingId);
+                if (tEl) tEl.remove();
+
+                if (data.success) {
+                    let fullReply = data.reply || '';
+                    if (data.healResult && data.healResult.fixedCount > 0) {
+                        fullReply += `<br><br><span style="color:#10b981; font-weight:800;">⚡ Otonom Onarım:</span> ${data.healResult.fixes.join(', ')}`;
+                        await loadUserData();
+                    }
+                    appendAiChatMessage('ai', fullReply, true);
+                } else {
+                    appendAiChatMessage('ai', `⚠️ Üzgünüm, sorunuzu işlerken bir sorun oluştu: ${escapeHtml(data.message || '')}`);
+                }
+            } catch (err) {
+                const tEl = document.getElementById(typingId);
+                if (tEl) tEl.remove();
+                appendAiChatMessage('ai', `❌ Bağlantı hatası: ${escapeHtml(err.message)}`);
+            }
+        }
+
+        function sendAiQuickPrompt(text) {
+            sendAiChatMessage(text);
+        }
+
+        async function triggerAiAdminEscalate() {
+            const note = prompt('Lütfen kurucumuz ve yöneticimiz Ömer\'e iletilmesini istediğiniz sorunu veya talebi kısaca yazın:', '');
+            if (note === null) return;
+
+            showToast('Yöneticiye bildirim gönderiliyor...', '⏳');
+            try {
+                const res = await fetch('/api/webapp/ai-assistant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        action: 'escalate',
+                        message: note || 'Kullanıcı acil inceleme talebinde bulundu.',
+                        issueCategory: 'Kullanıcı Destek Talebi'
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    appendAiChatMessage('ai', `🚨 <b>Yöneticiye İletildi!</b><br>Bildiriminiz ve hesabınızın canlı teşhis raporu doğrudan yöneticimiz Ömer'e iletildi. Telegram üzerinden en kısa sürede incelenecektir.`, true);
+                    showToast('Bildirim yöneticiye başarıyla iletildi!', '✅');
+                } else {
+                    showToast(data.message || 'Bildirilemedi.', '❌');
+                }
+            } catch (err) {
+                showToast('Hata oluştu: ' + err.message, '❌');
+            }
+        }
+
+        // Yöneticiye Özel Sistem Onarım Fonksiyonu
+        async function runAdminSystemAutoHeal() {
+            const btn = document.getElementById('btn-admin-system-autoheal');
+            const resBox = document.getElementById('admin-system-autoheal-result');
+            if (btn) btn.innerHTML = `<span>⏳</span> 2,146 Medya Taranıyor...`;
+
+            try {
+                const res = await fetch('/api/webapp/admin/system-auto-heal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: tgUser?.id || '8633136500' })
+                });
+                const data = await res.json();
+                if (data.success && data.result) {
+                    const r = data.result;
+                    if (resBox) {
+                        resBox.style.display = 'block';
+                        resBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                        resBox.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+                        resBox.style.color = '#10b981';
+                        resBox.innerHTML = `
+                            <b>✅ Sistem Taraması Başarılı!</b><br>
+                            • Toplam Medya: ${r.totalMedia} • Kullanıcılar: ${r.totalUsers}<br>
+                            • Düzeltilen Medya: ${r.repairedMedia} • Düzeltilen Kullanıcı: ${r.repairedUsers}<br>
+                            ${r.fixes.length > 0 ? `• Yapılan İşlemler: ${r.fixes.join(', ')}` : '• Tüm veritabanı %100 kusursuz ve sağlıklı!'}
+                        `;
+                    }
+                    showToast('Tüm sistem veritabanı tarandı ve onarıldı!', '🎉');
+                } else {
+                    showToast(data.message || 'Onarım tamamlanamadı.', '❌');
+                }
+            } catch (err) {
+                showToast('Hata: ' + err.message, '❌');
+            } finally {
+                if (btn) btn.innerHTML = `<span>🚀</span> 2,146 Medya & Tüm Sistemi Otomatik Onar`;
+            }
+        }
+
+        // ==========================================
         // 👑 ADMİN KATEGORİ İÇERİK YÖNETİMİ & TOPLU AKTARIM
         // ==========================================
         let currentAdminCatId = null;
@@ -3914,18 +4609,42 @@
             const countsEl = document.getElementById('admin-cat-counts');
             if (countsEl) countsEl.innerText = 'İçerikler yükleniyor...';
 
+            const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
+
+            // Badge güncelleme
+            const badgeEl = document.getElementById('admin-cat-modal-badge');
+            if (badgeEl) {
+                badgeEl.innerText = isAdmin ? '👑 Admin Yönetim' : '📂 Klasör İçeriği';
+                badgeEl.style.background = isAdmin ? 'rgba(56,189,248,0.2)' : 'rgba(16,185,129,0.2)';
+                badgeEl.style.color = isAdmin ? '#38bdf8' : '#10b981';
+            }
+
+            // Hızlı Ayrıştır butonu (Sadece admin)
+            const triageBtn = document.getElementById('admin-btn-fast-triage');
+            if (triageBtn) triageBtn.style.display = isAdmin ? 'flex' : 'none';
+
+            // Benim yüklediklerim sekmesi (Sadece admin)
+            const adminTab = document.getElementById('admin-tab-admin');
+            if (adminTab) adminTab.style.display = isAdmin ? 'inline-block' : 'none';
+
+            // Toplu yönetim araç çubuğu (Sadece admin)
+            const bulkToolbar = document.getElementById('admin-bulk-toolbar');
+            if (bulkToolbar) bulkToolbar.style.display = isAdmin ? 'block' : 'none';
+
             // Filter tabs reset
             updateAdminFilterTabsUI('all');
             updateAdminSelectionUI();
 
-            // Populate target category dropdown
-            const selectEl = document.getElementById('admin-bulk-target-cat');
-            if (selectEl) {
-                selectEl.innerHTML = '<option value="">📂 Hedef Klasör Seçin...</option>' + 
-                    (categoriesData || []).map(c => {
-                        const isCurrent = c.id === catId;
-                        return `<option value="${c.id}" ${isCurrent ? 'disabled' : ''}>${isCurrent ? '▶️ Mevcut Sekme: ' : '📂 '}${escapeHtml(c.name)} (${c.key})</option>`;
-                    }).join('');
+            // Populate target category dropdown (if admin)
+            if (isAdmin) {
+                const selectEl = document.getElementById('admin-bulk-target-cat');
+                if (selectEl) {
+                    selectEl.innerHTML = '<option value="">📂 Hedef Klasör Seçin...</option>' + 
+                        (categoriesData || []).map(c => {
+                            const isCurrent = c.id === catId;
+                            return `<option value="${c.id}" ${isCurrent ? 'disabled' : ''}>${isCurrent ? '▶️ Mevcut Sekme: ' : '📂 '}${escapeHtml(c.name)} (${c.key})</option>`;
+                        }).join('');
+                }
             }
 
             await loadAdminCatMedia();
@@ -3943,8 +4662,13 @@
             }
         }
 
+        let currentAdminCatUploader = 'all'; // 'all' | 'admin'
+        let currentAdminCatSort = 'desc'; // 'desc' | 'asc' | 'size'
+        let currentAdminCatSearch = '';
+        let adminCatSearchDebounce = null;
+
         function updateAdminFilterTabsUI(type) {
-            ['all', 'video', 'photo'].forEach(t => {
+            ['all', 'video', 'photo', 'admin'].forEach(t => {
                 const btn = document.getElementById(`admin-tab-${t}`);
                 if (btn) {
                     if (t === type) btn.classList.add('active');
@@ -3955,17 +4679,39 @@
 
         async function filterAdminCatMedia(type) {
             currentAdminCatFilter = type;
+            currentAdminCatUploader = 'all';
             updateAdminFilterTabsUI(type);
             await loadAdminCatMedia();
+        }
+
+        async function filterAdminCatUploader(uploader) {
+            currentAdminCatUploader = uploader;
+            currentAdminCatFilter = 'all';
+            updateAdminFilterTabsUI('admin');
+            await loadAdminCatMedia();
+        }
+
+        function changeAdminCatSort(sortVal) {
+            currentAdminCatSort = sortVal;
+            loadAdminCatMedia();
+        }
+
+        function debounceAdminCatSearch(val) {
+            currentAdminCatSearch = val;
+            if (adminCatSearchDebounce) clearTimeout(adminCatSearchDebounce);
+            adminCatSearchDebounce = setTimeout(() => {
+                loadAdminCatMedia();
+            }, 300);
         }
 
         async function loadAdminCatMedia() {
             const container = document.getElementById('admin-media-list-container');
             if (!container) return;
-            container.innerHTML = '<div style="text-align:center; padding:30px 0; color:var(--hint-color); font-size:13px;">İçerikler yükleniyor...</div>';
+            container.innerHTML = '<div style="text-align:center; padding:30px 0; color:var(--hint-color); font-size:13px;">İçerikler sıralanıyor ve yükleniyor...</div>';
 
             try {
-                const res = await fetch(`/api/webapp/admin/category-media?userId=${tgUser?.id || '8633136500'}&categoryId=${currentAdminCatId}&type=${currentAdminCatFilter}`);
+                const queryUrl = `/api/webapp/admin/category-media?userId=${tgUser?.id || '8633136500'}&categoryId=${currentAdminCatId}&type=${currentAdminCatFilter}&uploader=${currentAdminCatUploader}&sort=${currentAdminCatSort}&search=${encodeURIComponent(currentAdminCatSearch)}`;
+                const res = await fetch(queryUrl);
                 const data = await res.json();
 
                 if (!data.success) {
@@ -3979,12 +4725,16 @@
                 const cntAll = document.getElementById('admin-cnt-all');
                 const cntVid = document.getElementById('admin-cnt-vid');
                 const cntPho = document.getElementById('admin-cnt-pho');
+                const cntMine = document.getElementById('admin-cnt-mine');
                 const countsEl = document.getElementById('admin-cat-counts');
 
                 if (cntAll) cntAll.innerText = data.total;
                 if (cntVid) cntVid.innerText = data.totalVideos;
                 if (cntPho) cntPho.innerText = data.totalPhotos;
-                if (countsEl) countsEl.innerText = `Toplam: ${data.total} İçerik (${data.totalVideos} Video, ${data.totalPhotos} Fotoğraf)`;
+                if (cntMine) cntMine.innerText = data.totalAdmin || 0;
+                if (countsEl) {
+                    countsEl.innerText = `Toplam: ${data.total} İçerik (${data.totalVideos} Video, ${data.totalPhotos} Fotoğraf • 👑 ${data.totalAdmin || 0} Benim)`;
+                }
 
                 renderAdminMediaList();
             } catch (err) {
@@ -3997,33 +4747,40 @@
             const container = document.getElementById('admin-media-list-container');
             if (!container) return;
 
+            const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
+
             if (currentAdminCatItems.length === 0) {
                 container.innerHTML = `
                     <div style="text-align:center; padding:40px 10px; color:var(--hint-color);">
                         <div style="font-size:32px; margin-bottom:8px;">📭</div>
-                        <div style="font-size:13px; font-weight:600;">Bu kategoride henüz içerik yok.</div>
+                        <div style="font-size:13px; font-weight:600;">Bu kriterlere uygun içerik bulunamadı.</div>
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = currentAdminCatItems.map(item => {
+            container.innerHTML = currentAdminCatItems.map((item, idx) => {
                 const isChecked = selectedAdminMediaIds.has(item.id);
                 const isVideo = item.type === 'video';
                 const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : 'Bilinmiyor';
                 const timeStr = item.createdAt ? new Date(item.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '';
                 const sizeStr = item.fileSize ? formatBytes(item.fileSize) : '';
+                const orderNum = item.orderIndex || (idx + 1);
 
                 return `
                     <div class="admin-media-item ${isChecked ? 'selected' : ''}" id="admin-media-item-${item.id}">
                         <div style="display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="openDirectMediaViewer('${item.id}', '${item.type}')">
-                            <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation();" onchange="toggleSelectAdminMedia('${item.id}', this.checked)" style="width:18px; height:18px; accent-color:#0284c7; cursor:pointer;">
-                            <div style="font-size:22px; line-height:1; background:rgba(255,255,255,0.06); padding:6px 8px; border-radius:8px;">${isVideo ? '🎬' : '🖼️'}</div>
+                            ${isAdmin ? `<input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation();" onchange="toggleSelectAdminMedia('${item.id}', this.checked)" style="width:18px; height:18px; accent-color:#0284c7; cursor:pointer;">` : ''}
+                            <div style="font-size:11px; font-weight:800; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); padding:3px 6px; border-radius:6px; min-width:32px; text-align:center; flex-shrink:0;">
+                                #${orderNum}
+                            </div>
+                            <div style="font-size:20px; line-height:1; background:rgba(255,255,255,0.06); padding:6px 8px; border-radius:8px; flex-shrink:0;">${isVideo ? '🎬' : '🖼️'}</div>
                             <div style="flex:1; min-width:0;">
                                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                                     <span style="font-weight:700; font-size:12px; color:#fff;">${isVideo ? 'Video' : 'Fotoğraf'}</span>
                                     ${sizeStr ? `<span style="font-size:10px; background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px; color:var(--hint-color);">${sizeStr}</span>` : ''}
-                                    ${item.reports > 0 ? `<span style="font-size:10px; background:rgba(239,68,68,0.2); color:#ef4444; padding:1px 5px; border-radius:4px; font-weight:700;">🚨 ${item.reports} Şikayet</span>` : ''}
+                                    ${item.isAdminUpload ? `<span style="font-size:9px; background:rgba(245,158,11,0.2); color:#fbbf24; border:1px solid rgba(245,158,11,0.4); padding:1px 6px; border-radius:4px; font-weight:800;">👑 Admin İçeriği</span>` : ''}
+                                    ${item.reports > 0 && isAdmin ? `<span style="font-size:10px; background:rgba(239,68,68,0.2); color:#ef4444; padding:1px 5px; border-radius:4px; font-weight:700;">🚨 ${item.reports} Şikayet</span>` : ''}
                                 </div>
                                 <div style="font-size:10px; color:var(--hint-color); margin-top:2px;">
                                     Yükleyen: <span style="color:#94a3b8;">${escapeHtml(item.uploaderName)}</span> • ${dateStr} ${timeStr}
@@ -4037,12 +4794,14 @@
                             <button class="admin-action-btn" onclick="quickAdminViewMedia('${item.id}')" title="Telegram Sohbetine Gönder" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#cbd5e1; font-size:10px; padding:4px 8px; border-radius:6px; cursor:pointer;">
                                 <span>💬</span> TG'ye Gönder
                             </button>
-                            <button class="admin-action-btn move" onclick="quickAdminMoveSingle('${item.id}')" title="Başka Sekmeye Taşı">
-                                <span>📂</span> Taşı
-                            </button>
-                            <button class="admin-action-btn delete" onclick="quickAdminDeleteSingle('${item.id}')" title="Sistemden Sil">
-                                <span>🗑️</span> Sil
-                            </button>
+                            ${isAdmin ? `
+                                <button class="admin-action-btn move" onclick="quickAdminMoveSingle('${item.id}')" title="Başka Sekmeye Taşı">
+                                    <span>📂</span> Taşı
+                                </button>
+                                <button class="admin-action-btn delete" onclick="quickAdminDeleteSingle('${item.id}')" title="Sistemden Sil">
+                                    <span>🗑️</span> Sil
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -4278,51 +5037,15 @@
 
         function requestAdminQuickMedia(type) {
             closeAdminCatModal();
-            requestMediaFromCat(currentAdminCatId, type, false);
+            const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
+            const cat = (categoriesData || []).find(c => c.id === currentAdminCatId);
+            const isStar = !isAdmin && !!cat?.starCfg;
+            requestMediaFromCat(currentAdminCatId, type, isStar);
         }
 
-        // Kategori Detay Modalını Aç
+        // Kategori Klasörünü Aç (Tüm Kullanıcılar İçin Klasör İçi Sıralı İzleme)
         function openCatModal(catId) {
-            const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
-            if (isAdmin) {
-                openAdminCategoryModal(catId);
-                return;
-            }
-
-            selectedCategory = categoriesData.find(c => c.id === catId);
-            if (!selectedCategory) return;
-
-            document.getElementById('modal-cat-title').innerText = `[${selectedCategory.key}] ${selectedCategory.name}`;
-            document.getElementById('modal-videos-count').innerText = selectedCategory.stats.approvedVideos;
-            document.getElementById('modal-photos-count').innerText = selectedCategory.stats.approvedPhotos;
-
-            const isStar = !!selectedCategory.starCfg;
-            const descEl = document.getElementById('modal-cat-desc');
-            const btnsEl = document.getElementById('modal-action-buttons');
-
-            if (isStar) {
-                descEl.innerHTML = `⭐ <b>Özel Arşiv Sekmesi:</b> İçerikler Telegram Yıldızları ile sunulmaktadır (Video: ${selectedCategory.starCfg.videoPrice}⭐, Fotoğraf: ${selectedCategory.starCfg.photoPrice}⭐).`;
-                btnsEl.innerHTML = `
-                    <button class="modal-action-btn star" onclick="requestMediaFromCat('${catId}', 'video', true)">
-                        <span>⭐</span> ${selectedCategory.starCfg.videoPrice} Yıldız ile Video İzle
-                    </button>
-                    <button class="modal-action-btn star" onclick="requestMediaFromCat('${catId}', 'photo', true)">
-                        <span>⭐</span> ${selectedCategory.starCfg.photoPrice} Yıldız ile Fotoğraf İzle
-                    </button>
-                `;
-            } else {
-                descEl.innerHTML = `Standart takas sekmesi. Kredinizi kullanarak hemen video veya fotoğraf alabilirsiniz.`;
-                btnsEl.innerHTML = `
-                    <button class="modal-action-btn credit" onclick="requestMediaFromCat('${catId}', 'video', false)">
-                        <span>🎥</span> 1 Video Kredisi ile İzle
-                    </button>
-                    <button class="modal-action-btn credit" onclick="requestMediaFromCat('${catId}', 'photo', false)">
-                        <span>📸</span> 1 Resim Kredisi ile İzle
-                    </button>
-                `;
-            }
-
-            document.getElementById('cat-modal').classList.add('active');
+            openAdminCategoryModal(catId);
         }
 
         function closeCatModal() {
@@ -4839,6 +5562,413 @@
                 console.error('Kurtarma işlemi hatası:', err);
                 showToast('Sunucu hatası oluştu.', '❌');
             }
+        }
+
+        // ==========================================
+        // ⚡ GENEL HAVUZ & ULTRA HIZLI AYRIŞTIRMA STÜDYOSU (FAST TRIAGE)
+        // ==========================================
+        function updateAdminGenelStats() {
+            if (!categoriesData || categoriesData.length === 0) return;
+            const genelCat = categoriesData.find(c => c.id === 'cat_11');
+            const genelCount = (genelCat?.stats?.approvedVideos || 0) + (genelCat?.stats?.approvedPhotos || 0);
+
+            let otherCount = 0;
+            categoriesData.forEach(c => {
+                if (c.id !== 'cat_11') {
+                    otherCount += (c.stats?.approvedVideos || 0) + (c.stats?.approvedPhotos || 0);
+                }
+            });
+
+            const elGenel = document.getElementById('adm-genel-media-count');
+            const elOther = document.getElementById('adm-other-media-count');
+            const elBadge = document.getElementById('adm-genel-stat-badge');
+
+            if (elGenel) elGenel.innerText = genelCount.toLocaleString('tr-TR');
+            if (elOther) elOther.innerText = otherCount.toLocaleString('tr-TR');
+            if (elBadge) elBadge.innerText = `${genelCount.toLocaleString('tr-TR')} Medya`;
+        }
+
+        async function handleMoveAllToGenelAction() {
+            if (!confirm('⚠️ TÜM MEDYALARI GENEL SEKMEDE TOPLAMA\n\nSistemdeki tüm 2.146 video ve fotoğraf "Genel" sekmesine taşınacak, diğer tüm sekmeler sıfırlanacaktır.\n\nBöylece sıfırdan tek tek veya toplu olarak hızlıca ayrıştırabilirsiniz.\n\nDevam etmek istiyor musunuz?')) {
+                return;
+            }
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+            showToast('Tüm medyalar Genel klasörüne aktarılıyor...', '⏳');
+
+            try {
+                const res = await fetch('/api/webapp/admin/move-all-to-genel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        targetCategoryId: 'cat_11'
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    showToast(data.message || 'Tüm medyalar Genel sekmesine aktarıldı!', '✅');
+                    if (typeof loadCategories === 'function') await loadCategories();
+                    updateAdminGenelStats();
+                    if (typeof loadAdminPanel === 'function') loadAdminPanel();
+                } else {
+                    showToast(data.message || 'Aktarım başarısız oldu.', '❌');
+                }
+            } catch (err) {
+                console.error('Genel aktarım hatası:', err);
+                showToast('Aktarım sırasında hata oluştu.', '❌');
+            }
+        }
+
+        function selectQuickAdminBatch(count) {
+            selectedAdminMediaIds.clear();
+            const batch = currentAdminCatItems.slice(0, count);
+            batch.forEach(item => selectedAdminMediaIds.add(item.id));
+            renderAdminMediaList();
+            updateAdminSelectionUI();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+            showToast(`İlk ${selectedAdminMediaIds.size} adet medya seçildi.`, '📌');
+        }
+
+        // --- Fast Triage Studio Variables & State ---
+        let triageItems = [];
+        let triageIndex = 0;
+        let triageSourceCatId = 'cat_11';
+        let triageTypeFilter = 'all';
+        let triageCurrentItem = null;
+        let triageKeyHandlerAttached = false;
+
+        const TRIAGE_CATEGORY_COLORS = {
+            'cat_1': '#ec4899',
+            'cat_2': '#06b6d4',
+            'cat_3': '#f43f5e',
+            'cat_4': '#8b5cf6',
+            'cat_5': '#3b82f6',
+            'cat_6': '#10b981',
+            'cat_7': '#eab308',
+            'cat_8': '#ef4444',
+            'cat_9': '#6366f1',
+            'cat_10': '#d946ef',
+            'cat_11': '#64748b'
+        };
+
+        const TRIAGE_SHORTCUTS = {
+            '1': 'cat_1',
+            '2': 'cat_2',
+            '3': 'cat_3',
+            '4': 'cat_4',
+            '5': 'cat_5',
+            '6': 'cat_6',
+            '7': 'cat_7',
+            '8': 'cat_8',
+            '9': 'cat_9',
+            '0': 'cat_10',
+            'k': 'cat_11',
+            'K': 'cat_11'
+        };
+
+        async function openFastTriageStudio(sourceCatId = 'cat_11') {
+            triageSourceCatId = sourceCatId || 'cat_11';
+            triageIndex = 0;
+            triageTypeFilter = 'all';
+
+            populateTriageSourceDropdown();
+            renderTriageCategoryButtons();
+
+            const modal = document.getElementById('fast-triage-modal');
+            if (modal) modal.classList.add('active');
+
+            attachTriageKeyboardShortcuts();
+            await loadTriageMediaList();
+        }
+
+        function closeFastTriageModal() {
+            const modal = document.getElementById('fast-triage-modal');
+            if (modal) modal.classList.remove('active');
+
+            const video = document.getElementById('triage-active-video');
+            if (video) {
+                video.pause();
+                video.src = '';
+            }
+
+            detachTriageKeyboardShortcuts();
+
+            if (typeof loadCategories === 'function') loadCategories();
+            updateAdminGenelStats();
+            if (typeof loadAdminCatMedia === 'function' && currentAdminCatId) loadAdminCatMedia();
+        }
+
+        function closeFastTriageOnOverlay(e) {
+            if (e.target.id === 'fast-triage-modal') {
+                closeFastTriageModal();
+            }
+        }
+
+        function onTriageKeyDown(e) {
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) {
+                return;
+            }
+
+            const key = e.key;
+            if (TRIAGE_SHORTCUTS[key]) {
+                e.preventDefault();
+                triageCurrentMediaToCategory(TRIAGE_SHORTCUTS[key]);
+            } else if (key === 'ArrowRight' || key === ' ') {
+                e.preventDefault();
+                navigateTriage(1);
+            } else if (key === 'ArrowLeft') {
+                e.preventDefault();
+                navigateTriage(-1);
+            } else if (key === 'Delete' || key === 'Backspace') {
+                e.preventDefault();
+                deleteCurrentTriageMedia();
+            } else if (key === 'Escape') {
+                e.preventDefault();
+                closeFastTriageModal();
+            }
+        }
+
+        function attachTriageKeyboardShortcuts() {
+            if (!triageKeyHandlerAttached) {
+                window.addEventListener('keydown', onTriageKeyDown);
+                triageKeyHandlerAttached = true;
+            }
+        }
+
+        function detachTriageKeyboardShortcuts() {
+            if (triageKeyHandlerAttached) {
+                window.removeEventListener('keydown', onTriageKeyDown);
+                triageKeyHandlerAttached = false;
+            }
+        }
+
+        function populateTriageSourceDropdown() {
+            const select = document.getElementById('triage-source-cat-select');
+            if (!select || !categoriesData) return;
+            select.innerHTML = (categoriesData || []).map(c => `
+                <option value="${c.id}" ${c.id === triageSourceCatId ? 'selected' : ''}>
+                    ${escapeHtml(c.name)} (${c.key})
+                </option>
+            `).join('');
+        }
+
+        function renderTriageCategoryButtons() {
+            const grid = document.getElementById('triage-category-buttons-grid');
+            if (!grid) return;
+
+            const cats = categoriesData || [];
+            const shortcutKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'K'];
+
+            grid.innerHTML = cats.map((c, i) => {
+                const keyShort = shortcutKeys[i] !== undefined ? shortcutKeys[i] : c.key;
+                const color = TRIAGE_CATEGORY_COLORS[c.id] || '#0284c7';
+                return `
+                    <button onclick="triageCurrentMediaToCategory('${c.id}')" style="background:linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.95)); border:1.5px solid ${color}; color:#fff; border-radius:8px; padding:7px 9px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:6px;">
+                        <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                            <span style="background:${color}; color:#000; font-size:10px; font-weight:900; padding:2px 6px; border-radius:4px; flex-shrink:0;">[${keyShort}]</span>
+                            <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(c.name)}</span>
+                        </div>
+                        <span style="font-size:10px; color:${color}; font-weight:700;">➔</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        async function loadTriageMediaList() {
+            const spinner = document.getElementById('triage-media-spinner');
+            if (spinner) spinner.style.display = 'flex';
+
+            try {
+                const queryUrl = `/api/webapp/admin/category-media?userId=${tgUser?.id || '8633136500'}&categoryId=${triageSourceCatId}&type=${triageTypeFilter}&sort=asc`;
+                const res = await fetch(queryUrl);
+                const data = await res.json();
+
+                if (data.success) {
+                    triageItems = data.items || [];
+                    triageIndex = 0;
+                    renderTriageItem();
+                } else {
+                    showToast(data.message || 'Veri yüklenemedi', '❌');
+                }
+            } catch (err) {
+                console.error('Triage medya listesi yüklenemedi:', err);
+            } finally {
+                if (spinner) spinner.style.display = 'none';
+            }
+        }
+
+        function renderTriageItem() {
+            const videoEl = document.getElementById('triage-active-video');
+            const photoEl = document.getElementById('triage-active-photo');
+            const emptyBox = document.getElementById('triage-empty-box');
+            const spinner = document.getElementById('triage-media-spinner');
+            const seqEl = document.getElementById('triage-current-seq');
+            const totalEl = document.getElementById('triage-total-count');
+            const percentEl = document.getElementById('triage-progress-percent');
+            const pbar = document.getElementById('triage-progress-bar');
+            const metaEl = document.getElementById('triage-media-meta');
+            const sizeEl = document.getElementById('triage-media-size');
+
+            if (triageItems.length === 0) {
+                if (videoEl) { videoEl.pause(); videoEl.style.display = 'none'; }
+                if (photoEl) photoEl.style.display = 'none';
+                if (emptyBox) emptyBox.style.display = 'block';
+                if (seqEl) seqEl.innerText = '#0';
+                if (totalEl) totalEl.innerText = '0';
+                if (percentEl) percentEl.innerText = '100%';
+                if (pbar) pbar.style.width = '100%';
+                if (metaEl) metaEl.innerText = 'Bu sekmede ayrıştırılacak medya kalmadı.';
+                if (sizeEl) sizeEl.innerText = '-';
+                triageCurrentItem = null;
+                return;
+            }
+
+            if (emptyBox) emptyBox.style.display = 'none';
+            if (triageIndex < 0) triageIndex = 0;
+            if (triageIndex >= triageItems.length) triageIndex = triageItems.length - 1;
+
+            triageCurrentItem = triageItems[triageIndex];
+            const isVideo = triageCurrentItem.type === 'video';
+            const total = triageItems.length;
+            const currentNum = triageIndex + 1;
+            const percent = Math.round((currentNum / total) * 100);
+
+            if (seqEl) seqEl.innerText = `#${triageCurrentItem.orderIndex || currentNum} (${currentNum}/${total})`;
+            if (totalEl) totalEl.innerText = total;
+            if (percentEl) percentEl.innerText = `${percent}%`;
+            if (pbar) pbar.style.width = `${percent}%`;
+
+            const uploader = triageCurrentItem.uploaderName || (triageCurrentItem.isAdminUpload ? 'Ömer (Admin)' : 'Kullanıcı');
+            const uUser = triageCurrentItem.uploaderUsername ? ` (${triageCurrentItem.uploaderUsername})` : '';
+            if (metaEl) metaEl.innerHTML = `Tür: <b>${isVideo ? '🎬 Video' : '🖼️ Foto'}</b> • Yükleyen: <b>${escapeHtml(uploader)}${uUser}</b>`;
+            if (sizeEl) sizeEl.innerText = triageCurrentItem.fileSize ? formatBytes(triageCurrentItem.fileSize) : (isVideo ? 'Video' : 'Foto');
+
+            const streamUrl = `/api/webapp/stream/${triageCurrentItem.id}?userId=${tgUser?.id || '8633136500'}`;
+
+            if (isVideo) {
+                if (photoEl) photoEl.style.display = 'none';
+                if (videoEl) {
+                    videoEl.style.display = 'block';
+                    if (spinner) spinner.style.display = 'flex';
+                    videoEl.oncanplay = () => { if (spinner) spinner.style.display = 'none'; };
+                    videoEl.onerror = () => { if (spinner) spinner.style.display = 'none'; };
+                    videoEl.src = streamUrl;
+                    videoEl.load();
+                    videoEl.play().catch(() => {});
+                }
+            } else {
+                if (videoEl) { videoEl.pause(); videoEl.style.display = 'none'; }
+                if (photoEl) {
+                    photoEl.style.display = 'block';
+                    if (spinner) spinner.style.display = 'flex';
+                    photoEl.onload = () => { if (spinner) spinner.style.display = 'none'; };
+                    photoEl.onerror = () => { if (spinner) spinner.style.display = 'none'; };
+                    photoEl.src = streamUrl;
+                }
+            }
+        }
+
+        async function triageCurrentMediaToCategory(targetCatId) {
+            if (!triageCurrentItem) return;
+            const mediaId = triageCurrentItem.id;
+            const itemOrder = triageCurrentItem.orderIndex || (triageIndex + 1);
+            const cat = (categoriesData || []).find(c => c.id === targetCatId);
+            const catName = cat ? cat.name : targetCatId;
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            showToast(`⚡ #${itemOrder} '${catName}' sekmesine aktarıldı!`, '✅');
+
+            // UI'da sıradaki medyaya ANINDA geç (0 ms bekleme!)
+            triageItems.splice(triageIndex, 1);
+            if (triageIndex >= triageItems.length) triageIndex = Math.max(0, triageItems.length - 1);
+            renderTriageItem();
+
+            // Arka planda sunucuya kaydet
+            try {
+                fetch('/api/webapp/admin/change-media-category', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        mediaId: mediaId,
+                        targetCategoryId: targetCatId
+                    })
+                });
+                updateAdminGenelStats();
+            } catch (e) {
+                console.error('Ayrıştırma arka plan hatası:', e);
+            }
+        }
+
+        function navigateTriage(step) {
+            if (triageItems.length === 0) return;
+            triageIndex += step;
+            if (triageIndex < 0) triageIndex = triageItems.length - 1;
+            if (triageIndex >= triageItems.length) triageIndex = 0;
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+            renderTriageItem();
+        }
+
+        function jumpToTriageSeq() {
+            const input = document.getElementById('triage-jump-input');
+            const val = parseInt(input?.value, 10);
+            if (isNaN(val) || val < 1 || val > triageItems.length) {
+                showToast(`Lütfen 1 ile ${triageItems.length} arasında bir sıra numarası girin!`, '⚠️');
+                return;
+            }
+            triageIndex = val - 1;
+            renderTriageItem();
+            if (input) input.value = '';
+        }
+
+        async function deleteCurrentTriageMedia() {
+            if (!triageCurrentItem) return;
+            if (!confirm(`Bu medyayı (#${triageCurrentItem.orderIndex || (triageIndex+1)}) sistemden tamamen silmek istediğinize emin misiniz?`)) {
+                return;
+            }
+
+            const mediaId = triageCurrentItem.id;
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+            showToast('Medya siliniyor...', '🗑️');
+
+            // UI'dan hemen çıkar ve sıradakine geç
+            triageItems.splice(triageIndex, 1);
+            if (triageIndex >= triageItems.length) triageIndex = Math.max(0, triageItems.length - 1);
+            renderTriageItem();
+
+            try {
+                await fetch('/api/webapp/admin/bulk-delete-media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        mediaIds: [mediaId]
+                    })
+                });
+                showToast('Medya silindi.', '✅');
+                updateAdminGenelStats();
+            } catch (e) {
+                console.error('Silme hatası:', e);
+            }
+        }
+
+        function setTriageTypeFilter(type) {
+            triageTypeFilter = type;
+            ['all', 'video', 'photo'].forEach(t => {
+                const btn = document.getElementById(`triage-filter-${t}`);
+                if (btn) {
+                    if (t === type) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+            });
+            loadTriageMediaList();
+        }
+
+        function changeTriageSource(catId) {
+            triageSourceCatId = catId;
+            loadTriageMediaList();
         }
 
         async function adminApproveMedia(mediaId) {
