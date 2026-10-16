@@ -2507,6 +2507,54 @@ function savePendingCategorize(map) {
 
 const pendingAdminCategorize = loadPendingCategorize();
 
+// 🎯 YÖNETİCİ DOĞRUDAN YÜKLEME HEDEF SEKMESİ (Admin doğrudan istediği sekmeye onay beklemeden atar)
+const ADMIN_TARGETS_FILE = path.join(__dirname, 'admin_upload_targets.json');
+function loadAdminUploadTargets() {
+    try {
+        if (fs.existsSync(ADMIN_TARGETS_FILE)) {
+            const raw = fs.readFileSync(ADMIN_TARGETS_FILE, 'utf8');
+            return new Map(Object.entries(JSON.parse(raw)));
+        }
+    } catch (e) {
+        console.error('Error loading admin upload targets:', e.message);
+    }
+    return new Map();
+}
+function saveAdminUploadTargets(map) {
+    try {
+        const obj = Object.fromEntries(map.entries());
+        fs.writeFileSync(ADMIN_TARGETS_FILE, JSON.stringify(obj, null, 2), 'utf8');
+    } catch (e) {
+        console.error('Error saving admin upload targets:', e.message);
+    }
+}
+const adminUploadTargets = loadAdminUploadTargets(); // adminId -> categoryId
+
+// 📦 YÖNETİCİ TOPLU ZIP YÜKLEME MODU (Aktifken atılan her zip/rar tek tık/onay beklemeden anında markete eklenir)
+const ADMIN_BULK_ZIP_FILE = path.join(__dirname, 'admin_bulk_zip.json');
+function loadAdminBulkZipMode() {
+    try {
+        if (fs.existsSync(ADMIN_BULK_ZIP_FILE)) {
+            const raw = fs.readFileSync(ADMIN_BULK_ZIP_FILE, 'utf8');
+            return new Set(JSON.parse(raw));
+        }
+    } catch (e) {
+        console.error('Error loading admin bulk zip mode:', e.message);
+    }
+    return new Set();
+}
+function saveAdminBulkZipMode(set) {
+    try {
+        fs.writeFileSync(ADMIN_BULK_ZIP_FILE, JSON.stringify(Array.from(set), null, 2), 'utf8');
+    } catch (e) {
+        console.error('Error saving admin bulk zip mode:', e.message);
+    }
+}
+const adminBulkZipMode = loadAdminBulkZipMode(); // Set of admin userIds
+
+// Admin doğrudan yükleme için debounced özet sayaçları
+const adminDirectBatches = new Map(); // adminId -> { catId, count, photos, videos, timer }
+
 function enqueueMediaUpload(ctx, mediaType, mediaData) {
     if (!ctx || !ctx.from || !mediaData) return;
     // Sadece özel (birebir) sohbette medya yüklemesine izin ver - kanal veya gruplarda ödül/mesaj tetiklemesin!
@@ -2529,7 +2577,52 @@ function enqueueMediaUpload(ctx, mediaType, mediaData) {
         ).catch(() => {});
     }
 
-    // Doğrudan "Genel" (cat_11) sekmesine anında ekle + krediyi hemen ver
+    // 🎯 1. YÖNETİCİ DOĞRUDAN YÜKLEME MODU KONTROLÜ
+    // Admin belirli bir sekme seçmişse, medya doğrudan O SEKMEYE onay beklemeden eklenir ve admin'e dağıtım butonları GÖNDERİLMEZ.
+    if (isAdminUser(userId) && adminUploadTargets.has(userId)) {
+        const targetCatId = adminUploadTargets.get(userId);
+        const targetCat = db.getCategory(targetCatId) || { id: targetCatId, name: targetCatId, key: '?' };
+
+        db.getOrCreateUser({ id: userId, ...ctx.from });
+        db.addApprovedMedia(userId, fileId, fileUniqueId, mediaType, targetCatId);
+
+        let dBatch = adminDirectBatches.get(userId);
+        if (!dBatch || dBatch.catId !== targetCatId) {
+            if (dBatch && dBatch.timer) clearTimeout(dBatch.timer);
+            dBatch = { catId: targetCatId, count: 0, photos: 0, videos: 0, timer: null };
+            adminDirectBatches.set(userId, dBatch);
+        }
+
+        dBatch.count++;
+        if (mediaType === 'video') dBatch.videos++;
+        else dBatch.photos++;
+
+        if (dBatch.timer) clearTimeout(dBatch.timer);
+        dBatch.timer = setTimeout(() => {
+            const finalBatch = adminDirectBatches.get(userId);
+            if (!finalBatch) return;
+            adminDirectBatches.delete(userId);
+            const catInfo = db.getCategory(finalBatch.catId) || targetCat;
+            ctx.reply(
+                `⚡ <b>DOĞRUDAN ENTEGRE EDİLDİ!</b> 👑\n\n` +
+                `📁 <b>Hedef Sekme:</b> [${catInfo.key || '?'}] <b>${catInfo.name}</b>\n` +
+                `📦 <b>Eklenen Medya:</b> <b>${finalBatch.count} Adet</b> (📸 ${finalBatch.photos} Foto, 🎥 ${finalBatch.videos} Video)\n\n` +
+                `<i>Hiçbir onay beklemeden doğrudan seçtiğiniz sekmeye entegre edildi. Kullanıcılar anında izleyebilir!</i>`,
+                {
+                    parse_mode: 'HTML',
+                    ...Markup.inlineKeyboard([
+                        [Markup.button.callback('🎯 Hedef Sekmeyi Değiştir', 'admin_select_upload_target')],
+                        [Markup.button.callback('❌ Doğrudan Yüklemeyi Kapat', 'admin_disable_upload_target')],
+                        [Markup.button.callback('👑 Yönetici Paneli', 'admin_panel')]
+                    ])
+                }
+            ).catch(() => {});
+        }, 1200);
+
+        return; // Admin doğrudan yükleme bitti, normal dağıtım akışına gitme!
+    }
+
+    // 2. NORMAL KULLANICI / STANDART AKIŞ: Doğrudan "Genel" (cat_11) sekmesine anında ekle + krediyi ver
     db.getOrCreateUser({ id: userId, ...ctx.from });
     const { media, creditAwarded, currentProgress } = db.addApprovedMedia(
         userId, fileId, fileUniqueId, mediaType, 'cat_11'
@@ -2843,10 +2936,39 @@ bot.on('document', async (ctx) => {
 
         // 👑 YÖNETİCİ ZIP YÜKLEMESİ (Maksimum 2 GB - 100 Yıldız Satış Paketi)
         if (isZipDoc) {
-            if (isAdminUser(ctx.from?.id)) {
+            const uid = String(ctx.from?.id);
+            if (isAdminUser(uid)) {
                 const sizeMb = (doc.file_size / (1024 * 1024)).toFixed(1);
                 const sizeGb = (doc.file_size / (1024 * 1024 * 1024)).toFixed(2);
                 const displaySize = doc.file_size > 1024 * 1024 * 1024 ? `${sizeGb} GB` : `${sizeMb} MB`;
+                const zipName = doc.file_name || 'arsiv.zip';
+
+                // 🚀 TOPLU ZIP YÜKLEME MODU AKTİFSE: ONAY BEKLEMEDEN DİREKT EKLE
+                if (adminBulkZipMode.has(uid)) {
+                    const added = db.addZip(
+                        zipName,
+                        `${zipName} • ${formatBytes(doc.file_size)} Özel Arşiv Paketi (100 Yıldız)`,
+                        doc.file_id,
+                        doc.file_size,
+                        ctx.from.id
+                    );
+                    return ctx.reply(
+                        `⚡ <b>ZIP ARŞİVİ DOĞRUDAN MARKETE EKLENDİ!</b> 👑\n\n` +
+                        `📦 <b>Dosya:</b> <code>${escapeHtml(zipName)}</code>\n` +
+                        `📊 <b>Boyut:</b> <b>${displaySize}</b>\n` +
+                        `⭐ <b>Satış Fiyatı:</b> <b>100 Yıldız</b>\n` +
+                        `🆔 <b>ID:</b> <code>${added.id}</code>\n\n` +
+                        `<i>(Toplu ZIP Yükleme Modu Açık - İstediğiniz kadar ZIP gönderin, anında markete girer)</i>`,
+                        {
+                            parse_mode: 'HTML',
+                            ...Markup.inlineKeyboard([
+                                [Markup.button.callback('📦 ZIP Arşivlerini Gör / Sil', 'admin_list_zips_0')],
+                                [Markup.button.callback('❌ Toplu ZIP Modunu Kapat', 'admin_toggle_bulk_zip')],
+                                [Markup.button.callback('👑 Yönetici Paneli', 'admin_panel')]
+                            ])
+                        }
+                    );
+                }
 
                 const shortToken = 'zp_' + Date.now();
                 pendingZipUploads.set(shortToken, {
@@ -4725,25 +4847,48 @@ bot.action('admin_logout', async (ctx) => {
 
 // Admin panelini gösteren yardımcı fonksiyon
 function showAdminPanel(ctx) {
+    const uid = String(ctx.from?.id);
     const stats = db.getStats();
     const bannedUsers = db.getBannedUsers();
     const dbData = db.loadDb();
     const unclassifiedCount = (dbData.media || []).filter(m => m.categoryId === 'cat_11').length;
     const dupStats = db.getDuplicateStats ? db.getDuplicateStats() : { duplicateCount: 0 };
+    const zipCount = (dbData.zips || []).length;
+
+    // Aktif doğrudan yükleme hedefi
+    const targetCatId = adminUploadTargets.get(uid);
+    let targetCatLabel = 'Kapalı (Standart Dağıtım)';
+    if (targetCatId) {
+        const cat = db.getCategory(targetCatId);
+        targetCatLabel = `🎯 [${cat?.key || '?'}] ${cat?.name || targetCatId} (Doğrudan)`;
+    }
+
+    // Aktif toplu zip modu
+    const isBulkZipOn = adminBulkZipMode.has(uid);
 
     const text =
 `👑 <b>Yönetici Paneli</b>
 
 📊 <b>Sistem Havuzu:</b> 📸 <b>${stats.approvedPhotos} Resim</b> | 🎥 <b>${stats.approvedVideos} Video</b>
+📦 <b>ZIP Arşivleri:</b> <b>${zipCount} Arşiv Paketi</b> (100 Yıldız)
 ⏳ <b>Onay Bekleyen:</b> <b>${stats.pendingMedia} Medya</b>
 ⚡ <b>Ayrıştırılacak Medya:</b> <b>${unclassifiedCount} Medya</b>
 🚫 <b>Banlı Kullanıcı:</b> <b>${bannedUsers.length}</b>
 
+🎯 <b>Doğrudan Medya Yükleme:</b> <b>${targetCatLabel}</b>
+📦 <b>Toplu ZIP Yükleme Modu:</b> <b>${isBulkZipOn ? '✅ AÇIK (Onaysız anında ekler)' : '⚪ KAPALI (Tek tek sorar)'}</b>
+
 👇 <b>Tüm yönetici işlemleri aşağıdadır:</b>`;
+
+    const targetBtnText = targetCatId 
+        ? `🎯 Yükleme Sekmesi: [${db.getCategory(targetCatId)?.name || targetCatId}]`
+        : '🎯 Doğrudan Yükleme Sekmesi Seç';
 
     return safeEditOrReply(ctx, text, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
+            [Markup.button.callback(targetBtnText, 'admin_select_upload_target')],
+            [Markup.button.callback(`📦 ZIP Arşivleri Yönetimi (${zipCount})`, 'admin_zip_manager_menu')],
             [Markup.button.callback(`⚡ Medyaları Ayrıştır (${unclassifiedCount} Medya)`, 'admin_triage_menu')],
             [
                 Markup.button.callback('🗑️ Toplu Medya Sil', 'admin_bulk_delete_menu'),
@@ -5058,6 +5203,332 @@ bot.action(/^admin_exec_bdel_genel_(all|photo|video|100|500)$/, async (ctx) => {
 bot.command(['toplusil', 'toplumedyasil', 'silmemenusu', 'bulkdelete'], async (ctx) => {
     if (!isAdminUser(ctx.from?.id)) return;
     return renderAdminBulkDeleteMenu(ctx);
+});
+
+// ==========================================
+// 🎯 ADMİN DOĞRUDAN YÜKLEME HEDEF SEKMESİ SEÇİMİ
+// ==========================================
+async function renderAdminSelectUploadTargetMenu(ctx) {
+    const uid = String(ctx.from?.id);
+    if (!isAdminUser(uid)) return;
+
+    const currentTarget = adminUploadTargets.get(uid);
+    const cats = db.getCategories();
+    const currentCat = currentTarget ? db.getCategory(currentTarget) : null;
+
+    const text =
+`🎯 <b>YÖNETİCİ DOĞRUDAN YÜKLEME SEKMESİ</b> 👑\n\n` +
+`Şu anki Aktif Hedef: <b>${currentCat ? `[${currentCat.key}] ${currentCat.name}` : '⚪ Kapalı (Standart Dağıtım)'}</b>\n\n` +
+`👇 <b>Bir sekme seçtiğinizde:</b>\n` +
+`• Göndereceğiniz tüm fotoğraf ve videolar <b>hiçbir onay veya buton beklemeden</b> doğrudan seçtiğiniz sekmeye entegre edilir.\n` +
+`• İstediğiniz kadar medyayı ardı ardına atabilirsiniz; tek bir özet bildirimle doğrudan havuzunuza işlenir.\n\n` +
+`<i>Lütfen yükleme yapmak istediğiniz sekmeyi seçin:</i>`;
+
+    const catButtons = [];
+    for (let i = 0; i < cats.length; i += 2) {
+        const c1 = cats[i];
+        const isSel1 = currentTarget === c1.id;
+        const row = [Markup.button.callback(`${isSel1 ? '✅ ' : ''}[${c1.key}] ${c1.name}`, `admin_set_upload_target_${c1.id}`)];
+        if (cats[i + 1]) {
+            const c2 = cats[i + 1];
+            const isSel2 = currentTarget === c2.id;
+            row.push(Markup.button.callback(`${isSel2 ? '✅ ' : ''}[${c2.key}] ${c2.name}`, `admin_set_upload_target_${c2.id}`));
+        }
+        catButtons.push(row);
+    }
+
+    catButtons.push([
+        Markup.button.callback('❌ Doğrudan Yüklemeyi Kapat (Normal Mod)', 'admin_disable_upload_target')
+    ]);
+    catButtons.push([
+        Markup.button.callback('👑 Yönetici Paneli', 'admin_panel'),
+        Markup.button.callback('🏠 Ana Menü', 'main_menu')
+    ]);
+
+    return safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard(catButtons)
+    });
+}
+
+bot.action('admin_select_upload_target', async (ctx) => {
+    await ctx.answerCbQuery().catch(() => {});
+    return renderAdminSelectUploadTargetMenu(ctx);
+});
+
+bot.action(/^admin_set_upload_target_(.+)$/, async (ctx) => {
+    const uid = String(ctx.from?.id);
+    if (!isAdminUser(uid)) return ctx.answerCbQuery('Yetkisiz.');
+
+    const catId = ctx.match[1];
+    const cat = db.getCategory(catId);
+    if (!cat) return ctx.answerCbQuery('Kategori bulunamadı.');
+
+    adminUploadTargets.set(uid, catId);
+    saveAdminUploadTargets(adminUploadTargets);
+
+    await ctx.answerCbQuery(`✅ Hedef [${cat.name}] olarak ayarlandı!`, { show_alert: true });
+    return renderAdminSelectUploadTargetMenu(ctx);
+});
+
+bot.action('admin_disable_upload_target', async (ctx) => {
+    const uid = String(ctx.from?.id);
+    if (!isAdminUser(uid)) return ctx.answerCbQuery('Yetkisiz.');
+
+    adminUploadTargets.delete(uid);
+    saveAdminUploadTargets(adminUploadTargets);
+
+    await ctx.answerCbQuery('⚪ Doğrudan yükleme kapatıldı. Standart dağıtım modu aktif.');
+    return renderAdminSelectUploadTargetMenu(ctx);
+});
+
+bot.command(['yuklemesekmesi', 'hefsekme', 'direktyukle'], async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    return renderAdminSelectUploadTargetMenu(ctx);
+});
+
+// ==========================================
+// 📦 ADMİN: ZIP ARŞİVLERİ YÖNETİM MERKEZİ (LİSTELEME / SİLME / TOPLU MOD)
+// ==========================================
+async function renderAdminZipManagerMenu(ctx) {
+    const uid = String(ctx.from?.id);
+    if (!isAdminUser(uid)) return;
+
+    const zips = db.getAllZips();
+    const isBulkZipOn = adminBulkZipMode.has(uid);
+
+    let totalBytes = 0;
+    for (const z of zips) totalBytes += (z.fileSize || 0);
+
+    const text =
+`📦 <b>ZIP ARŞİVLERİ YÖNETİM MERKEZİ</b> 👑\n\n` +
+`Market ve Mini App üzerinden 100 Yıldız karşılığı satılan ZIP arşiv paketleri:\n\n` +
+`📊 <b>Toplam Arşiv Sayısı:</b> <b>${zips.length} Adet</b>\n` +
+`💾 <b>Toplam Dosya Boyutu:</b> <b>${formatBytes(totalBytes)}</b>\n` +
+`⭐ <b>Satış Fiyatı:</b> <b>100 Telegram Yıldızı</b> (VIP Dahil Değil)\n` +
+`🚀 <b>Toplu ZIP Yükleme Modu:</b> <b>${isBulkZipOn ? '✅ AÇIK' : '⚪ KAPALI'}</b>\n\n` +
+`<i>Toplu ZIP Yükleme Modu açıkken Telegram'a attığınız her .zip / .rar dosyası onay sormadan anında markete 100 Yıldız ile satışa sunulur.</i>`;
+
+    const buttons = [
+        [
+            Markup.button.callback(
+                isBulkZipOn ? '🔴 Toplu ZIP Yükleme Modunu Kapat' : '🟢 Toplu ZIP Yükleme Modunu Aç',
+                'admin_toggle_bulk_zip'
+            )
+        ],
+        [
+            Markup.button.callback(`📋 ZIP Arşivlerini Listele & Tek Tek Sil (${zips.length})`, 'admin_list_zips_0')
+        ]
+    ];
+
+    if (zips.length > 0) {
+        buttons.push([
+            Markup.button.callback(`⚠️ Tüm ZIP Arşivlerini Sil (${zips.length} Adet)`, 'admin_conf_del_all_zips')
+        ]);
+    }
+
+    buttons.push([
+        Markup.button.callback('👑 Yönetici Paneli', 'admin_panel'),
+        Markup.button.callback('🏠 Ana Menü', 'main_menu')
+    ]);
+
+    return safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard(buttons)
+    });
+}
+
+bot.action('admin_zip_manager_menu', async (ctx) => {
+    await ctx.answerCbQuery().catch(() => {});
+    return renderAdminZipManagerMenu(ctx);
+});
+
+bot.action('admin_toggle_bulk_zip', async (ctx) => {
+    const uid = String(ctx.from?.id);
+    if (!isAdminUser(uid)) return ctx.answerCbQuery('Yetkisiz.');
+
+    if (adminBulkZipMode.has(uid)) {
+        adminBulkZipMode.delete(uid);
+        await ctx.answerCbQuery('⚪ Toplu ZIP yükleme modu kapatıldı.');
+    } else {
+        adminBulkZipMode.add(uid);
+        await ctx.answerCbQuery('🚀 Toplu ZIP yükleme modu AÇILDI! Gönderilen tüm zip dosyaları anında markete eklenecek.', { show_alert: true });
+    }
+    saveAdminBulkZipMode(adminBulkZipMode);
+    return renderAdminZipManagerMenu(ctx);
+});
+
+// ZIP Arşivlerini Sayfalı Listeleme ve Tek Tek Silme
+bot.action(/^admin_list_zips_(\d+)$/, async (ctx) => {
+    const uid = String(ctx.from?.id);
+    if (!isAdminUser(uid)) return ctx.answerCbQuery('Yetkisiz.');
+    await ctx.answerCbQuery().catch(() => {});
+
+    const page = parseInt(ctx.match[1], 10) || 0;
+    const pageSize = 5;
+    const zips = db.getAllZips();
+    const totalPages = Math.ceil(zips.length / pageSize) || 1;
+    const safePage = Math.min(Math.max(0, page), totalPages - 1);
+
+    const pageItems = zips.slice(safePage * pageSize, (safePage + 1) * pageSize);
+
+    let text =
+`📋 <b>ZIP ARŞİVLERİ LİSTESİ (Sayfa ${safePage + 1}/${totalPages})</b>\n\n` +
+`Toplam <b>${zips.length}</b> adet 100 Yıldızlık ZIP arşiv paketi bulunmaktadır.\n\n`;
+
+    if (pageItems.length === 0) {
+        text += `<i>Henüz hiç ZIP arşivi yüklenmemiş.</i>`;
+    } else {
+        pageItems.forEach((z, i) => {
+            const idx = safePage * pageSize + i + 1;
+            text += `<b>${idx}.</b> 📦 <code>${escapeHtml(z.title || z.id)}</code>\n` +
+                    `   📊 Boyut: <b>${formatBytes(z.fileSize || 0)}</b> | ⭐ ${z.starPrice || 100} Yıldız | 🆔 <code>${z.id}</code>\n\n`;
+        });
+    }
+
+    const buttons = [];
+    // Her öğe için sil butonu
+    pageItems.forEach((z) => {
+        const shortName = (z.title || z.id).substring(0, 20);
+        buttons.push([
+            Markup.button.callback(`🗑️ Sil: ${shortName}`, `admin_del_zip_${z.id}__${safePage}`)
+        ]);
+    });
+
+    // Sayfalama butonları
+    const navRow = [];
+    if (safePage > 0) {
+        navRow.push(Markup.button.callback('⬅️ Önceki', `admin_list_zips_${safePage - 1}`));
+    }
+    if (safePage < totalPages - 1) {
+        navRow.push(Markup.button.callback('Sonraki ➡️', `admin_list_zips_${safePage + 1}`));
+    }
+    if (navRow.length > 0) buttons.push(navRow);
+
+    buttons.push([
+        Markup.button.callback('⬅️ ZIP Yönetim Merkezine Dön', 'admin_zip_manager_menu'),
+        Markup.button.callback('👑 Yönetici Paneli', 'admin_panel')
+    ]);
+
+    return safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard(buttons)
+    });
+});
+
+// Belirli bir ZIP'i silme callback'i
+bot.action(/^admin_del_zip_(.+)__(\d+)$/, async (ctx) => {
+    const uid = String(ctx.from?.id);
+    if (!isAdminUser(uid)) return ctx.answerCbQuery('Yetkisiz.');
+
+    const zipId = ctx.match[1];
+    const page = ctx.match[2];
+
+    const res = db.deleteZip(zipId);
+    if (res) {
+        await ctx.answerCbQuery('🗑️ ZIP Arşivi başarıyla silindi!', { show_alert: true });
+    } else {
+        await ctx.answerCbQuery('⚠️ ZIP bulunamadı veya zaten silinmiş.', { show_alert: true });
+    }
+
+    // Listeyi yenile
+    const zips = db.getAllZips();
+    const pageSize = 5;
+    const totalPages = Math.ceil(zips.length / pageSize) || 1;
+    const safePage = Math.min(parseInt(page, 10), Math.max(0, totalPages - 1));
+
+    const pageItems = zips.slice(safePage * pageSize, (safePage + 1) * pageSize);
+
+    let text =
+`📋 <b>ZIP ARŞİVLERİ LİSTESİ (Sayfa ${safePage + 1}/${totalPages})</b>\n\n` +
+`Toplam <b>${zips.length}</b> adet 100 Yıldızlık ZIP arşiv paketi bulunmaktadır.\n\n`;
+
+    if (pageItems.length === 0) {
+        text += `<i>Henüz hiç ZIP arşivi yüklenmemiş.</i>`;
+    } else {
+        pageItems.forEach((z, i) => {
+            const idx = safePage * pageSize + i + 1;
+            text += `<b>${idx}.</b> 📦 <code>${escapeHtml(z.title || z.id)}</code>\n` +
+                    `   📊 Boyut: <b>${formatBytes(z.fileSize || 0)}</b> | ⭐ ${z.starPrice || 100} Yıldız | 🆔 <code>${z.id}</code>\n\n`;
+        });
+    }
+
+    const buttons = [];
+    pageItems.forEach((z) => {
+        const shortName = (z.title || z.id).substring(0, 20);
+        buttons.push([
+            Markup.button.callback(`🗑️ Sil: ${shortName}`, `admin_del_zip_${z.id}__${safePage}`)
+        ]);
+    });
+
+    const navRow = [];
+    if (safePage > 0) {
+        navRow.push(Markup.button.callback('⬅️ Önceki', `admin_list_zips_${safePage - 1}`));
+    }
+    if (safePage < totalPages - 1) {
+        navRow.push(Markup.button.callback('Sonraki ➡️', `admin_list_zips_${safePage + 1}`));
+    }
+    if (navRow.length > 0) buttons.push(navRow);
+
+    buttons.push([
+        Markup.button.callback('⬅️ ZIP Yönetim Merkezine Dön', 'admin_zip_manager_menu'),
+        Markup.button.callback('👑 Yönetici Paneli', 'admin_panel')
+    ]);
+
+    return safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard(buttons)
+    });
+});
+
+// Tüm ZIP'leri Silme Onay Ekranı
+bot.action('admin_conf_del_all_zips', async (ctx) => {
+    const uid = String(ctx.from?.id);
+    if (!isAdminUser(uid)) return ctx.answerCbQuery('Yetkisiz.');
+    await ctx.answerCbQuery().catch(() => {});
+
+    const zips = db.getAllZips();
+    const text =
+`⚠️ <b>DİKKAT: TÜM ZIP ARŞİVLERİNİ SİLME ONAYI</b>\n\n` +
+`Sistemdeki toplam <b>${zips.length} adet</b> ZIP arşiv paketini <b>tamamen silmek</b> üzeresiniz.\n\n` +
+`Bu işlem geri alınamaz. Arşivler marketten ve Mini App'ten tamamen kaldırılacaktır.\n\n` +
+`Tüm ZIP arşivlerini silmek istediğinize emin misiniz?`;
+
+    return safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback(`⚠️ Evet, TÜM ${zips.length} ZIP Paketini Sil`, 'admin_exec_del_all_zips')],
+            [Markup.button.callback('❌ İptal / Vazgeç', 'admin_zip_manager_menu')]
+        ])
+    });
+});
+
+// Tüm ZIP'leri Silme İşlemini Çalıştır
+bot.action('admin_exec_del_all_zips', async (ctx) => {
+    const uid = String(ctx.from?.id);
+    if (!isAdminUser(uid)) return ctx.answerCbQuery('Yetkisiz.');
+
+    const res = db.deleteAllZips();
+    await ctx.answerCbQuery(`🗑️ ${res.deletedCount} adet ZIP arşivi tamamen silindi!`, { show_alert: true });
+
+    const text =
+`🎉 <b>TÜM ZIP ARŞİVLERİ BAŞARIYLA SİLİNDİ!</b>\n\n` +
+`🗑️ <b>Silinen ZIP Arşivi:</b> <b>${res.deletedCount} Adet</b>\n` +
+`✅ <b>Kalan ZIP Arşivi:</b> 0 Adet\n\n` +
+`<i>Artık sistemde eski ZIP paketi kalmadı. Dilediğiniz zaman Toplu ZIP Yükleme Modunu açarak yeni arşivlerinizi yükleyebilirsiniz.</i>`;
+
+    return safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback('📦 ZIP Yönetim Merkezine Dön', 'admin_zip_manager_menu')],
+            [Markup.button.callback('👑 Yönetici Paneli', 'admin_panel')]
+        ])
+    });
+});
+
+bot.command(['zipyonet', 'ziparsivleri', 'topluzip'], async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    return renderAdminZipManagerMenu(ctx);
 });
 
 // ==========================================

@@ -1449,6 +1449,7 @@ module.exports = {
     getAllZips,
     getZip,
     deleteZip,
+    deleteAllZips,
     recordZipPurchase,
     getUserPurchasedZips,
     // Admin Kontrol Fonksiyonları
@@ -1739,6 +1740,14 @@ function deleteZip(zipId) {
         return true;
     }
     return false;
+}
+
+function deleteAllZips() {
+    const db = loadDb();
+    const count = (db.zips || []).length;
+    db.zips = [];
+    saveDb();
+    return count;
 }
 
 function recordZipPurchase(userId, zipId) {
