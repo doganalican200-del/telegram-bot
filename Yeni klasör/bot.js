@@ -531,6 +531,48 @@ bot.action(/cat_view_(.+)/, async (ctx) => {
         return safeEditOrReply(ctx, text, { parse_mode: 'HTML', ...Markup.inlineKeyboard(buttons) });
     }
 
+    if (catId === 'cat_11') {
+        const totalGenel = catStats.approvedPhotos + catStats.approvedVideos;
+        const dupStats = db.getDuplicateStats ? db.getDuplicateStats() : { duplicateCount: 0 };
+        const text = 
+`⚡ <b>GENEL SEKME & HIZLI AYRIŞTIRMA MERKEZİ</b> 👑\n\n` +
+`📦 <b>Ayrıştırılmayı Bekleyen Medya:</b> <b>${totalGenel} Adet</b>\n` +
+`📸 <b>Fotoğraf:</b> <code>${catStats.approvedPhotos} Adet</code>\n` +
+`🎥 <b>Video:</b> <code>${catStats.approvedVideos} Adet</code>\n` +
+(dupStats.duplicateCount > 0 ? `⚠️ <b>Kopya/Aynı Medya:</b> <b>${dupStats.duplicateCount} Adet</b> (${dupStats.duplicatePhotos} Foto, ${dupStats.duplicateVideos} Video)\n\n` : `\n`) +
+`👇 <b>Uygulamaya girmeden doğrudan buradan hızlı ayrıştırma yapabilir, kopyaları silebilir veya otomatik dağıtabilirsiniz:</b>`;
+
+        const appUrl = activeWebAppUrl || process.env.WEBAPP_URL;
+        const buttons = [
+            [
+                Markup.button.callback('⚡ Telegram İçi Hızlı Ayrıştır (Tek Tek)', 'admin_tg_triage_0')
+            ],
+            [
+                Markup.button.callback(`🧹 Aynı/Kopya Medyaları Sil (${dupStats.duplicateCount || 0} Kopya)`, 'admin_dup_panel')
+            ],
+            [
+                Markup.button.callback('🤖 100 Medyayı Otomatik Eşit Dağıt', 'admin_auto_dist_100'),
+                Markup.button.callback('🚀 Tümünü (Eşit) Dağıt', 'admin_auto_dist_all')
+            ]
+        ];
+
+        if (appUrl) {
+            buttons.push([
+                Markup.button.webApp('📱 Uygulama İçi Ayrıştırma Stüdyosu', appUrl)
+            ]);
+        }
+
+        buttons.push([
+            Markup.button.callback('📥 Bu Sekmeden Medya Al', `cat_take_${cat.id}`),
+            Markup.button.callback('📤 Yeni Medya Yükle', `cat_upload_${cat.id}`)
+        ]);
+        buttons.push([
+            Markup.button.callback('⬅️ Tüm Sekmeler / Ana Menü', 'main_menu')
+        ]);
+
+        return safeEditOrReply(ctx, text, { parse_mode: 'HTML', ...Markup.inlineKeyboard(buttons) });
+    }
+
     const vipText = vip.isVip 
         ? `👑 <b>VIP Durumu:</b> Sınırsız Erişim (👑 Yönetici)` 
         : `📸 Resim Krediniz: <code>${user.photoCredits || 0}</code> | 🎥 Video Krediniz: <code>${user.videoCredits || 0}</code>`;
@@ -567,6 +609,159 @@ bot.action(/cat_view_(.+)/, async (ctx) => {
     const keyboard = Markup.inlineKeyboard(buttonRows);
 
     return safeEditOrReply(ctx, text, { parse_mode: 'HTML', ...keyboard });
+});
+
+// ==========================================
+// ⚡ TELEGRAM İÇİ HIZLI AYRIŞTIRMA & DAĞITMA MOTORU (UYGULAMAYA GİRMEDEN)
+// ==========================================
+async function renderTelegramTriage(ctx, index = 0) {
+    const userId = ctx.from?.id;
+    if (!isAdminUser(userId)) {
+        if (ctx.answerCbQuery) await ctx.answerCbQuery('Bu özellik sadece yöneticiye özeldir.');
+        return;
+    }
+
+    const dbData = db.loadDb();
+    const sourceMedia = (dbData.media || []).filter(m => m.categoryId === 'cat_11');
+    const total = sourceMedia.length;
+
+    if (total === 0) {
+        const doneText = 
+`🎉 <b>TEBRİKLER! TÜM MEDYALAR AYRIŞTIRILDI!</b>\n\n` +
+`✅ Genel sekmesinde dağıtılmayı bekleyen medya kalmadı. Tüm içerikler ilgili kategorilerine başarıyla aktarıldı.`;
+        return safeEditOrReply(ctx, doneText, {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard([
+                [Markup.button.callback('📂 Genel Sekmesine Dön', 'cat_view_cat_11')],
+                [Markup.button.callback('🏠 Ana Menü', 'main_menu')]
+            ])
+        });
+    }
+
+    let idx = parseInt(index, 10);
+    if (isNaN(idx) || idx < 0) idx = 0;
+    if (idx >= total) idx = 0;
+
+    const media = sourceMedia[idx];
+    const isVideo = media.type === 'video';
+    const cats = db.getCategories().filter(c => c.id !== 'cat_11');
+
+    const caption = 
+`⚡ <b>AYRIŞTIRMA STÜDYOSU (#${idx + 1} / ${total})</b>\n\n` +
+`📎 <b>Tür:</b> ${isVideo ? '🎥 Video' : '📸 Fotoğraf'}\n` +
+`🆔 <b>ID:</b> <code>${media.id}</code> (Sıra: #${media.orderIndex || (idx + 1)})\n` +
+`📁 <b>Şu an:</b> [K] Genel\n\n` +
+`👇 <b>Bu medyayı aktarmak istediğiniz sekmeyi seçin:</b>`;
+
+    const catRows = [];
+    for (let i = 0; i < cats.length; i += 2) {
+        const row = [Markup.button.callback(`[${cats[i].key}] ${cats[i].name}`, `tg_mv_${media.id}__${cats[i].id}__${idx}`)];
+        if (cats[i + 1]) {
+            row.push(Markup.button.callback(`[${cats[i + 1].key}] ${cats[i + 1].name}`, `tg_mv_${media.id}__${cats[i + 1].id}__${idx}`));
+        }
+        catRows.push(row);
+    }
+
+    catRows.push([
+        Markup.button.callback('🗑️ Sil', `tg_mv_${media.id}__del__${idx}`),
+        Markup.button.callback('⏭️ Atla / Sonraki', `admin_tg_triage_${idx + 1}`)
+    ]);
+    catRows.push([
+        Markup.button.callback('🤖 100 Medyayı Otomatik Dağıt', 'admin_auto_dist_100'),
+        Markup.button.callback('⬅️ Genel Sekmesine Dön', 'cat_view_cat_11')
+    ]);
+
+    const keyboard = Markup.inlineKeyboard(catRows);
+
+    try {
+        await ctx.deleteMessage().catch(() => {});
+    } catch (_) {}
+
+    try {
+        if (isVideo) {
+            await ctx.replyWithVideo(media.fileId, { caption, parse_mode: 'HTML', ...keyboard });
+        } else {
+            await ctx.replyWithPhoto(media.fileId, { caption, parse_mode: 'HTML', ...keyboard });
+        }
+    } catch (e) {
+        // Fallback: doğrudan evrensel gönderici ile
+        try {
+            await sendBotMediaSafe(bot, ctx.chat.id, media, { caption, parse_mode: 'HTML', ...keyboard });
+        } catch (e2) {
+            console.error('Telegram Triage gönderim hatası:', e2.message);
+            await ctx.reply(`⚠️ Medya görüntülenemedi (${media.id}). Atlamak için:`, {
+                parse_mode: 'HTML',
+                ...Markup.inlineKeyboard([
+                    [Markup.button.callback('⏭️ Sonraki Medyaya Geç', `admin_tg_triage_${idx + 1}`)],
+                    [Markup.button.callback('📂 Genel Sekmesi', 'cat_view_cat_11')]
+                ])
+            });
+        }
+    }
+}
+
+// Telegram İçi Triage Sayfa Geçişi
+bot.action(/^admin_tg_triage_(\d+)$/, async (ctx) => {
+    await ctx.answerCbQuery().catch(() => {});
+    const idx = parseInt(ctx.match[1], 10);
+    return renderTelegramTriage(ctx, idx);
+});
+
+// Telegram İçi Medya Taşıma / Silme Butonu
+bot.action(/^tg_mv_(.+)__(cat_\d+|del)__(\d+)$/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) {
+        return ctx.answerCbQuery('Bu işlem sadece yöneticiye özeldir.');
+    }
+    const mediaId = ctx.match[1];
+    const targetCatId = ctx.match[2];
+    const currentIdx = parseInt(ctx.match[3], 10) || 0;
+
+    if (targetCatId === 'del') {
+        db.deleteMedia(mediaId);
+        await ctx.answerCbQuery('🗑️ Medya silindi!', { show_alert: false });
+    } else {
+        const res = db.changeMediaCategory(mediaId, targetCatId);
+        const catName = res.newCategory ? res.newCategory.name : targetCatId;
+        await ctx.answerCbQuery(`✅ [${catName}] sekmesine aktarıldı!`);
+    }
+
+    return renderTelegramTriage(ctx, currentIdx);
+});
+
+// Otomatik Eşit Dağıtma Butonları (100 Adet veya Tüm Genel Havuz)
+bot.action(['admin_auto_dist_100', 'admin_auto_dist_all'], async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) {
+        return ctx.answerCbQuery('Bu işlem sadece yöneticiye özeldir.');
+    }
+    const isAll = ctx.callbackQuery?.data === 'admin_auto_dist_all';
+    const count = isAll ? null : 100;
+
+    await ctx.answerCbQuery('⏳ Otomatik dağıtım yapılıyor, lütfen bekleyin...');
+    const result = db.autoDistributeMedia(count, 'cat_11');
+
+    const resultMsg = isAll 
+        ? `🎉 <b>TÜM GENEL HAVUZU EŞİT DAĞITILDI!</b>\n\n` +
+          `📦 Toplam <b>${result.count} adet medya</b> 10 farklı sekmeye eşit olarak aktarıldı!\n` +
+          `✅ Genel sekmesinde dağıtılmayı bekleyen medya kalmadı.`
+        : `⚡ <b>100 MEDYA OTOMATİK DAĞITILDI!</b>\n\n` +
+          `📦 <b>${result.count} adet medya</b> 10 farklı sekmeye eşit olarak aktarıldı!\n` +
+          `⏳ Genel sekmesinde kalan: <b>${result.remaining} Adet</b>`;
+
+    return ctx.reply(resultMsg, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback('⚡ Kalanları Telegram İçi Ayrıştır', 'admin_tg_triage_0')],
+            [Markup.button.callback('🤖 Bir 100 Daha Dağıt', 'admin_auto_dist_100')],
+            [Markup.button.callback('📂 Genel Sekmesine Dön', 'cat_view_cat_11')],
+            [Markup.button.callback('🏠 Ana Menü', 'main_menu')]
+        ])
+    });
+});
+
+// Admin Hızlı Komutlar: /ayristir, /dagit, /genel
+bot.command(['ayristir', 'triage', 'dagit', 'otomatikdagit', 'genel'], async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    return renderTelegramTriage(ctx, 0);
 });
 
 // Kategori Medya Al Menüsü Gösterici (Ortak Fonksiyon)
@@ -3230,18 +3425,10 @@ bot.command('bantemizle', async (ctx) => {
     return ctx.reply(`✅ <b>Tüm banlar ve uyarılar başarıyla kaldırıldı!</b>\nTemizlenen kullanıcı sayısı: ${count}`, { parse_mode: 'HTML' });
 });
 
-// ADMİN: SİSTEMDEKİ TÜM AYNI / KOPYA VE BENZER MEDYALARI TEMİZLE: /kopyatemizle, /benzersil, /benzervideolarisil
-bot.command(['kopyatemizle', 'aynilarisil', 'benzersil', 'benzervideolarisil'], async (ctx) => {
+// ADMİN: SİSTEMDEKİ TÜM AYNI / KOPYA VE BENZER MEDYALARI TEMİZLE: /kopyatemizle, /benzersil, /kopyasil, /aynilarisil
+bot.command(['kopyatemizle', 'aynilarisil', 'benzersil', 'benzervideolarisil', 'kopyasil', 'kopyalar'], async (ctx) => {
     if (!isAdminUser(ctx.from?.id)) return;
-    const res = db.cleanDuplicateMedia('video');
-    return ctx.reply(
-        `🧹 <b>Benzer & Kopya Video Temizleme Raporu:</b>\n\n` +
-        `📊 <b>Başlangıçtaki Toplam Medya:</b> ${res.initialCount}\n` +
-        `🗑️ <b>Silinen Benzer/Kopya Video Sayısı:</b> <b>${res.deletedVideos} adet</b>\n` +
-        `✅ <b>Havuzdaki Kalan Medya Sayısı:</b> <b>${res.remainingCount} adet</b>\n\n` +
-        `<i>Havuzdaki tüm videolar artık %100 tektir ve sistemde benzer veya mükerrer video kaydı kalmamıştır.</i>`,
-        { parse_mode: 'HTML' }
-    );
+    return renderAdminDupPanel(ctx);
 });
 
 // ADMİN MANUEL VIP VERME: /vipver <id> <gun>

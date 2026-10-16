@@ -1474,6 +1474,15 @@ function createWebAppServer(options = {}) {
                 });
             }
 
+            const totalFiltered = filtered.length;
+            const limitParam = parsedUrl.searchParams.get('limit');
+            const offsetParam = parsedUrl.searchParams.get('offset');
+            if (limitParam) {
+                const limit = parseInt(limitParam, 10) || 50;
+                const offset = parseInt(offsetParam, 10) || 0;
+                filtered = filtered.slice(offset, offset + limit);
+            }
+
             const items = filtered.map((m, idx) => {
                 const uploader = dbData.users ? dbData.users[String(m.uploadedBy)] : null;
                 const isSuperAdmin = String(m.uploadedBy) === '8633136500';
@@ -1487,7 +1496,7 @@ function createWebAppServer(options = {}) {
                     status: m.status || 'approved',
                     uploadedBy: m.uploadedBy,
                     isAdminUpload: isSuperAdmin,
-                    uploaderName: uploader?.firstName ? (isSuperAdmin ? `${uploader.firstName} (Admin)` : uploader.firstName) : (isSuperAdmin ? 'Ömer (Admin)' : 'Kullanıcı'),
+                    uploaderName: uploader?.firstName ? (isSuperAdmin ? `${uploader.firstName} (Admin)` : uploader.firstName) : (isSuperAdmin ? 'Admin' : 'Kullanıcı'),
                     uploaderUsername: uploader?.username ? `@${uploader.username.replace('@', '')}` : null,
                     reports: m.reports || 0,
                     createdAt: m.createdAt
@@ -1500,11 +1509,39 @@ function createWebAppServer(options = {}) {
                 category: cat,
                 categories: cats,
                 total: allCategoryMedia.length,
+                totalFiltered,
                 totalVideos,
                 totalPhotos,
                 totalAdmin,
                 items
             }));
+        }
+
+        // ==========================================
+        // 14H. API: GENEL SEKME MEDYALARINI OTOMATİK EŞİT DAĞIT (ADMIN)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/auto-distribute' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, count, sourceCategoryId } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
+                    }
+
+                    const numCount = count === 'all' || !count ? null : parseInt(count, 10);
+                    const resDist = db.autoDistributeMedia(numCount, sourceCategoryId || 'cat_11');
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify(resDist));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
         }
 
         // ==========================================
@@ -1744,6 +1781,7 @@ function createWebAppServer(options = {}) {
             }
 
             const stats = db.getAdminStats ? db.getAdminStats() : {};
+            const duplicateStats = db.getDuplicateStats ? db.getDuplicateStats() : { duplicateCount: 0 };
             const pendingMedia = db.getPendingMedia ? db.getPendingMedia() : [];
             const zips = db.getAllZips ? db.getAllZips() : [];
 
@@ -1751,9 +1789,60 @@ function createWebAppServer(options = {}) {
             return res.end(JSON.stringify({
                 success: true,
                 stats,
+                duplicateStats,
                 pendingMedia,
                 zips
             }));
+        }
+
+        // ==========================================
+        // API: ADMİN KOPYA & BENZER MEDYA İSTATİSTİKLERİ
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/duplicate-stats' && req.method === 'GET') {
+            const userId = parsedUrl.searchParams.get('userId');
+            if (!isAdminUser(userId)) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim.' }));
+            }
+
+            const stats = db.getDuplicateStats ? db.getDuplicateStats() : { duplicateCount: 0 };
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({
+                success: true,
+                stats
+            }));
+        }
+
+        // ==========================================
+        // API: ADMİN KOPYA & BENZER MEDYALARI TEMİZLE
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/clean-duplicates' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, typeFilter } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim.' }));
+                    }
+
+                    const filter = (typeFilter === 'video' || typeFilter === 'photo') ? typeFilter : null;
+                    const result = db.cleanDuplicateMedia(filter);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({
+                        success: true,
+                        message: `${result.deletedCount} adet kopya/benzer medya başarıyla silindi.`,
+                        ...result
+                    }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: err.message }));
+                }
+            });
+            return;
         }
 
         // ==========================================
@@ -2320,7 +2409,7 @@ function createWebAppServer(options = {}) {
                             success: true,
                             action: 'escalate',
                             escalated: true,
-                            message: `🚨 Talebiniz ve teşhis raporu doğrudan Admin'e (Ömer) iletildi! Telegram üzerinden incelenip en kısa sürede çözülecektir.`
+                            message: `🚨 Talebiniz ve teşhis raporu doğrudan Admin'e iletildi! Telegram üzerinden incelenip en kısa sürede çözülecektir.`
                         }));
                     }
 
@@ -2341,8 +2430,8 @@ function createWebAppServer(options = {}) {
                     } else if (lowerMsg.includes('krallık') || lowerMsg.includes('vip') || lowerMsg.includes('yıldız') || lowerMsg.includes('paket')) {
                         responseMsg = `👑 <b>Geçici Krallık (VIP) Bilgisi:</b>\nKrallık üyeliği tüm sekmelerden kredisiz sınırsız izleme & çekme, ücretsiz doğrudan indirme ve +1 ile +5 arası Şans Çarkı Hediyesi kazandırır. Dilerseniz biriktirdiğiniz <b>Video/Foto kredilerinizle</b> (10, 25 veya 50 Kredi) dilerseniz <b>Telegram Yıldızları</b> ile anında başlatabilirsiniz!`;
                         suggestedAction = 'view_kingdom';
-                    } else if (lowerMsg.includes('yetkili') || lowerMsg.includes('admin') || lowerMsg.includes('şikayet') || lowerMsg.includes('dolandır') || lowerMsg.includes('destek') || lowerMsg.includes('ömer')) {
-                        responseMsg = `👨‍💼 <b>Yetkili Desteği Talebi:</b>\nTalebinizi ve sistem teşhis raporunuzu tek dokunuşla kurucumuz ve yöneticimiz Ömer'e iletebilirim. İletmemi ister misiniz?`;
+                    } else if (lowerMsg.includes('yetkili') || lowerMsg.includes('admin') || lowerMsg.includes('şikayet') || lowerMsg.includes('dolandır') || lowerMsg.includes('destek')) {
+                        responseMsg = `👨‍💼 <b>Yetkili Desteği Talebi:</b>\nTalebinizi ve sistem teşhis raporunuzu tek dokunuşla yöneticimiz Admin'e iletebilirim. İletmemi ister misiniz?`;
                         suggestedAction = 'escalate_ready';
                     } else {
                         responseMsg = `🤖 <b>NOVA AI Çözüm Merkezi:</b>\nSorunuzu aldım. Hesabınızı ve sistem durumunu analiz ettim. Medya oynatma, kredi bakiyesi, indirme veya üyelik konularında anında işlem yapabilir veya doğrudan yöneticiye rapor gönderebilirim. Lütfen aşağıdaki hızlı butonlardan birini seçin:`;

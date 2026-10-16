@@ -1822,6 +1822,52 @@
                     <div id="admin-system-autoheal-result" style="display:none; margin-top:10px; font-size:11px; padding:10px; border-radius:8px; line-height:1.45;"></div>
                 </div>
 
+                <!-- 🧹 İLERİ DÜZEY KOPYA & BENZER MEDYA DENETLEYİCİ & TEMİZLEYİCİ (RESİM & VİDEO) -->
+                <div style="background: radial-gradient(circle at top right, rgba(239, 68, 68, 0.15), transparent 70%), rgba(20, 15, 30, 0.6); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; padding: 12px; margin-bottom: 14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div style="font-size:13px; font-weight:800; color:#f87171; display:flex; align-items:center; gap:6px;">
+                            <span>🧹</span> İleri Düzey Kopya Medya Temizleyici
+                        </div>
+                        <span id="adm-dup-badge" style="font-size:9.5px; background:rgba(239, 68, 68, 0.2); border:1px solid #ef4444; color:#fca5a5; font-weight:800; padding:2px 7px; border-radius:4px;">HESAPLANIYOR...</span>
+                    </div>
+                    <div style="font-size:11px; color:#cbd5e1; line-height:1.45; margin-bottom:10px;">
+                        Telegram dosya parmak izi (fileUniqueId) ve dosya boyutu ile birebir aynı olan mükerrer resim ve videoları tespit eder. <b>Orijinal tek kopyayı korur</b>, tüm mükerrer kopyaları tek tıkla siler.
+                    </div>
+                    <!-- Duplicate Breakdown Stats -->
+                    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-bottom:10px; font-size:10px; text-align:center;">
+                        <div style="background:rgba(0,0,0,0.3); padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.06);">
+                            <div style="color:var(--hint-color);">Toplam Kopya</div>
+                            <div id="adm-dup-total" style="font-size:13px; font-weight:800; color:#ef4444;">-</div>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.3); padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.06);">
+                            <div style="color:var(--hint-color);">Kopya Foto</div>
+                            <div id="adm-dup-photos" style="font-size:13px; font-weight:800; color:#f59e0b;">-</div>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.3); padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.06);">
+                            <div style="color:var(--hint-color);">Kopya Video</div>
+                            <div id="adm-dup-videos" style="font-size:13px; font-weight:800; color:#a855f7;">-</div>
+                        </div>
+                    </div>
+                    <!-- Actions -->
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <button onclick="cleanDuplicatesAdmin('all')" id="btn-admin-clean-dups" style="width:100%; background:linear-gradient(135deg, #dc2626, #b91c1c); border:none; color:#fff; font-size:11.5px; font-weight:800; padding:10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 14px rgba(220, 38, 38, 0.4);">
+                            <span>🗑️</span> Tüm Kopyaları Şimdi Sil (Orijinalleri Koru)
+                        </button>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="cleanDuplicatesAdmin('photo')" style="flex:1; background:#1e293b; border:1px solid rgba(245, 158, 11, 0.4); color:#fbbf24; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">
+                                📸 Sadece Foto Kopyaları Sil
+                            </button>
+                            <button onclick="cleanDuplicatesAdmin('video')" style="flex:1; background:#1e293b; border:1px solid rgba(168, 85, 247, 0.4); color:#c084fc; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">
+                                🎥 Sadece Video Kopyaları Sil
+                            </button>
+                            <button onclick="fetchDuplicateStats()" style="background:#1e293b; border:1px solid rgba(255,255,255,0.15); color:#94a3b8; font-size:10px; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Yeniden Tara">
+                                🔄 Tara
+                            </button>
+                        </div>
+                    </div>
+                    <div id="admin-clean-dup-result" style="display:none; margin-top:10px; font-size:11px; padding:10px; border-radius:8px; line-height:1.45;"></div>
+                </div>
+
                 <!-- ⚡ GELİŞMİŞ MEDYA KURTARMA & AKILLI KLASÖR DÜZENLEME -->
                 <div style="margin-top:14px; margin-bottom:14px; background:linear-gradient(145deg, rgba(30, 27, 75, 0.45), rgba(15, 23, 42, 0.6)); border:1px solid rgba(139, 92, 246, 0.4); border-radius:12px; padding:14px; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;">
@@ -2274,6 +2320,19 @@
                 </div>
             </div>
 
+            <!-- Otomatik Dağıtma & Temizleme Hızlı Eylem Çubuğu -->
+            <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
+                <button onclick="autoDistributeTriage(50)" style="flex:1; min-width:110px; background:linear-gradient(135deg, #0284c7, #2563eb); border:none; color:#fff; font-size:11px; font-weight:800; padding:7px 8px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+                    <span>🤖 50 Dağıt</span>
+                </button>
+                <button onclick="autoDistributeTriage('all')" style="flex:1; min-width:120px; background:linear-gradient(135deg, #7c3aed, #ec4899); border:none; color:#fff; font-size:11px; font-weight:800; padding:7px 8px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+                    <span>🚀 Tümünü Dağıt</span>
+                </button>
+                <button onclick="triageCleanDuplicates()" style="background:rgba(239, 68, 68, 0.2); border:1px solid #ef4444; color:#fca5a5; font-size:11px; font-weight:800; padding:7px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;" title="Tüm kopya resim ve videoları sistemden temizle">
+                    <span>🧹 Kopyaları Sil (<span id="triage-dup-count">...</span>)</span>
+                </button>
+            </div>
+
             <!-- İlerleme Çubuğu & Medya Bilgisi -->
             <div style="background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:8px 10px; margin-bottom:8px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-bottom:4px;">
@@ -2625,7 +2684,7 @@
                     <div style="width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg, #0284c7, #6366f1); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🤖</div>
                     <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; border-top-left-radius:2px; padding:10px 12px; font-size:12px; line-height:1.45; color:#f8fafc; max-width:85%;">
                         Merhaba! Ben botun yapay zeka sistem koruyucusuyum. 🛡️<br><br>
-                        Medya oynatma aksaklıkları, eksik kredi, indirme problemleri gibi durumlarda veritabanı kayıtlarınızı inceleyip <b>anında otonom düzeltme</b> yapabilirim. Eğer çözülemeyen sistemsel bir hata varsa tek tuşla <b>doğrudan kurucu adminimiz Ömer'e</b> anlık Telegram bildirimi iletirim.<br><br>
+                        Medya oynatma aksaklıkları, eksik kredi, indirme problemleri gibi durumlarda veritabanı kayıtlarınızı inceleyip <b>anında otonom düzeltme</b> yapabilirim. Eğer çözülemeyen sistemsel bir hata varsa tek tuşla <b>doğrudan kurucu yöneticimiz Admin'e</b> anlık Telegram bildirimi iletirim.<br><br>
                         Aşağıdaki butonları seçebilir veya sorununuzu doğrudan yazabilirsiniz!
                     </div>
                 </div>
@@ -2654,7 +2713,7 @@
         // Aktif Kullanıcı ID
         const urlParams = new URLSearchParams(window.location.search);
         const queryUserId = urlParams.get('userId');
-        const tgUser = tg?.initDataUnsafe?.user || { id: queryUserId || '8633136500', first_name: 'Ömer' };
+        const tgUser = tg?.initDataUnsafe?.user || { id: queryUserId || '8633136500', first_name: 'Admin' };
 
         // ==========================================
         // 🛡️ EKRAN GÖRÜNTÜSÜ VE İNDİRME ENGELLEME KORUMA MODÜLÜ
@@ -2782,7 +2841,7 @@
         // 1. Kullanıcı Verilerini Yükle
         async function loadUserData() {
             try {
-                const res = await fetch(`/api/webapp/user?userId=${tgUser.id}&firstName=${encodeURIComponent(tgUser.first_name || 'Ömer')}&username=${encodeURIComponent(tgUser.username || '')}`);
+                const res = await fetch(`/api/webapp/user?userId=${tgUser.id}&firstName=${encodeURIComponent(tgUser.first_name || 'Admin')}&username=${encodeURIComponent(tgUser.username || '')}`);
                 const data = await res.json();
                 currentUser = data;
 
@@ -4552,7 +4611,7 @@
         }
 
         async function triggerAiAdminEscalate() {
-            const note = prompt('Lütfen kurucumuz ve yöneticimiz Ömer\'e iletilmesini istediğiniz sorunu veya talebi kısaca yazın:', '');
+            const note = prompt('Lütfen kurucumuz ve yöneticimiz Admin\'e iletilmesini istediğiniz sorunu veya talebi kısaca yazın:', '');
             if (note === null) return;
 
             showToast('Yöneticiye bildirim gönderiliyor...', '⏳');
@@ -4570,7 +4629,7 @@
                 const data = await res.json();
                 if (data.success) {
                     if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    appendAiChatMessage('ai', `🚨 <b>Yöneticiye İletildi!</b><br>Bildiriminiz ve hesabınızın canlı teşhis raporu doğrudan yöneticimiz Ömer'e iletildi. Telegram üzerinden en kısa sürede incelenecektir.`, true);
+                    appendAiChatMessage('ai', `🚨 <b>Yöneticiye İletildi!</b><br>Bildiriminiz ve hesabınızın canlı teşhis raporu doğrudan yöneticimiz Admin'e iletildi. Telegram üzerinden en kısa sürede incelenecektir.`, true);
                     showToast('Bildirim yöneticiye başarıyla iletildi!', '✅');
                 } else {
                     showToast(data.message || 'Bildirilemedi.', '❌');
@@ -4615,6 +4674,111 @@
                 showToast('Hata: ' + err.message, '❌');
             } finally {
                 if (btn) btn.innerHTML = `<span>🚀</span> 2,146 Medya & Tüm Sistemi Otomatik Onar`;
+            }
+        }
+
+        // ==========================================
+        // 🧹 İLERİ DÜZEY KOPYA MEDYA TEMİZLEYİCİ FONKSİYONLARI
+        // ==========================================
+        function renderDuplicateStatsUI(dupStats) {
+            const count = dupStats.duplicateCount || 0;
+            const photos = dupStats.duplicatePhotos || 0;
+            const videos = dupStats.duplicateVideos || 0;
+
+            const badgeEl = document.getElementById('adm-dup-badge');
+            if (badgeEl) {
+                badgeEl.innerText = count > 0 ? `${count} KOPYA` : 'KOPYA YOK (%100 TEMİZ)';
+                badgeEl.style.background = count > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)';
+                badgeEl.style.borderColor = count > 0 ? '#ef4444' : '#10b981';
+                badgeEl.style.color = count > 0 ? '#fca5a5' : '#86efac';
+            }
+
+            const totalEl = document.getElementById('adm-dup-total');
+            if (totalEl) totalEl.innerText = count;
+
+            const photosEl = document.getElementById('adm-dup-photos');
+            if (photosEl) photosEl.innerText = photos;
+
+            const videosEl = document.getElementById('adm-dup-videos');
+            if (videosEl) videosEl.innerText = videos;
+
+            const triageDupCount = document.getElementById('triage-dup-count');
+            if (triageDupCount) triageDupCount.innerText = count;
+
+            const btnClean = document.getElementById('btn-admin-clean-dups');
+            if (btnClean) {
+                btnClean.disabled = (count === 0);
+                btnClean.style.opacity = count === 0 ? '0.5' : '1';
+                btnClean.style.cursor = count === 0 ? 'not-allowed' : 'pointer';
+            }
+        }
+
+        async function fetchDuplicateStats() {
+            try {
+                const res = await fetch(`/api/webapp/admin/duplicate-stats?userId=${tgUser?.id || '8633136500'}`);
+                const data = await res.json();
+                if (data.success && data.stats) {
+                    renderDuplicateStatsUI(data.stats);
+                    showToast(`Kopya medya taraması: ${data.stats.duplicateCount} kopya`, '🔍');
+                }
+            } catch (err) {
+                console.error('Kopya istatistik hatası:', err);
+            }
+        }
+
+        async function cleanDuplicatesAdmin(typeFilter = 'all') {
+            const label = typeFilter === 'photo' ? 'kopya fotoğrafları' : (typeFilter === 'video' ? 'kopya videoları' : 'TÜM kopya resim ve videoları');
+            if (!confirm(`Sistemdeki ${label} silmek istediğinize emin misiniz?\n\nOrijinal tek kayıtlar havuzda kalacak, yalnızca mükerrer kopyalar silinecektir.`)) {
+                return;
+            }
+
+            const btn = document.getElementById('btn-admin-clean-dups');
+            const resBox = document.getElementById('admin-clean-dup-result');
+            if (btn) btn.innerHTML = `<span>⏳</span> Kopyalar Temizleniyor...`;
+
+            try {
+                const res = await fetch('/api/webapp/admin/clean-duplicates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        typeFilter: typeFilter
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    if (resBox) {
+                        resBox.style.display = 'block';
+                        resBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                        resBox.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+                        resBox.style.color = '#10b981';
+                        resBox.innerHTML = `
+                            <b>🎉 Temizlik Başarılı!</b><br>
+                            • Silinen Toplam Kopya: <b>${data.deletedCount} adet</b><br>
+                            • Silinen Resim: ${data.deletedPhotos} | Silinen Video: ${data.deletedVideos}<br>
+                            • Havuzda Kalan Özgün Medya: <b>${data.remainingCount} adet</b><br>
+                            <i>Sistemdeki tüm mükerrer kayıtlar temizlendi ve indeksler baştan düzenlendi.</i>
+                        `;
+                    }
+                    showToast(`🧹 ${data.deletedCount} kopya medya başarıyla silindi!`, '🎉');
+                    if (typeof loadAdminPanel === 'function') loadAdminPanel();
+                    if (typeof loadCategories === 'function') loadCategories();
+                    if (typeof updateAdminGenelStats === 'function') updateAdminGenelStats();
+                } else {
+                    showToast(data.message || 'Temizleme başarısız.', '❌');
+                }
+            } catch (err) {
+                showToast('Hata: ' + err.message, '❌');
+            } finally {
+                if (btn) btn.innerHTML = `<span>🗑️</span> Tüm Kopyaları Şimdi Sil (Orijinalleri Koru)`;
+            }
+        }
+
+        async function triageCleanDuplicates() {
+            await cleanDuplicatesAdmin('all');
+            if (typeof loadTriageMediaList === 'function') {
+                loadTriageMediaList();
             }
         }
 
@@ -5381,6 +5545,13 @@
                 document.getElementById('adm-pending-count-badge').innerText = stats.pendingMedia || 0;
                 document.getElementById('adm-zips-count-badge').innerText = (data.zips || []).length;
 
+                // Kopya Medya İstatistikleri
+                if (data.duplicateStats) {
+                    renderDuplicateStatsUI(data.duplicateStats);
+                } else {
+                    fetchDuplicateStats();
+                }
+
                 // 1. Onay Bekleyen Medyalar
                 const pendingBox = document.getElementById('admin-pending-container');
                 const pendingList = data.pendingMedia || [];
@@ -5711,6 +5882,7 @@
             if (modal) modal.classList.add('active');
 
             attachTriageKeyboardShortcuts();
+            fetchDuplicateStats();
             await loadTriageMediaList();
         }
 
@@ -5807,19 +5979,28 @@
             }).join('');
         }
 
-        async function loadTriageMediaList() {
+        let triageTotalRemaining = 0;
+        let isFetchingMoreTriage = false;
+
+        async function loadTriageMediaList(isAppend = false) {
             const spinner = document.getElementById('triage-media-spinner');
-            if (spinner) spinner.style.display = 'flex';
+            if (!isAppend && spinner) spinner.style.display = 'flex';
 
             try {
-                const queryUrl = `/api/webapp/admin/category-media?userId=${tgUser?.id || '8633136500'}&categoryId=${triageSourceCatId}&type=${triageTypeFilter}&sort=asc`;
+                const offset = isAppend ? triageItems.length : 0;
+                const queryUrl = `/api/webapp/admin/category-media?userId=${tgUser?.id || '8633136500'}&categoryId=${triageSourceCatId}&type=${triageTypeFilter}&sort=asc&limit=50&offset=${offset}`;
                 const res = await fetch(queryUrl);
                 const data = await res.json();
 
                 if (data.success) {
-                    triageItems = data.items || [];
-                    triageIndex = 0;
-                    renderTriageItem();
+                    triageTotalRemaining = data.totalFiltered || data.total || 0;
+                    if (isAppend) {
+                        triageItems = triageItems.concat(data.items || []);
+                    } else {
+                        triageItems = data.items || [];
+                        triageIndex = 0;
+                        renderTriageItem();
+                    }
                 } else {
                     showToast(data.message || 'Veri yüklenemedi', '❌');
                 }
@@ -5827,6 +6008,7 @@
                 console.error('Triage medya listesi yüklenemedi:', err);
             } finally {
                 if (spinner) spinner.style.display = 'none';
+                isFetchingMoreTriage = false;
             }
         }
 
@@ -5862,16 +6044,16 @@
 
             triageCurrentItem = triageItems[triageIndex];
             const isVideo = triageCurrentItem.type === 'video';
-            const total = triageItems.length;
+            const total = triageTotalRemaining || triageItems.length;
             const currentNum = triageIndex + 1;
-            const percent = Math.round((currentNum / total) * 100);
+            const percent = Math.min(100, Math.round((currentNum / Math.max(1, total)) * 100));
 
             if (seqEl) seqEl.innerText = `#${triageCurrentItem.orderIndex || currentNum} (${currentNum}/${total})`;
             if (totalEl) totalEl.innerText = total;
             if (percentEl) percentEl.innerText = `${percent}%`;
             if (pbar) pbar.style.width = `${percent}%`;
 
-            const uploader = triageCurrentItem.uploaderName || (triageCurrentItem.isAdminUpload ? 'Ömer (Admin)' : 'Kullanıcı');
+            const uploader = triageCurrentItem.uploaderName || (triageCurrentItem.isAdminUpload ? 'Admin' : 'Kullanıcı');
             const uUser = triageCurrentItem.uploaderUsername ? ` (${triageCurrentItem.uploaderUsername})` : '';
             if (metaEl) metaEl.innerHTML = `Tür: <b>${isVideo ? '🎬 Video' : '🖼️ Foto'}</b> • Yükleyen: <b>${escapeHtml(uploader)}${uUser}</b>`;
             if (sizeEl) sizeEl.innerText = triageCurrentItem.fileSize ? formatBytes(triageCurrentItem.fileSize) : (isVideo ? 'Video' : 'Foto');
@@ -5899,6 +6081,21 @@
                     photoEl.src = streamUrl;
                 }
             }
+
+            // Sonraki fotoğrafı arka planda önceden yükle (Ultra akıcı geçiş)
+            if (triageItems[triageIndex + 1]) {
+                const nextItem = triageItems[triageIndex + 1];
+                if (nextItem.type === 'photo') {
+                    const preloadImg = new Image();
+                    preloadImg.src = `/api/webapp/stream/${nextItem.id}?userId=${tgUser?.id || '8633136500'}`;
+                }
+            }
+
+            // Kalan öğe sayısı azaldığında arka planda bir sonraki partiyi çek
+            if (triageItems.length - triageIndex < 10 && !isFetchingMoreTriage && triageTotalRemaining > triageItems.length) {
+                isFetchingMoreTriage = true;
+                loadTriageMediaList(true);
+            }
         }
 
         async function triageCurrentMediaToCategory(targetCatId) {
@@ -5913,6 +6110,7 @@
 
             // UI'da sıradaki medyaya ANINDA geç (0 ms bekleme!)
             triageItems.splice(triageIndex, 1);
+            if (triageTotalRemaining > 0) triageTotalRemaining--;
             if (triageIndex >= triageItems.length) triageIndex = Math.max(0, triageItems.length - 1);
             renderTriageItem();
 
@@ -5927,9 +6125,43 @@
                         targetCategoryId: targetCatId
                     })
                 });
-                updateAdminGenelStats();
             } catch (e) {
                 console.error('Ayrıştırma arka plan hatası:', e);
+            }
+        }
+
+        // Otomatik Eşit Dağıtma Fonksiyonu
+        async function autoDistributeTriage(count) {
+            const isAll = count === 'all';
+            const label = isAll ? 'Tüm Genel sekmesindeki medyaları' : `${count} adet medyayı`;
+            if (!confirm(`${label} 10 farklı sekmeye eşit olarak otomatik dağıtmak istediğinize emin misiniz?`)) {
+                return;
+            }
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+            showToast('⏳ Otomatik eşit dağıtım yapılıyor...', '🤖');
+
+            try {
+                const res = await fetch('/api/webapp/admin/auto-distribute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        count: count,
+                        sourceCategoryId: triageSourceCatId || 'cat_11'
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    showToast(`✅ ${data.count} medya 10 sekmeye eşit dağıtıldı! Kalan: ${data.remaining}`, '🎉');
+                    loadTriageMediaList();
+                    if (typeof updateAdminGenelStats === 'function') updateAdminGenelStats();
+                } else {
+                    showToast(data.message || 'Dağıtım başarısız.', '❌');
+                }
+            } catch (err) {
+                showToast('Hata: ' + err.message, '❌');
             }
         }
 
@@ -6380,7 +6612,7 @@
                 const dateStr = m.createdAt ? new Date(m.createdAt).toLocaleDateString('tr-TR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
                 
                 const isSuperAdmin = String(m.uploadedBy) === '8633136500';
-                const uName = m.uploaderName || (isSuperAdmin ? 'Ömer (Admin)' : 'Kullanıcı');
+                const uName = m.uploaderName || (isSuperAdmin ? 'Admin' : 'Kullanıcı');
                 const uUser = m.uploaderUsername ? `@${m.uploaderUsername.replace('@', '')}` : '';
                 const uploaderInfo = `<b>${escapeHtml(uName)}</b> ${uUser ? `<span style="color:#38bdf8;">(${escapeHtml(uUser)})</span>` : ''} • ID: <code>${m.uploadedBy}</code>`;
 

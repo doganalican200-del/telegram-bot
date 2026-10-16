@@ -125,9 +125,18 @@ function loadDb() {
     return dbCache;
 }
 
+let saveTimeout = null;
+function debouncedSaveDb(delay = 400) {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        saveDb();
+    }, delay);
+}
+
 function saveDb() {
     try {
-        fs.writeFileSync(DB_FILE, JSON.stringify(dbCache, null, 2), 'utf-8');
+        if (!dbCache) return;
+        fs.writeFileSync(DB_FILE, JSON.stringify(dbCache), 'utf-8');
     } catch (err) {
         console.error('Veritabanı kaydetme hatası:', err);
     }
@@ -409,12 +418,12 @@ function cleanDuplicateMedia(filterType = null) {
     const seenUniqueIds = new Set();
     const seenFileIds = new Set();
     const seenMediaSizes = new Map(); // type_fileSize -> firstMediaItem
-    const initialCount = db.media.length;
+    const initialCount = (db.media || []).length;
 
     const filteredMedia = [];
     const deletedItems = [];
 
-    for (const item of db.media) {
+    for (const item of (db.media || [])) {
         if (filterType && item.type !== filterType) {
             filteredMedia.push(item);
             continue;
@@ -430,7 +439,7 @@ function cleanDuplicateMedia(filterType = null) {
         } else if (item.fileId && seenFileIds.has(item.fileId)) {
             isDuplicate = true;
             dupReason = 'Aynı fileId';
-        } else if (item.fileSize && seenMediaSizes.has(sizeKey)) {
+        } else if (item.fileSize && item.fileSize > 10000 && seenMediaSizes.has(sizeKey)) {
             isDuplicate = true;
             dupReason = `Aynı dosya boyutu (${item.fileSize} byte)`;
         }
@@ -445,20 +454,35 @@ function cleanDuplicateMedia(filterType = null) {
         } else {
             if (item.fileUniqueId) seenUniqueIds.add(item.fileUniqueId);
             if (item.fileId) seenFileIds.add(item.fileId);
-            if (item.fileSize) seenMediaSizes.set(sizeKey, item);
+            if (item.fileSize && item.fileSize > 10000) seenMediaSizes.set(sizeKey, item);
             filteredMedia.push(item);
         }
     }
 
+    // Sıralı indeksleri 1'den N'e yeniden düzenle
+    filteredMedia.forEach((item, idx) => {
+        item.orderIndex = idx + 1;
+    });
+
     db.media = filteredMedia;
 
-    // Silinen medyaları kullanıcıların seenMedia listelerinden de temizle
+    // Silinen medyaları kullanıcıların seenMedia, favorites ve received listelerinden de temizle
     const deletedIds = new Set(deletedItems.map(d => d.id));
     if (db.users) {
         for (const uid in db.users) {
             const u = db.users[uid];
             if (Array.isArray(u.seenMedia)) {
                 u.seenMedia = u.seenMedia.filter(mid => !deletedIds.has(mid));
+            }
+            if (Array.isArray(u.favorites)) {
+                u.favorites = u.favorites.filter(mid => !deletedIds.has(mid));
+            }
+        }
+    }
+    if (db.received) {
+        for (const uid in db.received) {
+            if (Array.isArray(db.received[uid])) {
+                db.received[uid] = db.received[uid].filter(mid => !deletedIds.has(mid));
             }
         }
     }
@@ -475,6 +499,50 @@ function cleanDuplicateMedia(filterType = null) {
         deletedVideos,
         deletedPhotos,
         deletedItems
+    };
+}
+
+// Sistemdeki mevcut kopya / mükerrer medya istatistiklerini hesapla (Silmeden denetle)
+function getDuplicateStats(filterType = null) {
+    const db = loadDb();
+    const seenUniqueIds = new Set();
+    const seenFileIds = new Set();
+    const seenMediaSizes = new Map();
+    let dupPhotos = 0;
+    let dupVideos = 0;
+    let totalDups = 0;
+
+    for (const item of (db.media || [])) {
+        if (filterType && item.type !== filterType) continue;
+
+        let isDuplicate = false;
+        const sizeKey = `${item.type || 'media'}_${item.fileSize}`;
+
+        if (item.fileUniqueId && seenUniqueIds.has(item.fileUniqueId)) {
+            isDuplicate = true;
+        } else if (item.fileId && seenFileIds.has(item.fileId)) {
+            isDuplicate = true;
+        } else if (item.fileSize && item.fileSize > 10000 && seenMediaSizes.has(sizeKey)) {
+            isDuplicate = true;
+        }
+
+        if (isDuplicate) {
+            totalDups++;
+            if (item.type === 'video') dupVideos++;
+            else if (item.type === 'photo') dupPhotos++;
+        } else {
+            if (item.fileUniqueId) seenUniqueIds.add(item.fileUniqueId);
+            if (item.fileId) seenFileIds.add(item.fileId);
+            if (item.fileSize && item.fileSize > 10000) seenMediaSizes.set(sizeKey, item);
+        }
+    }
+
+    return {
+        totalMedia: (db.media || []).length,
+        duplicateCount: totalDups,
+        duplicatePhotos: dupPhotos,
+        duplicateVideos: dupVideos,
+        uniqueCount: (db.media || []).length - totalDups
     };
 }
 
@@ -1017,7 +1085,7 @@ function changeMediaCategory(mediaId, newCategoryId) {
 
     const oldCatId = media.categoryId;
     media.categoryId = newCat.id;
-    saveDb();
+    debouncedSaveDb();
     return {
         success: true,
         media,
@@ -1043,6 +1111,34 @@ function moveAllMediaToCategory(targetCategoryId = 'cat_11') {
         success: true,
         count,
         targetCategory: targetCat
+    };
+}
+
+// Genel sekmesindeki (cat_11) medyaları diğer 10 kategoriye otomatik ve eşit olarak dağıt
+function autoDistributeMedia(count = null, sourceCatId = 'cat_11') {
+    const db = loadDb();
+    const targetCats = (db.categories || defaultCategories).filter(c => c.id !== sourceCatId);
+    if (targetCats.length === 0) return { success: false, message: 'Hedef sekme bulunamadı.' };
+
+    const sourceMedia = (db.media || []).filter(m => m.categoryId === sourceCatId);
+    if (sourceMedia.length === 0) return { success: true, count: 0, remaining: 0, message: 'Ayrıştırılacak medya kalmadı.' };
+
+    const numToProcess = count ? Math.min(parseInt(count, 10), sourceMedia.length) : sourceMedia.length;
+    const toProcess = sourceMedia.slice(0, numToProcess);
+    let distributed = 0;
+
+    toProcess.forEach((m, idx) => {
+        const targetCat = targetCats[idx % targetCats.length];
+        m.categoryId = targetCat.id;
+        distributed++;
+    });
+
+    saveDb();
+    return {
+        success: true,
+        count: distributed,
+        remaining: sourceMedia.length - distributed,
+        targetCategories: targetCats.map(c => c.name)
     };
 }
 
@@ -1198,11 +1294,13 @@ module.exports = {
     rateMedia,
     changeMediaCategory,
     moveAllMediaToCategory,
+    autoDistributeMedia,
     buyVipWithCredits,
     addApprovedMedia,
     findDuplicateMedia,
     findDuplicateMediaList,
     cleanDuplicateMedia,
+    getDuplicateStats,
     deleteMedia,
     getStats,
     getAllUserIds,
@@ -1574,7 +1672,7 @@ function getPendingMedia() {
                 categoryKey: cat.key,
                 fileSize: m.fileSize || 0,
                 uploadedBy: m.uploadedBy,
-                uploaderName: u.firstName ? (String(m.uploadedBy) === '8633136500' ? `${u.firstName} (Admin)` : u.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Ömer (Admin)' : 'Kullanıcı'),
+                uploaderName: u.firstName ? (String(m.uploadedBy) === '8633136500' ? `${u.firstName} (Admin)` : u.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Admin' : 'Kullanıcı'),
                 uploaderUsername: u.username ? '@' + u.username.replace('@', '') : null,
                 createdAt: m.createdAt
             };
@@ -1712,7 +1810,7 @@ function getReportedMediaList() {
             categoryName: cat.name,
             categoryKey: cat.key,
             uploadedBy: m.uploadedBy,
-            uploaderName: uploader.firstName ? (String(m.uploadedBy) === '8633136500' ? `${uploader.firstName} (Admin)` : uploader.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Ömer (Admin)' : 'Kullanıcı'),
+            uploaderName: uploader.firstName ? (String(m.uploadedBy) === '8633136500' ? `${uploader.firstName} (Admin)` : uploader.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Admin' : 'Kullanıcı'),
             uploaderUsername: uploader.username ? `@${uploader.username.replace('@', '')}` : null,
             totalReports: repList.length,
             reports: repList.map(r => {
@@ -1720,7 +1818,7 @@ function getReportedMediaList() {
                 return {
                     id: r.id,
                     reporterUserId: r.reporterUserId,
-                    reporterName: repUser.firstName ? (String(r.reporterUserId) === '8633136500' ? `${repUser.firstName} (Admin)` : repUser.firstName) : (String(r.reporterUserId) === '8633136500' ? 'Ömer (Admin)' : 'Kullanıcı'),
+                    reporterName: repUser.firstName ? (String(r.reporterUserId) === '8633136500' ? `${repUser.firstName} (Admin)` : repUser.firstName) : (String(r.reporterUserId) === '8633136500' ? 'Admin' : 'Kullanıcı'),
                     reporterUsername: repUser.username ? `@${repUser.username.replace('@', '')}` : null,
                     reason: r.reason || 'Genel Şikayet',
                     createdAt: r.createdAt
@@ -1766,7 +1864,7 @@ function getAllUploadsWithUsers(limit = 150) {
             fileSize: m.fileSize || 0,
             status: m.status || 'approved',
             uploadedBy: m.uploadedBy,
-            uploaderName: u.firstName ? (String(m.uploadedBy) === '8633136500' ? `${u.firstName} (Admin)` : u.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Ömer (Admin)' : 'Kullanıcı'),
+            uploaderName: u.firstName ? (String(m.uploadedBy) === '8633136500' ? `${u.firstName} (Admin)` : u.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Admin' : 'Kullanıcı'),
             uploaderUsername: u.username ? `@${u.username.replace('@', '')}` : null,
             reports: m.reports || 0,
             createdAt: m.createdAt
