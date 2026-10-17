@@ -88,7 +88,7 @@ async function updateTelegramMenuButton(url, chatId = null) {
                     chatId: chatId,
                     menuButton: {
                         type: 'web_app',
-                        text: 'Başlat',
+                        text: 'Open',
                         web_app: { url: url }
                     }
                 }).catch(() => {});
@@ -96,7 +96,7 @@ async function updateTelegramMenuButton(url, chatId = null) {
                 await b.telegram.setChatMenuButton({
                     menuButton: {
                         type: 'web_app',
-                        text: 'Başlat',
+                        text: 'Open',
                         web_app: { url: url }
                     }
                 }).catch(() => {});

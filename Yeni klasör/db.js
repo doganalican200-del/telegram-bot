@@ -152,22 +152,103 @@ function loadDb() {
     return dbCache;
 }
 
-let saveTimeout = null;
-function debouncedSaveDb(delay = 400) {
-    if (saveTimeout) clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-        saveDb();
-    }, delay);
+let isSaving = false;
+let pendingSave = false;
+let saveDebounceTimer = null;
+
+let categoryStatsCache = null;
+let categoryStatsCacheTime = 0;
+let adminStatsCache = null;
+let adminStatsCacheTime = 0;
+let duplicateStatsCache = null;
+let duplicateStatsCacheTime = 0;
+
+function invalidateMediaCaches() {
+    categoryStatsCache = null;
+    adminStatsCache = null;
+    duplicateStatsCache = null;
 }
 
-function saveDb() {
+function flushSaveSync() {
+    if (!dbCache) return;
+    if (saveDebounceTimer) {
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = null;
+    }
     try {
-        if (!dbCache) return;
-        fs.writeFileSync(DB_FILE, JSON.stringify(dbCache), 'utf-8');
+        const tmpFile = DB_FILE + '.tmp';
+        fs.writeFileSync(tmpFile, JSON.stringify(dbCache), 'utf-8');
+        fs.copyFileSync(tmpFile, DB_FILE);
+        try { fs.unlinkSync(tmpFile); } catch (_) {}
     } catch (err) {
-        console.error('Veritabanı kaydetme hatası:', err);
+        try {
+            fs.writeFileSync(DB_FILE, JSON.stringify(dbCache), 'utf-8');
+        } catch (e2) {
+            console.error('Kritik save hatası:', e2);
+        }
     }
 }
+
+function triggerAsyncSave() {
+    if (isSaving) {
+        pendingSave = true;
+        return;
+    }
+    isSaving = true;
+    pendingSave = false;
+
+    let payload;
+    try {
+        payload = JSON.stringify(dbCache);
+    } catch (e) {
+        console.error('JSON stringify hatası:', e);
+        isSaving = false;
+        return;
+    }
+
+    const tmpFile = DB_FILE + '.tmp';
+    fs.writeFile(tmpFile, payload, 'utf-8', (err) => {
+        if (err) {
+            console.error('Asenkron dosya yazma hatası:', err);
+            isSaving = false;
+            if (pendingSave) triggerAsyncSave();
+            return;
+        }
+        fs.copyFile(tmpFile, DB_FILE, (copyErr) => {
+            try { fs.unlink(tmpFile, () => {}); } catch (_) {}
+            isSaving = false;
+            if (copyErr) {
+                console.error('Dosya kopyalama hatası:', copyErr);
+            }
+            if (pendingSave) {
+                triggerAsyncSave();
+            }
+        });
+    });
+}
+
+function saveDb(immediate = false) {
+    if (!dbCache) return;
+    if (immediate) {
+        flushSaveSync();
+        return;
+    }
+    if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = setTimeout(() => {
+        saveDebounceTimer = null;
+        triggerAsyncSave();
+    }, 250);
+}
+
+function debouncedSaveDb(delay = 250) {
+    saveDb(false);
+}
+
+try {
+    process.once('beforeExit', () => flushSaveSync());
+    process.once('SIGINT', () => { flushSaveSync(); process.exit(0); });
+    process.once('SIGTERM', () => { flushSaveSync(); process.exit(0); });
+} catch (_) {}
 
 // Kullanıcıyı getir veya oluştur
 function getOrCreateUser(fromUser, refId = null) {
@@ -372,6 +453,7 @@ function addPendingMedia(userId, fileId, fileUniqueId, type, categoryId = 'cat_1
     };
 
     db.media.push(mediaItem);
+    invalidateMediaCaches();
     saveDb();
     return mediaItem;
 }
@@ -424,6 +506,7 @@ function addApprovedMedia(userId, fileId, fileUniqueId, type, categoryId = 'cat_
         }
     }
 
+    invalidateMediaCaches();
     saveDb();
     return { media: mediaItem, user, creditAwarded, currentProgress, needed: 2 };
 }
@@ -514,6 +597,7 @@ function cleanDuplicateMedia(filterType = null) {
         }
     }
 
+    invalidateMediaCaches();
     saveDb();
 
     const deletedVideos = deletedItems.filter(x => x.type === 'video').length;
@@ -531,6 +615,11 @@ function cleanDuplicateMedia(filterType = null) {
 
 // Sistemdeki mevcut kopya / mükerrer medya istatistiklerini hesapla (Silmeden denetle)
 function getDuplicateStats(filterType = null) {
+    const now = Date.now();
+    if (!filterType && duplicateStatsCache && (now - duplicateStatsCacheTime < 15000)) {
+        return duplicateStatsCache;
+    }
+
     const db = loadDb();
     const seenUniqueIds = new Set();
     const seenFileIds = new Set();
@@ -564,13 +653,20 @@ function getDuplicateStats(filterType = null) {
         }
     }
 
-    return {
+    const result = {
         totalMedia: (db.media || []).length,
         duplicateCount: totalDups,
         duplicatePhotos: dupPhotos,
         duplicateVideos: dupVideos,
         uniqueCount: (db.media || []).length - totalDups
     };
+
+    if (!filterType) {
+        duplicateStatsCache = result;
+        duplicateStatsCacheTime = now;
+    }
+
+    return result;
 }
 
 // Sistemdeki mevcut kopya / mükerrer ve benzer medyaları listele (Resim & Video Önizleme)
@@ -662,6 +758,7 @@ function deleteMedia(mediaId) {
         }
     }
 
+    invalidateMediaCaches();
     saveDb();
     return { success: true, media: deleted };
 }
@@ -741,6 +838,7 @@ function bulkDeleteMedia(options = {}) {
         }
     }
 
+    invalidateMediaCaches();
     saveDb();
 
     const deletedPhotos = targetToDelete.filter(m => m.type === 'photo').length;
@@ -889,6 +987,7 @@ function approveMedia(mediaId) {
         }
     }
 
+    invalidateMediaCaches();
     saveDb();
     return { success: true, media: item, user, creditAwarded, currentProgress };
 }
@@ -900,6 +999,7 @@ function rejectMedia(mediaId) {
     if (!item) return { success: false, message: 'Medya bulunamadı.' };
 
     item.status = 'rejected';
+    invalidateMediaCaches();
     saveDb();
     return { success: true, media: item, user: db.users[item.uploadedBy] };
 }
@@ -937,6 +1037,7 @@ function undoApproveMedia(mediaId) {
         }
     }
 
+    invalidateMediaCaches();
     saveDb();
     return { success: true, media: item, user };
 }
@@ -948,6 +1049,7 @@ function undoRejectMedia(mediaId) {
     if (!item) return { success: false, message: 'Medya bulunamadı.' };
 
     item.status = 'pending';
+    invalidateMediaCaches();
     saveDb();
     return { success: true, media: item, user: db.users[item.uploadedBy] };
 }
@@ -1000,6 +1102,7 @@ function approveAllPending(userId = null) {
         }
     }
 
+    invalidateMediaCaches();
     saveDb();
     return {
         count: pendingList.length,
@@ -1021,6 +1124,7 @@ function rejectAllPending(userId = null) {
         item.status = 'rejected';
     }
 
+    invalidateMediaCaches();
     saveDb();
     return { count: pendingList.length };
 }
@@ -1256,41 +1360,67 @@ function getUserActiveCategory(userId) {
     return user?.activeUploadCategory || 'cat_1';
 }
 
+// 📊 Kategori istatistiklerini tek geçişte hesapla (Yüksek Performans & 3 sn Önbellek)
+function getAllCategoryStats() {
+    const now = Date.now();
+    if (categoryStatsCache && (now - categoryStatsCacheTime < 3000)) {
+        return categoryStatsCache;
+    }
+
+    const db = loadDb();
+    const statsMap = {};
+    for (const cat of (db.categories || [])) {
+        statsMap[cat.id] = { approvedPhotos: 0, approvedVideos: 0, pendingMedia: 0, total: 0 };
+    }
+
+    for (const m of (db.media || [])) {
+        const catId = m.categoryId || 'cat_1';
+        if (!statsMap[catId]) {
+            statsMap[catId] = { approvedPhotos: 0, approvedVideos: 0, pendingMedia: 0, total: 0 };
+        }
+        const s = statsMap[catId];
+        if (m.status === 'approved') {
+            if (m.type === 'photo') s.approvedPhotos++;
+            else if (m.type === 'video') s.approvedVideos++;
+            s.total++;
+        } else if (m.status === 'pending') {
+            s.pendingMedia++;
+        }
+    }
+
+    categoryStatsCache = statsMap;
+    categoryStatsCacheTime = now;
+    return statsMap;
+}
+
 // Kategori istatistikleri
 function getCategoryStats(catId) {
-    const db = loadDb();
-    const approvedPhotos = db.media.filter(m => m.status === 'approved' && m.type === 'photo' && m.categoryId === catId).length;
-    const approvedVideos = db.media.filter(m => m.status === 'approved' && m.type === 'video' && m.categoryId === catId).length;
-    const pendingMedia = db.media.filter(m => m.status === 'pending' && m.categoryId === catId).length;
-    return { approvedPhotos, approvedVideos, pendingMedia, total: approvedPhotos + approvedVideos };
+    const all = getAllCategoryStats();
+    return all[catId] || { approvedPhotos: 0, approvedVideos: 0, pendingMedia: 0, total: 0 };
 }
 
 // Kategoriye ait onaylı medyaları getir
 function getCategoryMedia(catId, type = null) {
     const db = loadDb();
-    return db.media.filter(m => m.categoryId === catId && m.status === 'approved' && (!type || m.type === type));
+    return (db.media || []).filter(m => m.categoryId === catId && m.status === 'approved' && (!type || m.type === type));
 }
 
-// Kullanıcının bu sekmede henüz almadığı (görmediği) medya sayıları
+// Kullanıcının bu sekmede henüz almadığı (görmediği) medya sayıları (O(1) Set & Tek Geçiş)
 function getUserCategoryUnseenCount(userId, catId) {
     const db = loadDb();
     const uid = String(userId);
     const user = db.users[uid];
-    const seenList = user?.seenMedia || [];
+    const seenSet = new Set(user?.seenMedia || []);
 
-    const unseenPhotos = db.media.filter(m => 
-        m.status === 'approved' && 
-        m.type === 'photo' && 
-        m.categoryId === catId && 
-        !seenList.includes(m.id)
-    ).length;
+    let unseenPhotos = 0;
+    let unseenVideos = 0;
 
-    const unseenVideos = db.media.filter(m => 
-        m.status === 'approved' && 
-        m.type === 'video' && 
-        m.categoryId === catId && 
-        !seenList.includes(m.id)
-    ).length;
+    for (const m of (db.media || [])) {
+        if (m.categoryId === catId && m.status === 'approved' && !seenSet.has(m.id)) {
+            if (m.type === 'photo') unseenPhotos++;
+            else if (m.type === 'video') unseenVideos++;
+        }
+    }
 
     return { unseenPhotos, unseenVideos };
 }
@@ -1305,37 +1435,35 @@ function removeSeenMedia(userId, mediaId) {
     }
 }
 
-// 🤖 NOVA AI • AKILLI AL ROBOTU & TERCİH ÖĞRENME MOTORU
+// 🤖 NOVA AI • AKILLI AL ROBOTU & TERCİH ÖĞRENME MOTORU (Yüksek Performans & O(1) Set)
 function getRandomMedia(userId, type, categoryId = null, skipCreditDeduct = false) {
     const db = loadDb();
     const uid = String(userId);
     const user = db.users[uid];
     if (!user) return null;
 
-    const seenList = user.seenMedia || [];
+    const seenSet = new Set(user.seenMedia || []);
 
     // Özel sekmeler (İfsa ve Onlyfans) genel havuzdan rastgele çekilemez
     const isExcludedFromGeneral = (m) => (!categoryId && (m.categoryId === 'cat_3' || m.categoryId === 'cat_5'));
 
-    // KESİN KURAL 1: Kullanıcının gördüğü medyalar ASLA tekrar gönderilemez (!seenList.includes(m.id))
-    // Başka kullanıcıların yüklediği, onaylı ve henüz görülmemiş medyalar:
-    let eligible = db.media.filter(m => 
-        m.status === 'approved' &&
-        m.type === type &&
-        m.uploadedBy !== uid &&
-        !seenList.includes(m.id) &&
-        (!categoryId ? !isExcludedFromGeneral(m) : m.categoryId === categoryId)
-    );
+    // KESİN KURAL 1: Kullanıcının gördüğü medyalar ASLA tekrar gönderilemez (!seenSet.has(m.id))
+    // Tek geçişte hem başka kullanıcıların hem de tüm henüz görülmemiş medyaları topla:
+    const otherEligible = [];
+    const allEligible = [];
 
-    // Eğer havuzda başka kullanıcının medyası kalmadıysa, sistemdeki diğer onaylı ama HENÜZ GÖRÜLMEMİŞ medyalar:
-    if (eligible.length === 0) {
-        eligible = db.media.filter(m => 
-            m.status === 'approved' && 
-            m.type === type &&
-            !seenList.includes(m.id) &&
-            (!categoryId ? !isExcludedFromGeneral(m) : m.categoryId === categoryId)
-        );
+    for (const m of (db.media || [])) {
+        if (m.status !== 'approved' || m.type !== type) continue;
+        if (categoryId ? m.categoryId !== categoryId : isExcludedFromGeneral(m)) continue;
+        if (seenSet.has(m.id)) continue;
+
+        if (m.uploadedBy !== uid) {
+            otherEligible.push(m);
+        }
+        allEligible.push(m);
     }
+
+    const eligible = otherEligible.length > 0 ? otherEligible : allEligible;
 
     // Eğer henüz görülmemiş medya kalmadıysa KESİNLİKLE null dön (Aynı medya ASLA tekrar gönderilmez!)
     if (eligible.length === 0) {
@@ -1343,10 +1471,14 @@ function getRandomMedia(userId, type, categoryId = null, skipCreditDeduct = fals
     }
 
     // 🧠 AI Ağırlıklı Akıllı Seçim Algoritması:
-    // Kalite puanı, yıldız bahşişleri, şikayet geçmişi ve tazelik faktörüne göre ağırlıklandır
     const userPrefs = user.learnedPreferences || {};
     let totalWeight = 0;
-    const weightedItems = eligible.map(m => {
+    const now = Date.now();
+    const len = eligible.length;
+    const weightedItems = new Array(len);
+
+    for (let i = 0; i < len; i++) {
+        const m = eligible[i];
         let weight = 100;
         // Puanlama ve yıldız katkısı
         if (m.rating && m.rating > 0) weight += m.rating * 20;
@@ -1358,16 +1490,17 @@ function getRandomMedia(userId, type, categoryId = null, skipCreditDeduct = fals
             weight += Math.min(100, userPrefs[m.categoryId] * 15);
         }
         // Tazelik bonusu (Son 7 gün)
-        const ageHours = (Date.now() - new Date(m.createdAt || 0).getTime()) / (1000 * 3600);
-        if (ageHours < 168) weight += 25; // Yeni içerik keşif bonusu
+        const ageHours = (now - (m.createdAt ? new Date(m.createdAt).getTime() : 0)) / 3600000;
+        if (ageHours < 168) weight += 25;
 
         totalWeight += weight;
-        return { media: m, weight };
-    });
+        weightedItems[i] = { media: m, weight };
+    }
 
     let selected = null;
     let rnd = Math.random() * totalWeight;
-    for (const item of weightedItems) {
+    for (let i = 0; i < len; i++) {
+        const item = weightedItems[i];
         if (rnd < item.weight) {
             selected = item.media;
             break;
@@ -1380,7 +1513,7 @@ function getRandomMedia(userId, type, categoryId = null, skipCreditDeduct = fals
 
     // Görülenler listesine ekle - Bir daha asla bu kullanıcıya gönderilemez!
     if (!user.seenMedia) user.seenMedia = [];
-    if (!user.seenMedia.includes(selected.id)) {
+    if (!seenSet.has(selected.id)) {
         user.seenMedia.push(selected.id);
     }
 
@@ -1623,22 +1756,38 @@ function buyVipWithCredits(userId, days = 3, creditCost = 25) {
     };
 }
 
-// İstatistikler
+// İstatistikler (Tek Geçiş)
 function getStats() {
     const db = loadDb();
-    const totalUsers = Object.keys(db.users).length;
+    const userList = Object.values(db.users || {});
+    const totalUsers = userList.length;
     const now = Date.now();
-    const vipUsers = Object.values(db.users).filter(u => u.vipUntil && u.vipUntil > now).length;
-    const totalMedia = db.media.length;
-    const pendingMedia = db.media.filter(m => m.status === 'pending').length;
-    const approvedPhotos = db.media.filter(m => m.status === 'approved' && m.type === 'photo').length;
-    const approvedVideos = db.media.filter(m => m.status === 'approved' && m.type === 'video').length;
-    const rejectedMedia = db.media.filter(m => m.status === 'rejected').length;
+    let vipUsers = 0;
+    for (const u of userList) {
+        if (u.vipUntil && u.vipUntil > now) vipUsers++;
+    }
+
+    const mediaList = db.media || [];
+    let pendingMedia = 0;
+    let approvedPhotos = 0;
+    let approvedVideos = 0;
+    let rejectedMedia = 0;
+
+    for (const m of mediaList) {
+        if (m.status === 'pending') {
+            pendingMedia++;
+        } else if (m.status === 'approved') {
+            if (m.type === 'photo') approvedPhotos++;
+            else if (m.type === 'video') approvedVideos++;
+        } else if (m.status === 'rejected') {
+            rejectedMedia++;
+        }
+    }
 
     return {
         totalUsers,
         vipUsers,
-        totalMedia,
+        totalMedia: mediaList.length,
         pendingMedia,
         approvedPhotos,
         approvedVideos,
@@ -1723,6 +1872,7 @@ module.exports = {
     deleteCategory,
     setUserActiveCategory,
     getUserActiveCategory,
+    getAllCategoryStats,
     getCategoryStats,
     getCategoryMedia,
     getUserCategoryUnseenCount,
@@ -2123,47 +2273,77 @@ function getUserPurchasedZips(userId) {
 function getPendingMedia() {
     const db = loadDb();
     const cats = db.categories || defaultCategories;
-    return (db.media || [])
-        .filter(m => m.status === 'pending')
-        .map(m => {
-            const cat = cats.find(c => c.id === m.categoryId) || { name: 'Genel', key: 'K' };
-            const u = db.users[m.uploadedBy] || {};
-            return {
-                id: m.id,
-                type: m.type,
-                categoryId: m.categoryId,
-                categoryName: cat.name,
-                categoryKey: cat.key,
-                fileSize: m.fileSize || 0,
-                uploadedBy: m.uploadedBy,
-                uploaderName: u.firstName ? (String(m.uploadedBy) === '8633136500' ? `${u.firstName} (Admin)` : u.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Admin' : 'Kullanıcı'),
-                uploaderUsername: u.username ? '@' + u.username.replace('@', '') : null,
-                createdAt: m.createdAt
-            };
+    const catMap = new Map(cats.map(c => [c.id, c]));
+    const defaultCat = { name: 'Genel', key: 'K' };
+    const result = [];
+
+    for (const m of (db.media || [])) {
+        if (m.status !== 'pending') continue;
+        const cat = catMap.get(m.categoryId) || defaultCat;
+        const u = db.users[m.uploadedBy] || {};
+        result.push({
+            id: m.id,
+            type: m.type,
+            categoryId: m.categoryId,
+            categoryName: cat.name,
+            categoryKey: cat.key,
+            fileSize: m.fileSize || 0,
+            uploadedBy: m.uploadedBy,
+            uploaderName: u.firstName ? (String(m.uploadedBy) === '8633136500' ? `${u.firstName} (Admin)` : u.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Admin' : 'Kullanıcı'),
+            uploaderUsername: u.username ? '@' + u.username.replace('@', '') : null,
+            createdAt: m.createdAt
         });
+    }
+
+    return result;
 }
 
 function getAdminStats() {
+    const now = Date.now();
+    if (adminStatsCache && (now - adminStatsCacheTime < 3000)) {
+        return adminStatsCache;
+    }
+
     const db = loadDb();
     const users = Object.values(db.users || {});
     const media = db.media || [];
     const zips = db.zips || [];
 
-    const approvedMedia = media.filter(m => m.status === 'approved');
-    const pendingMedia = media.filter(m => m.status === 'pending');
-    const rejectedMedia = media.filter(m => m.status === 'rejected');
+    let approvedMedia = 0;
+    let pendingMedia = 0;
+    let rejectedMedia = 0;
+    let totalVideos = 0;
+    let totalPhotos = 0;
 
-    return {
+    for (const m of media) {
+        if (m.status === 'approved') approvedMedia++;
+        else if (m.status === 'pending') pendingMedia++;
+        else if (m.status === 'rejected') rejectedMedia++;
+
+        if (m.type === 'video') totalVideos++;
+        else if (m.type === 'photo') totalPhotos++;
+    }
+
+    let vipUsers = 0;
+    for (const u of users) {
+        if (isUserVip(u.id).isVip) vipUsers++;
+    }
+
+    const result = {
         totalUsers: users.length,
         totalMedia: media.length,
-        approvedMedia: approvedMedia.length,
-        pendingMedia: pendingMedia.length,
-        rejectedMedia: rejectedMedia.length,
-        totalVideos: media.filter(m => m.type === 'video').length,
-        totalPhotos: media.filter(m => m.type === 'photo').length,
+        approvedMedia,
+        pendingMedia,
+        rejectedMedia,
+        totalVideos,
+        totalPhotos,
         totalZips: zips.length,
-        vipUsers: users.filter(u => isUserVip(u.id).isVip).length
+        vipUsers
     };
+
+    adminStatsCache = result;
+    adminStatsCacheTime = now;
+    return result;
 }
 
 function setUserCredits(userId, videoCredits, photoCredits, isVip = false) {
@@ -2517,11 +2697,17 @@ function dismissReportsForMedia(mediaId) {
 function getAllUploadsWithUsers(limit = 150) {
     const db = loadDb();
     const cats = db.categories || defaultCategories;
-    const mediaList = [...(db.media || [])].reverse().slice(0, limit);
-    return mediaList.map(m => {
-        const cat = cats.find(c => c.id === m.categoryId) || { name: 'Genel', key: 'K' };
+    const catMap = new Map(cats.map(c => [c.id, c]));
+    const defaultCat = { name: 'Genel', key: 'K' };
+    const media = db.media || [];
+    const result = [];
+    const max = Math.min(media.length, limit);
+
+    for (let i = media.length - 1; i >= 0 && result.length < max; i--) {
+        const m = media[i];
+        const cat = catMap.get(m.categoryId) || defaultCat;
         const u = db.users[m.uploadedBy] || {};
-        return {
+        result.push({
             id: m.id,
             type: m.type,
             categoryId: m.categoryId,
@@ -2534,8 +2720,10 @@ function getAllUploadsWithUsers(limit = 150) {
             uploaderUsername: u.username ? `@${u.username.replace('@', '')}` : null,
             reports: m.reports || 0,
             createdAt: m.createdAt
-        };
-    });
+        });
+    }
+
+    return result;
 }
 
 // ==========================================

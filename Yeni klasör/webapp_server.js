@@ -522,9 +522,10 @@ function createWebAppServer(options = {}) {
             const allCats = db.getCategories();
             // cat_11 (Genel) sekmesi sadece yöneticilere görünür
             const visibleCats = allCats.filter(c => c.id !== 'cat_11' || isAdmin);
+            const allStats = db.getAllCategoryStats ? db.getAllCategoryStats() : {};
 
             const result = visibleCats.map(c => {
-                const stats = db.getCategoryStats(c.id);
+                const stats = allStats[c.id] || db.getCategoryStats(c.id);
                 return {
                     id: c.id,
                     key: c.key,
@@ -1628,8 +1629,9 @@ function createWebAppServer(options = {}) {
             }
 
             const allCats = db.getCategories();
+            const allStats = db.getAllCategoryStats ? db.getAllCategoryStats() : {};
             const result = allCats.map(c => {
-                const stats = db.getCategoryStats(c.id);
+                const stats = allStats[c.id] || db.getCategoryStats(c.id);
                 return {
                     id: c.id,
                     key: c.key,
