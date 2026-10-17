@@ -1223,7 +1223,7 @@ function removeSeenMedia(userId, mediaId) {
     }
 }
 
-// Rastgele medya al (İsteğe bağlı Kategoriye göre)
+// 🤖 NOVA AI • AKILLI AL ROBOTU & TERCİH ÖĞRENME MOTORU
 function getRandomMedia(userId, type, categoryId = null, skipCreditDeduct = false) {
     const db = loadDb();
     const uid = String(userId);
@@ -1260,14 +1260,54 @@ function getRandomMedia(userId, type, categoryId = null, skipCreditDeduct = fals
         return null;
     }
 
-    const randomIndex = Math.floor(Math.random() * eligible.length);
-    const selected = eligible[randomIndex];
+    // 🧠 AI Ağırlıklı Akıllı Seçim Algoritması:
+    // Kalite puanı, yıldız bahşişleri, şikayet geçmişi ve tazelik faktörüne göre ağırlıklandır
+    const userPrefs = user.learnedPreferences || {};
+    let totalWeight = 0;
+    const weightedItems = eligible.map(m => {
+        let weight = 100;
+        // Puanlama ve yıldız katkısı
+        if (m.rating && m.rating > 0) weight += m.rating * 20;
+        if (m.stars && m.stars > 0) weight += m.stars * 10;
+        // Şikayet cezası
+        if (m.reports && m.reports > 0) weight = Math.max(10, weight - (m.reports * 40));
+        // Kullanıcı tercih ettiği kategori ise bonus
+        if (m.categoryId && userPrefs[m.categoryId]) {
+            weight += Math.min(100, userPrefs[m.categoryId] * 15);
+        }
+        // Tazelik bonusu (Son 7 gün)
+        const ageHours = (Date.now() - new Date(m.createdAt || 0).getTime()) / (1000 * 3600);
+        if (ageHours < 168) weight += 25; // Yeni içerik keşif bonusu
+
+        totalWeight += weight;
+        return { media: m, weight };
+    });
+
+    let selected = null;
+    let rnd = Math.random() * totalWeight;
+    for (const item of weightedItems) {
+        if (rnd < item.weight) {
+            selected = item.media;
+            break;
+        }
+        rnd -= item.weight;
+    }
+    if (!selected) {
+        selected = eligible[Math.floor(Math.random() * eligible.length)];
+    }
 
     // Görülenler listesine ekle - Bir daha asla bu kullanıcıya gönderilemez!
     if (!user.seenMedia) user.seenMedia = [];
     if (!user.seenMedia.includes(selected.id)) {
         user.seenMedia.push(selected.id);
     }
+
+    // 🎓 Tercih Öğrenme: Kullanıcının aldığı kategorinin ilgi puanını artır
+    if (selected.categoryId) {
+        if (!user.learnedPreferences) user.learnedPreferences = {};
+        user.learnedPreferences[selected.categoryId] = (user.learnedPreferences[selected.categoryId] || 0) + 1;
+    }
+    user.alRobotInteractions = (user.alRobotInteractions || 0) + 1;
 
     // SAYIDAN DÜŞME: VIP üyeliği yoksa ve skipCreditDeduct false ise 1 kredi düşülür
     const vipStatus = isUserVip(uid);
@@ -1658,7 +1698,12 @@ module.exports = {
     ADMIN_IDS,
     isAdminUser,
     autoHealUser,
-    autoHealSystem
+    autoHealSystem,
+    adminAdjustUserBalance,
+    adminUndoUserAction,
+    addUserNotification,
+    getUserNotifications,
+    markUserNotificationsRead
 };
 
 // ==========================================
@@ -2067,22 +2112,222 @@ function getAllUsersDetailed() {
         const vip = isUserVip(u.id);
         return {
             id: u.id,
+            user_id: u.id,
             firstName: u.firstName || 'İsimsiz',
+            first_name: u.firstName || 'İsimsiz',
             username: u.username || null,
             photoCredits: u.photoCredits || 0,
+            photo_credits: u.photoCredits || 0,
             videoCredits: u.videoCredits || 0,
+            video_credits: u.videoCredits || 0,
             wheelSpins: u.wheelSpins || 0,
+            wheel_spins: u.wheelSpins || 0,
             isVip: vip.isVip,
+            is_vip: vip.isVip,
             vipUntil: vip.until || null,
             isBanned: !!u.isBanned,
+            is_banned: !!u.isBanned,
             bannedReason: u.bannedReason || null,
             uploadedPhotos: u.uploadedPhotos || 0,
             uploadedVideos: u.uploadedVideos || 0,
             receivedPhotos: u.receivedPhotos || 0,
             receivedVideos: u.receivedVideos || 0,
-            createdAt: u.createdAt || new Date().toISOString()
+            createdAt: u.createdAt || new Date().toISOString(),
+            created_at: u.createdAt || new Date().toISOString()
         };
     }).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+}
+
+// ==========================================
+// 🎁 ADMİN KULLANICI ÖDÜL & BAKİYE YÖNETİMİ + GERİ ALMA (UNDO)
+// ==========================================
+function adminAdjustUserBalance(targetUserId, changes = {}, reason = 'Yönetici İşlemi') {
+    const db = loadDb();
+    const uid = String(targetUserId);
+    const user = db.users[uid];
+    if (!user) return { success: false, message: 'Kullanıcı bulunamadı.' };
+
+    if (!db.adminActionLogs) db.adminActionLogs = [];
+
+    // Önceki durumu tam olarak kaydet (Geri alma / Undo için)
+    const previousState = {
+        photoCredits: user.photoCredits || 0,
+        videoCredits: user.videoCredits || 0,
+        wheelSpins: user.wheelSpins || 0,
+        vipUntil: user.vipUntil || null
+    };
+
+    // 1. Fotoğraf Kredisi Değişikliği
+    if (typeof changes.setPhotoCredits === 'number') {
+        user.photoCredits = Math.max(0, changes.setPhotoCredits);
+    } else if (typeof changes.photoCredits === 'number') {
+        user.photoCredits = Math.max(0, (user.photoCredits || 0) + changes.photoCredits);
+    }
+
+    // 2. Video Kredisi Değişikliği
+    if (typeof changes.setVideoCredits === 'number') {
+        user.videoCredits = Math.max(0, changes.setVideoCredits);
+    } else if (typeof changes.videoCredits === 'number') {
+        user.videoCredits = Math.max(0, (user.videoCredits || 0) + changes.videoCredits);
+    }
+
+    // 3. Çark Hakkı Değişikliği
+    if (typeof changes.setWheelSpins === 'number') {
+        user.wheelSpins = Math.max(0, changes.setWheelSpins);
+    } else if (typeof changes.wheelSpins === 'number') {
+        user.wheelSpins = Math.max(0, (user.wheelSpins || 0) + changes.wheelSpins);
+    }
+
+    // 4. VIP Günleri / Kaldırma
+    if (changes.removeVip) {
+        user.vipUntil = null;
+    } else if (typeof changes.vipDays === 'number') {
+        const now = Date.now();
+        const currentVip = user.vipUntil ? new Date(user.vipUntil).getTime() : now;
+        const base = currentVip > now ? currentVip : now;
+        const newVip = base + (changes.vipDays * 24 * 60 * 60 * 1000);
+        if (changes.vipDays < 0 && newVip <= now) {
+            user.vipUntil = null;
+        } else {
+            user.vipUntil = new Date(newVip).toISOString();
+        }
+    }
+
+    const logEntry = {
+        id: 'act_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        targetUserId: uid,
+        reason,
+        changes,
+        previousState,
+        newState: {
+            photoCredits: user.photoCredits,
+            videoCredits: user.videoCredits,
+            wheelSpins: user.wheelSpins,
+            vipUntil: user.vipUntil
+        },
+        timestamp: new Date().toISOString()
+    };
+
+    db.adminActionLogs.push(logEntry);
+    if (db.adminActionLogs.length > 200) {
+        db.adminActionLogs = db.adminActionLogs.slice(-200);
+    }
+
+    saveDb();
+    const vipStatus = isUserVip(uid);
+    return {
+        success: true,
+        user: {
+            id: uid,
+            firstName: user.firstName,
+            username: user.username,
+            photoCredits: user.photoCredits,
+            videoCredits: user.videoCredits,
+            wheelSpins: user.wheelSpins,
+            isVip: vipStatus.isVip,
+            vipUntil: vipStatus.until
+        },
+        action: logEntry
+    };
+}
+
+// ↩️ Kullanıcının Son İşlemini Geri Al (Undo)
+function adminUndoUserAction(targetUserId) {
+    const db = loadDb();
+    const uid = String(targetUserId);
+    const user = db.users[uid];
+    if (!user) return { success: false, message: 'Kullanıcı bulunamadı.' };
+
+    if (!Array.isArray(db.adminActionLogs) || db.adminActionLogs.length === 0) {
+        return { success: false, message: 'Geri alınacak bir işlem bulunamadı.' };
+    }
+
+    // Bu kullanıcıya ait en son işlemi bul
+    let actionIndex = -1;
+    for (let i = db.adminActionLogs.length - 1; i >= 0; i--) {
+        if (String(db.adminActionLogs[i].targetUserId) === uid) {
+            actionIndex = i;
+            break;
+        }
+    }
+
+    if (actionIndex === -1) {
+        return { success: false, message: 'Bu kullanıcı için geri alınabilecek son bir işlem kaydı yok.' };
+    }
+
+    const lastAction = db.adminActionLogs[actionIndex];
+    const prev = lastAction.previousState;
+
+    user.photoCredits = prev.photoCredits;
+    user.videoCredits = prev.videoCredits;
+    user.wheelSpins = prev.wheelSpins;
+    user.vipUntil = prev.vipUntil;
+
+    // Logdan kaldır
+    db.adminActionLogs.splice(actionIndex, 1);
+    saveDb();
+
+    const vipStatus = isUserVip(uid);
+    return {
+        success: true,
+        message: 'Son yapılan işlem başarıyla geri alındı ve önceki bakiyeler yüklendi.',
+        user: {
+            id: uid,
+            firstName: user.firstName,
+            username: user.username,
+            photoCredits: user.photoCredits,
+            videoCredits: user.videoCredits,
+            wheelSpins: user.wheelSpins,
+            isVip: vipStatus.isVip,
+            vipUntil: vipStatus.until
+        },
+        restoredState: prev
+    };
+}
+
+// ==========================================
+// 💬 UYGULAMA İÇİ DOĞRUDAN MESAJLAŞMA SİSTEMİ
+// ==========================================
+function addUserNotification(targetUserId, { title = 'Yönetici Mesajı', text, sender = 'Yönetici' }) {
+    const db = loadDb();
+    const uid = String(targetUserId);
+    if (!db.userMessages) db.userMessages = {};
+    if (!db.userMessages[uid]) db.userMessages[uid] = [];
+
+    const msg = {
+        id: 'msg_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        title,
+        text,
+        sender,
+        read: false,
+        createdAt: new Date().toISOString()
+    };
+
+    db.userMessages[uid].unshift(msg);
+    if (db.userMessages[uid].length > 50) {
+        db.userMessages[uid] = db.userMessages[uid].slice(0, 50);
+    }
+
+    saveDb();
+    return msg;
+}
+
+function getUserNotifications(userId) {
+    const db = loadDb();
+    const uid = String(userId);
+    const msgs = (db.userMessages && db.userMessages[uid]) ? db.userMessages[uid] : [];
+    const unreadCount = msgs.filter(m => !m.read).length;
+    return { messages: msgs, unreadCount };
+}
+
+function markUserNotificationsRead(userId) {
+    const db = loadDb();
+    const uid = String(userId);
+    if (db.userMessages && db.userMessages[uid]) {
+        db.userMessages[uid].forEach(m => { m.read = true; });
+        saveDb();
+    }
+    return { success: true };
 }
 
 function reportMediaWithReason(mediaId, reporterUserId, reason = 'Genel Şikayet') {

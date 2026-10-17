@@ -2450,6 +2450,169 @@ function createWebAppServer(options = {}) {
         }
 
         // ==========================================
+        // 23-B. API: ADMİN KULLANICI ÖDÜL & BAKİYE DÜZENLEME (+ / -)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/adjust-balance' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, targetUserId, changes, reason } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
+                    }
+
+                    const result = db.adminAdjustUserBalance(targetUserId, changes || {}, reason || 'Yönetici Bakiye Düzenlemesi');
+                    if (!result.success) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify(result));
+                    }
+
+                    // Telegram ile bildirim gönder
+                    if (botInstance) {
+                        let notifyMsg = `🔔 <b>HESAP BİLDİRİMİ:</b>\n\nYönetici hesabınızda düzenleme yaptı:\n`;
+                        if (changes.videoCredits) notifyMsg += `🎥 Video Kredisi: ${changes.videoCredits > 0 ? '+' : ''}${changes.videoCredits}\n`;
+                        if (changes.photoCredits) notifyMsg += `📸 Fotoğraf Kredisi: ${changes.photoCredits > 0 ? '+' : ''}${changes.photoCredits}\n`;
+                        if (changes.wheelSpins) notifyMsg += `🎡 Çark Hakkı: ${changes.wheelSpins > 0 ? '+' : ''}${changes.wheelSpins}\n`;
+                        if (changes.vipDays) notifyMsg += `👑 Krallık (VIP): ${changes.vipDays > 0 ? '+' : ''}${changes.vipDays} Gün\n`;
+                        if (changes.removeVip) notifyMsg += `👑 Krallık (VIP) durumu iptal edildi.\n`;
+                        notifyMsg += `\nGüncel Bakiyeniz: 🎥 ${result.user.videoCredits} Video | 📸 ${result.user.photoCredits} Resim | 🎡 ${result.user.wheelSpins} Çark`;
+
+                        botInstance.telegram.sendMessage(targetUserId, notifyMsg, { parse_mode: 'HTML' }).catch(() => {});
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 23-C. API: ADMİN KULLANICI SON İŞLEMİNİ GERİ AL (UNDO)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/undo-balance' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, targetUserId } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
+                    }
+
+                    const result = db.adminUndoUserAction(targetUserId);
+                    if (!result.success) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify(result));
+                    }
+
+                    if (botInstance) {
+                        botInstance.telegram.sendMessage(
+                            targetUserId,
+                            `ℹ️ <b>BİLGİLENDİRME:</b>\n\nYönetici hesabınızda yapılan son işlemi geri aldı. Bakiyeleriniz önceki durumuna güncellendi.\n\nGüncel Bakiyeniz: 🎥 ${result.user.videoCredits} Video | 📸 ${result.user.photoCredits} Resim | 🎡 ${result.user.wheelSpins} Çark`,
+                            { parse_mode: 'HTML' }
+                        ).catch(() => {});
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 23-D. API: ADMİN KULLANICIYA ÖZEL MESAJ GÖNDERME
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/send-message' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, targetUserId, message, title } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
+                    }
+
+                    if (!targetUserId || !message || !message.trim()) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Mesaj içeriği ve hedef kullanıcı gereklidir.' }));
+                    }
+
+                    // 1. Veritabanına uygulama içi bildirim olarak kaydet
+                    const savedMsg = db.addUserNotification(targetUserId, {
+                        title: title || '💬 Yönetici Özel Mesajı',
+                        text: message.trim(),
+                        sender: 'Yönetici'
+                    });
+
+                    // 2. Telegram Botu üzerinden de direkt DM at
+                    if (botInstance) {
+                        const tgText = `💬 <b>YÖNETİCİDEN ÖZEL MESAJ:</b>\n\n${escapeHtml(message.trim())}\n\n<i>Bu mesaja WebApp içerisindeki profilinizden de erişebilirsiniz.</i>`;
+                        botInstance.telegram.sendMessage(targetUserId, tgText, { parse_mode: 'HTML' }).catch(() => {});
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ success: true, message: 'Mesaj başarıyla iletildi!', msg: savedMsg }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 23-E. API: KULLANICI UYGULAMA İÇİ BİLDİRİMLERİ GETİR
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/notifications' && req.method === 'GET') {
+            const userId = parsedUrl.searchParams.get('userId');
+            if (!userId) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, message: 'userId gereklidir' }));
+            }
+            const resData = db.getUserNotifications(userId);
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({ success: true, ...resData }));
+        }
+
+        // ==========================================
+        // 23-F. API: BİLDİRİMLERİ OKUNDU İŞARETLE
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/notifications/read' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId } = data;
+                    if (userId) {
+                        db.markUserNotificationsRead(userId);
+                    }
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ success: true }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
         // 24. API: MEDYA RAPOR ET / ŞİKAYET ET
         // ==========================================
         if (parsedUrl.pathname === '/api/webapp/report-media' && req.method === 'POST') {

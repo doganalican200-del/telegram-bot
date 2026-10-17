@@ -1343,6 +1343,10 @@
                 <i class="fa-solid fa-dharmachakra" style="color:#f59e0b; font-size:14px; margin-right:4px;"></i>
                 <span id="bal-spins">0</span>
             </div>
+            <div class="bal-pill inbox-pill" id="header-inbox-btn" title="Yönetici Mesajları" onclick="openUserInboxModal()" style="cursor:pointer; position:relative;">
+                <i class="fa-solid fa-envelope" style="color:#a78bfa; font-size:13px;"></i>
+                <span id="header-inbox-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ef4444; color:#fff; font-size:9px; font-weight:800; border-radius:10px; padding:1px 4px; line-height:1;">0</span>
+            </div>
         </div>
     </div>
 
@@ -2744,6 +2748,175 @@
         </div>
     </div>
 
+    <!-- 🎁 ADMİN KULLANICI ÖDÜL & BAKİYE YÖNETİMİ + GERİ ALMA (UNDO) MODALI -->
+    <div class="modal-overlay" id="admin-user-reward-modal" onclick="closeAdminUserRewardModalOnOverlay(event)">
+        <div class="modal-sheet" style="padding:18px; max-height:92vh; display:flex; flex-direction:column;">
+            <div class="modal-header" style="margin-bottom:12px;">
+                <div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="background:rgba(139,92,246,0.2); color:#a78bfa; font-size:10px; font-weight:800; padding:2px 7px; border-radius:6px;">🎁 ÖDÜL & BAKİYE KONTROLÜ</span>
+                        <h3 id="aur-user-name" style="margin:0; font-size:16px; font-weight:800;">Kullanıcı Adı</h3>
+                    </div>
+                    <div id="aur-user-id-text" style="font-size:11px; color:var(--hint-color); margin-top:3px;">ID: ...</div>
+                </div>
+                <button class="close-btn" onclick="closeAdminUserRewardModal()">✕</button>
+            </div>
+
+            <!-- Güncel Bakiyeler Özeti -->
+            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 6px; margin-bottom:14px; text-align:center;">
+                <div>
+                    <div style="font-size:9.5px; color:#ec4899; font-weight:700;">📸 Fotoğraf</div>
+                    <div id="aur-cur-photo" style="font-size:14px; font-weight:800; color:#fff; margin-top:2px;">0</div>
+                </div>
+                <div>
+                    <div style="font-size:9.5px; color:#38bdf8; font-weight:700;">🎥 Video</div>
+                    <div id="aur-cur-video" style="font-size:14px; font-weight:800; color:#fff; margin-top:2px;">0</div>
+                </div>
+                <div>
+                    <div style="font-size:9.5px; color:#f59e0b; font-weight:700;">🎡 Çark</div>
+                    <div id="aur-cur-wheel" style="font-size:14px; font-weight:800; color:#fff; margin-top:2px;">0</div>
+                </div>
+                <div>
+                    <div style="font-size:9.5px; color:#eab308; font-weight:700;">👑 VIP</div>
+                    <div id="aur-cur-vip" style="font-size:11px; font-weight:800; color:#eab308; margin-top:4px;">Yok</div>
+                </div>
+            </div>
+
+            <!-- Scrollable Action Area -->
+            <div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px; padding-right:2px;">
+                <!-- ↩️ SON İŞLEMİ GERİ AL (UNDO) BUTONU -->
+                <button onclick="adminUndoUserBalanceUI()" style="width:100%; background:linear-gradient(135deg, rgba(239,68,68,0.2), rgba(249,115,22,0.2)); border:1.5px dashed #f87171; color:#fca5a5; font-size:11px; font-weight:800; padding:9px 12px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                    <i class="fa-solid fa-rotate-left" style="color:#f87171;"></i>
+                    <span>Son Yapılan Ödül/İşlemi Geri Al (Undo)</span>
+                </button>
+
+                <!-- ➕ ÖDÜL VER (EKLE) -->
+                <div style="background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:10px;">
+                    <div style="font-size:11px; font-weight:800; color:#10b981; margin-bottom:8px; display:flex; align-items:center; gap:5px;">
+                        <i class="fa-solid fa-circle-plus"></i> Ödül / Hediye Ver (+)
+                    </div>
+                    <!-- Video Kredisi -->
+                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                        <span style="font-size:10.5px; color:#cbd5e1; width:70px;">🎥 Video:</span>
+                        <button onclick="adminQuickAdjust({ videoCredits: 1 }, '+1 Video Kredisi')" style="flex:1; background:#0284c7; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">+1</button>
+                        <button onclick="adminQuickAdjust({ videoCredits: 5 }, '+5 Video Kredisi')" style="flex:1; background:#0284c7; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">+5</button>
+                        <button onclick="adminQuickAdjust({ videoCredits: 10 }, '+10 Video Kredisi')" style="flex:1; background:#0284c7; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">+10</button>
+                    </div>
+                    <!-- Fotoğraf Kredisi -->
+                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                        <span style="font-size:10.5px; color:#cbd5e1; width:70px;">📸 Resim:</span>
+                        <button onclick="adminQuickAdjust({ photoCredits: 1 }, '+1 Fotoğraf Kredisi')" style="flex:1; background:#db2777; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">+1</button>
+                        <button onclick="adminQuickAdjust({ photoCredits: 5 }, '+5 Fotoğraf Kredisi')" style="flex:1; background:#db2777; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">+5</button>
+                        <button onclick="adminQuickAdjust({ photoCredits: 10 }, '+10 Fotoğraf Kredisi')" style="flex:1; background:#db2777; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">+10</button>
+                    </div>
+                    <!-- Çark Hakkı -->
+                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                        <span style="font-size:10.5px; color:#cbd5e1; width:70px;">🎡 Çark:</span>
+                        <button onclick="adminQuickAdjust({ wheelSpins: 1 }, '+1 Çark Hakkı')" style="flex:1; background:#d97706; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">+1</button>
+                        <button onclick="adminQuickAdjust({ wheelSpins: 3 }, '+3 Çark Hakkı')" style="flex:1; background:#d97706; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">+3</button>
+                        <button onclick="adminQuickAdjust({ wheelSpins: 5 }, '+5 Çark Hakkı')" style="flex:1; background:#d97706; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">+5</button>
+                    </div>
+                    <!-- VIP -->
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:10.5px; color:#cbd5e1; width:70px;">👑 VIP:</span>
+                        <button onclick="adminQuickAdjust({ vipDays: 7 }, '+7 Gün VIP')" style="flex:1; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:10px; font-weight:800; padding:6px; border-radius:6px; cursor:pointer;">+7 Gün</button>
+                        <button onclick="adminQuickAdjust({ vipDays: 30 }, '+30 Gün VIP')" style="flex:1; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:10px; font-weight:800; padding:6px; border-radius:6px; cursor:pointer;">+30 Gün</button>
+                    </div>
+                </div>
+
+                <!-- ➖ GERİ AL / DÜŞÜR (-) -->
+                <div style="background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.25); border-radius:10px; padding:10px;">
+                    <div style="font-size:11px; font-weight:800; color:#f87171; margin-bottom:8px; display:flex; align-items:center; gap:5px;">
+                        <i class="fa-solid fa-circle-minus"></i> Bakiye Geri Çek / Düşür (-)
+                    </div>
+                    <!-- Video Kredisi Düş -->
+                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                        <span style="font-size:10.5px; color:#cbd5e1; width:70px;">🎥 Video:</span>
+                        <button onclick="adminQuickAdjust({ videoCredits: -1 }, '-1 Video Kredisi Geri Çekildi')" style="flex:1; background:rgba(255,255,255,0.08); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer;">-1</button>
+                        <button onclick="adminQuickAdjust({ videoCredits: -5 }, '-5 Video Kredisi Geri Çekildi')" style="flex:1; background:rgba(255,255,255,0.08); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer;">-5</button>
+                        <button onclick="adminQuickAdjust({ setVideoCredits: 0 }, 'Video Kredisi Sıfırlandı')" style="flex:1; background:rgba(239,68,68,0.2); border:1px solid #ef4444; color:#f87171; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer;">Sıfırla</button>
+                    </div>
+                    <!-- Fotoğraf Kredisi Düş -->
+                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                        <span style="font-size:10.5px; color:#cbd5e1; width:70px;">📸 Resim:</span>
+                        <button onclick="adminQuickAdjust({ photoCredits: -1 }, '-1 Fotoğraf Kredisi Geri Çekildi')" style="flex:1; background:rgba(255,255,255,0.08); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer;">-1</button>
+                        <button onclick="adminQuickAdjust({ photoCredits: -5 }, '-5 Fotoğraf Kredisi Geri Çekildi')" style="flex:1; background:rgba(255,255,255,0.08); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer;">-5</button>
+                        <button onclick="adminQuickAdjust({ setPhotoCredits: 0 }, 'Fotoğraf Kredisi Sıfırlandı')" style="flex:1; background:rgba(239,68,68,0.2); border:1px solid #ef4444; color:#f87171; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer;">Sıfırla</button>
+                    </div>
+                    <!-- Çark & VIP İptal -->
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:10.5px; color:#cbd5e1; width:70px;">👑 Durum:</span>
+                        <button onclick="adminQuickAdjust({ wheelSpins: -1 }, '-1 Çark Hakkı Geri Çekildi')" style="flex:1; background:rgba(255,255,255,0.08); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer;">-1 Çark</button>
+                        <button onclick="adminQuickAdjust({ removeVip: true }, 'VIP Üyelik İptal Edildi')" style="flex:2; background:rgba(239,68,68,0.25); border:1px solid #ef4444; color:#fca5a5; font-size:10px; font-weight:800; padding:5px; border-radius:6px; cursor:pointer;">❌ VIP'i İptal Et</button>
+                    </div>
+                </div>
+
+                <!-- ⚙️ Özel Miktar Tanımlama -->
+                <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px;">
+                    <div style="font-size:11px; font-weight:800; color:#38bdf8; margin-bottom:8px;">⚙️ Özel Bakiye Belirle</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                        <div>
+                            <label style="font-size:9.5px; color:#94a3b8;">Video Kredisi:</label>
+                            <input type="number" id="aur-custom-video" placeholder="Mevcut" style="width:100%; background:#0b1120; border:1px solid var(--card-border); color:#fff; padding:6px; border-radius:6px; font-size:11px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:9.5px; color:#94a3b8;">Fotoğraf Kredisi:</label>
+                            <input type="number" id="aur-custom-photo" placeholder="Mevcut" style="width:100%; background:#0b1120; border:1px solid var(--card-border); color:#fff; padding:6px; border-radius:6px; font-size:11px; box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <button onclick="adminSubmitCustomBalance()" style="width:100%; background:linear-gradient(135deg, #0284c7, #38bdf8); border:none; color:#000; font-size:11px; font-weight:800; padding:7px; border-radius:6px; cursor:pointer;">
+                        💾 Bakiyeleri Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 💬 ADMİN KULLANICIYA MESAJ YAZMA MODALI -->
+    <div class="modal-overlay" id="admin-send-message-modal" onclick="closeAdminSendMessageModalOnOverlay(event)">
+        <div class="modal-sheet" style="padding:18px;">
+            <div class="modal-header">
+                <div>
+                    <h3 style="margin:0; font-size:16px; font-weight:800;">💬 Kullanıcıya Mesaj Gönder</h3>
+                    <div id="asm-target-name" style="font-size:11px; color:#38bdf8; margin-top:2px;">Kullanıcı...</div>
+                </div>
+                <button class="close-btn" onclick="closeAdminSendMessageModal()">✕</button>
+            </div>
+
+            <!-- Hızlı Şablonlar -->
+            <div style="font-size:10.5px; color:#94a3b8; margin-bottom:6px; font-weight:700;">Hızlı Şablonlar:</div>
+            <div style="display:flex; gap:6px; margin-bottom:10px; overflow-x:auto; padding-bottom:4px;">
+                <button onclick="setAdminMessageTemplate('🎁 Hesabınıza hediye kredi tanımlandı, keyifli kullanımlar!')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; font-size:10px; padding:4px 8px; border-radius:6px; white-space:nowrap; cursor:pointer;">🎁 Hediye Kredi</button>
+                <button onclick="setAdminMessageTemplate('👑 VIP Krallık üyeliğiniz aktif edildi! Tüm arşivlere sınırsız erişebilirsiniz.')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; font-size:10px; padding:4px 8px; border-radius:6px; white-space:nowrap; cursor:pointer;">👑 VIP Aktif</button>
+                <button onclick="setAdminMessageTemplate('⚠️ Yüklediğiniz içerik kurallara uygun bulunmadı. Lütfen kaliteli içerik paylaşınız.')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; font-size:10px; padding:4px 8px; border-radius:6px; white-space:nowrap; cursor:pointer;">⚠️ Kural Uyarısı</button>
+            </div>
+
+            <!-- Mesaj Metni -->
+            <textarea id="asm-message-input" rows="4" placeholder="Kullanıcıya iletmek istediğiniz mesajı buraya yazın..." style="width:100%; background:#0b1120; border:1px solid var(--card-border); color:#fff; padding:10px; border-radius:8px; font-size:12px; outline:none; resize:none; box-sizing:border-box; margin-bottom:12px; line-height:1.45;"></textarea>
+
+            <button onclick="adminSubmitSendMessage()" id="btn-admin-submit-msg" style="width:100%; background:linear-gradient(135deg, #0284c7, #38bdf8); border:none; color:#000; font-size:12px; font-weight:800; padding:10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <span>Mesajı Hem Uygulamaya Hem Telegram'a İlet</span> 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- 📬 KULLANICI MESAJ / BİLDİRİM KUTUSU MODALI -->
+    <div class="modal-overlay" id="user-inbox-modal" onclick="closeUserInboxModalOnOverlay(event)">
+        <div class="modal-sheet" style="padding:18px; max-height:85vh; display:flex; flex-direction:column;">
+            <div class="modal-header" style="margin-bottom:10px;">
+                <div>
+                    <h3 style="margin:0; font-size:16px; font-weight:800;">📬 Yönetici Mesajları</h3>
+                    <div style="font-size:11px; color:var(--hint-color); margin-top:2px;">Yöneticiden size gelen özel bildirimler</div>
+                </div>
+                <button class="close-btn" onclick="closeUserInboxModal()">✕</button>
+            </div>
+
+            <div id="user-inbox-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:2px; min-height:160px;">
+                <div style="text-align:center; padding:25px; color:var(--hint-color); font-size:12px;">Mesajınız bulunmuyor.</div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Telegram WebApp Başlatma
         const tg = window.Telegram?.WebApp;
@@ -2959,6 +3132,12 @@
                     if (zipNotice) zipNotice.style.display = 'none';
                     if (uploadSelectedType === 'zip') setUploadMediaType('all');
                 }
+
+                // 📬 Kullanıcı Bildirimlerini Kontrol Et
+                checkUserNotifications();
+                if (!window.__userNotifInterval) {
+                    window.__userNotifInterval = setInterval(checkUserNotifications, 30000);
+                }
             } catch (err) {
                 console.error('Kullanıcı verisi alınamadı:', err);
             }
@@ -3088,7 +3267,7 @@
                     };
                 };
 
-                categoriesData.forEach(c => {
+                categoriesData.forEach((c, idx) => {
                     const isStar = !isAdmin && !!c.starCfg;
                     const theme = getCategoryTheme(c.id, idx);
 
@@ -7192,8 +7371,8 @@
                 return;
             }
             const filtered = adminAllUsersList.filter(u => {
-                const uid = String(u.user_id || '');
-                const fn = (u.first_name || '').toLowerCase();
+                const uid = String(u.id || u.user_id || '');
+                const fn = (u.firstName || u.first_name || '').toLowerCase();
                 const un = (u.username || '').toLowerCase();
                 return uid.includes(q) || fn.includes(q) || un.includes(q);
             });
@@ -7217,10 +7396,16 @@
 
             let html = '';
             users.forEach(u => {
-                const isSuperAdmin = String(u.user_id) === '8633136500';
-                const isBanned = !!u.is_banned;
-                const isVip = !!u.is_vip;
-                const regDate = u.created_at ? new Date(u.created_at).toLocaleDateString('tr-TR') : 'Bilinmiyor';
+                const uid = String(u.id || u.user_id || '');
+                const firstName = u.firstName || u.first_name || 'Kullanıcı';
+                const username = u.username;
+                const photoCredits = u.photoCredits ?? u.photo_credits ?? 0;
+                const videoCredits = u.videoCredits ?? u.video_credits ?? 0;
+                const wheelSpins = u.wheelSpins ?? u.wheel_spins ?? 0;
+                const isSuperAdmin = uid === '8633136500';
+                const isBanned = !!(u.isBanned || u.is_banned);
+                const isVip = !!(u.isVip || u.is_vip);
+                const regDate = (u.createdAt || u.created_at) ? new Date(u.createdAt || u.created_at).toLocaleDateString('tr-TR') : 'Bilinmiyor';
 
                 html += `
                     <div style="background:rgba(0,0,0,0.4); border:1px solid ${isBanned ? 'rgba(239,68,68,0.4)' : isSuperAdmin ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px;">
@@ -7228,11 +7413,11 @@
                             <div>
                                 <div style="display:flex; align-items:center; gap:6px;">
                                     <span style="font-size:14px;">${isSuperAdmin ? '👑' : isVip ? '⭐' : '👤'}</span>
-                                    <span style="font-size:12px; font-weight:800; color:#fff;">${escapeHtml(u.first_name || 'Kullanıcı')}</span>
-                                    ${u.username ? `<span style="font-size:10px; color:#38bdf8;">@${escapeHtml(u.username)}</span>` : ''}
+                                    <span style="font-size:12px; font-weight:800; color:#fff;">${escapeHtml(firstName)}</span>
+                                    ${username ? `<span style="font-size:10px; color:#38bdf8;">@${escapeHtml(username)}</span>` : ''}
                                 </div>
                                 <div style="font-size:10px; color:var(--hint-color); margin-top:2px;">
-                                    ID: <code style="background:rgba(255,255,255,0.06); padding:1px 4px; border-radius:4px; color:#38bdf8;">${u.user_id}</code> • Kayıt: ${regDate}
+                                    ID: <code style="background:rgba(255,255,255,0.06); padding:1px 4px; border-radius:4px; color:#38bdf8;">${uid}</code> • Kayıt: ${regDate}
                                 </div>
                             </div>
                             <div style="display:flex; gap:4px;">
@@ -7244,22 +7429,22 @@
 
                         <!-- Bakiye & İstatistikler -->
                         <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; background:rgba(255,255,255,0.03); padding:6px; border-radius:6px; font-size:10px; text-align:center;">
-                            <div>📸 Resim: <b>${u.photo_credits || 0}</b></div>
-                            <div>🎥 Video: <b>${u.video_credits || 0}</b></div>
-                            <div>🎡 Çark: <b>${u.wheel_spins || 0}</b></div>
+                            <div>📸 Resim: <b>${photoCredits}</b></div>
+                            <div>🎥 Video: <b>${videoCredits}</b></div>
+                            <div>🎡 Çark: <b>${wheelSpins}</b></div>
                         </div>
 
                         ${!isSuperAdmin ? `
-                            <!-- Admin Hızlı Araçları -->
-                            <div style="display:flex; gap:6px; border-top:1px solid rgba(255,255,255,0.06); padding-top:6px;">
-                                <button onclick="adminQuickGrant('${u.user_id}', 'video', 5)" style="flex:1; background:linear-gradient(135deg, #0284c7, #0369a1); border:none; color:#fff; font-size:10px; font-weight:700; padding:5px 4px; border-radius:6px; cursor:pointer;">
-                                    +5 Video
+                            <!-- Admin Gelişmiş Eylemleri (Ödül Menüsü + Geri Alma + Mesaj Gönder + Ban) -->
+                            <div style="display:flex; gap:6px; border-top:1px solid rgba(255,255,255,0.06); padding-top:6px; flex-wrap:wrap;">
+                                <button onclick="openAdminUserRewardModal('${uid}')" style="flex:1.2; min-width:85px; background:linear-gradient(135deg, #8b5cf6, #6d28d9); border:none; color:#fff; font-size:10px; font-weight:700; padding:6px 6px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+                                    🎁 Ödül & Bakiye
                                 </button>
-                                <button onclick="adminQuickGrant('${u.user_id}', 'vip', 7)" style="flex:1; background:linear-gradient(135deg, #d97706, #b45309); border:none; color:#fff; font-size:10px; font-weight:700; padding:5px 4px; border-radius:6px; cursor:pointer;">
-                                    +7 Gün VIP
+                                <button onclick="openAdminSendMessageModal('${uid}', '${escapeHtml(firstName).replace(/'/g, "\\'")}')" style="flex:1.1; min-width:80px; background:linear-gradient(135deg, #0284c7, #0369a1); border:none; color:#fff; font-size:10px; font-weight:700; padding:6px 6px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+                                    💬 Mesaj Yaz
                                 </button>
-                                <button onclick="adminToggleBan('${u.user_id}', ${!isBanned})" style="flex:1; background:${isBanned ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; border:1px solid ${isBanned ? '#10b981' : '#f87171'}; color:${isBanned ? '#10b981' : '#f87171'}; font-size:10px; font-weight:700; padding:5px 4px; border-radius:6px; cursor:pointer;">
-                                    ${isBanned ? '🟢 Yasağı Kaldır' : '🚫 Yasakla'}
+                                <button onclick="adminToggleBan('${uid}', ${!isBanned})" style="flex:1; min-width:75px; background:${isBanned ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; border:1px solid ${isBanned ? '#10b981' : '#f87171'}; color:${isBanned ? '#10b981' : '#f87171'}; font-size:10px; font-weight:700; padding:6px 6px; border-radius:6px; cursor:pointer;">
+                                    ${isBanned ? '🟢 Kaldır' : '🚫 Yasakla'}
                                 </button>
                             </div>
                         ` : ''}
@@ -7270,25 +7455,287 @@
             container.innerHTML = html;
         }
 
-        async function adminQuickGrant(targetUserId, type, amount) {
+        // ==========================================
+        // 🎁 ADMİN KULLANICI ÖDÜL & BAKİYE YÖNETİMİ
+        // ==========================================
+        let currentRewardTargetUser = null;
+
+        function openAdminUserRewardModal(targetUserId) {
+            const user = adminAllUsersList.find(u => String(u.id || u.user_id) === String(targetUserId));
+            if (!user) return;
+            currentRewardTargetUser = user;
+
+            const nameEl = document.getElementById('aur-user-name');
+            const idEl = document.getElementById('aur-user-id-text');
+            const photoEl = document.getElementById('aur-cur-photo');
+            const videoEl = document.getElementById('aur-cur-video');
+            const wheelEl = document.getElementById('aur-cur-wheel');
+            const vipEl = document.getElementById('aur-cur-vip');
+            const customVid = document.getElementById('aur-custom-video');
+            const customPho = document.getElementById('aur-custom-photo');
+
+            const uid = String(user.id || user.user_id);
+            const firstName = user.firstName || user.first_name || 'Kullanıcı';
+            const photoCredits = user.photoCredits ?? user.photo_credits ?? 0;
+            const videoCredits = user.videoCredits ?? user.video_credits ?? 0;
+            const wheelSpins = user.wheelSpins ?? user.wheel_spins ?? 0;
+            const isVip = !!(user.isVip || user.is_vip);
+
+            if (nameEl) nameEl.innerText = firstName;
+            if (idEl) idEl.innerText = `ID: ${uid} ${user.username ? '(@' + user.username + ')' : ''}`;
+            if (photoEl) photoEl.innerText = photoCredits;
+            if (videoEl) videoEl.innerText = videoCredits;
+            if (wheelEl) wheelEl.innerText = wheelSpins;
+            if (vipEl) vipEl.innerText = isVip ? 'Aktif ⭐' : 'Yok';
+            if (customVid) customVid.value = videoCredits;
+            if (customPho) customPho.value = photoCredits;
+
+            const modal = document.getElementById('admin-user-reward-modal');
+            if (modal) modal.classList.add('active');
+        }
+
+        function closeAdminUserRewardModal() {
+            const modal = document.getElementById('admin-user-reward-modal');
+            if (modal) modal.classList.remove('active');
+            currentRewardTargetUser = null;
+        }
+
+        function closeAdminUserRewardModalOnOverlay(e) {
+            if (e.target.id === 'admin-user-reward-modal') closeAdminUserRewardModal();
+        }
+
+        async function adminQuickAdjust(changes, desc) {
+            if (!currentRewardTargetUser) return;
+            const uid = String(currentRewardTargetUser.id || currentRewardTargetUser.user_id);
+
             if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             try {
-                const res = await fetch('/api/webapp/admin/quick-grant', {
+                const res = await fetch('/api/webapp/admin/adjust-balance', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: tgUser.id, targetUserId, type, amount })
+                    body: JSON.stringify({
+                        userId: tgUser.id,
+                        targetUserId: uid,
+                        changes,
+                        reason: desc
+                    })
                 });
                 const data = await res.json();
                 if (data.success) {
-                    showToast(data.message || 'İşlem başarılı!', '🎉');
-                    loadAdminUsers();
-                    if (String(targetUserId) === String(tgUser.id)) loadUserData();
+                    showToast(`${desc} uygulandı!`, '✅');
+                    const idx = adminAllUsersList.findIndex(u => String(u.id || u.user_id) === uid);
+                    if (idx !== -1) {
+                        adminAllUsersList[idx] = { ...adminAllUsersList[idx], ...data.user };
+                    }
+                    openAdminUserRewardModal(uid);
+                    renderAdminUsers(adminAllUsersList);
+                    if (String(uid) === String(tgUser.id)) loadUserData();
                 } else {
                     showToast(data.message || 'İşlem başarısız.', '❌');
                 }
             } catch (err) {
-                showToast('Hata oluştu.', '❌');
+                showToast('Sunucu hatası oluştu.', '❌');
             }
+        }
+
+        async function adminUndoUserBalanceUI() {
+            if (!currentRewardTargetUser) return;
+            const uid = String(currentRewardTargetUser.id || currentRewardTargetUser.user_id);
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+            try {
+                const res = await fetch('/api/webapp/admin/undo-balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser.id,
+                        targetUserId: uid
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('↩️ ' + (data.message || 'Son işlem geri alındı!'), '✅');
+                    const idx = adminAllUsersList.findIndex(u => String(u.id || u.user_id) === uid);
+                    if (idx !== -1) {
+                        adminAllUsersList[idx] = { ...adminAllUsersList[idx], ...data.user };
+                    }
+                    openAdminUserRewardModal(uid);
+                    renderAdminUsers(adminAllUsersList);
+                    if (String(uid) === String(tgUser.id)) loadUserData();
+                } else {
+                    showToast(data.message || 'Geri alınacak işlem bulunamadı.', '⚠️');
+                }
+            } catch (err) {
+                showToast('Sunucu hatası oluştu.', '❌');
+            }
+        }
+
+        async function adminSubmitCustomBalance() {
+            if (!currentRewardTargetUser) return;
+            const uid = String(currentRewardTargetUser.id || currentRewardTargetUser.user_id);
+            const customVid = document.getElementById('aur-custom-video');
+            const customPho = document.getElementById('aur-custom-photo');
+
+            const vidVal = parseInt(customVid?.value, 10);
+            const phoVal = parseInt(customPho?.value, 10);
+
+            const changes = {};
+            if (!isNaN(vidVal)) changes.setVideoCredits = Math.max(0, vidVal);
+            if (!isNaN(phoVal)) changes.setPhotoCredits = Math.max(0, phoVal);
+
+            await adminQuickAdjust(changes, 'Özel Bakiye Güncellemesi');
+        }
+
+        // ==========================================
+        // 💬 ADMİN DOĞRUDAN MESAJLAŞMA SİSTEMİ
+        // ==========================================
+        let currentMessageTargetUserId = null;
+
+        function openAdminSendMessageModal(targetUserId, targetName) {
+            currentMessageTargetUserId = targetUserId;
+            const nameEl = document.getElementById('asm-target-name');
+            const inputEl = document.getElementById('asm-message-input');
+            if (nameEl) nameEl.innerText = `Alıcı: ${targetName || 'Kullanıcı'} (ID: ${targetUserId})`;
+            if (inputEl) inputEl.value = '';
+
+            const modal = document.getElementById('admin-send-message-modal');
+            if (modal) modal.classList.add('active');
+        }
+
+        function closeAdminSendMessageModal() {
+            const modal = document.getElementById('admin-send-message-modal');
+            if (modal) modal.classList.remove('active');
+            currentMessageTargetUserId = null;
+        }
+
+        function closeAdminSendMessageModalOnOverlay(e) {
+            if (e.target.id === 'admin-send-message-modal') closeAdminSendMessageModal();
+        }
+
+        function setAdminMessageTemplate(txt) {
+            const inputEl = document.getElementById('asm-message-input');
+            if (inputEl) inputEl.value = txt;
+        }
+
+        async function adminSubmitSendMessage() {
+            if (!currentMessageTargetUserId) return;
+            const inputEl = document.getElementById('asm-message-input');
+            const msg = inputEl?.value?.trim();
+            if (!msg) {
+                showToast('Lütfen bir mesaj yazın!', '⚠️');
+                return;
+            }
+
+            const btn = document.getElementById('btn-admin-submit-msg');
+            if (btn) btn.disabled = true;
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            try {
+                const res = await fetch('/api/webapp/admin/send-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser.id,
+                        targetUserId: currentMessageTargetUserId,
+                        message: msg,
+                        title: '💬 Yönetici Özel Mesajı'
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('🎉 Mesaj kullanıcıya başarıyla iletildi!', '✅');
+                    closeAdminSendMessageModal();
+                } else {
+                    showToast(data.message || 'Mesaj iletilemedi.', '❌');
+                }
+            } catch (err) {
+                showToast('Sunucu hatası oluştu.', '❌');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        // ==========================================
+        // 📬 KULLANICI UYGULAMA İÇİ BİLDİRİM / MESAJ SİSTEMİ
+        // ==========================================
+        let userNotificationsList = [];
+
+        async function checkUserNotifications() {
+            if (!tgUser || !tgUser.id) return;
+            try {
+                const res = await fetch(`/api/webapp/notifications?userId=${tgUser.id}`);
+                const data = await res.json();
+                if (data.success) {
+                    userNotificationsList = data.messages || [];
+                    const badge = document.getElementById('header-inbox-badge');
+                    if (badge) {
+                        if (data.unreadCount > 0) {
+                            badge.innerText = data.unreadCount;
+                            badge.style.display = 'inline-block';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+
+                    if (data.unreadCount > 0 && !window.__notificationPopupShown) {
+                        window.__notificationPopupShown = true;
+                        openUserInboxModal();
+                    }
+                }
+            } catch (err) {
+                console.warn('Bildirimler alınamadı:', err);
+            }
+        }
+
+        function openUserInboxModal() {
+            const listEl = document.getElementById('user-inbox-list');
+            if (!listEl) return;
+
+            if (userNotificationsList.length === 0) {
+                listEl.innerHTML = `<div style="text-align:center; padding:30px; color:var(--hint-color); font-size:12px;">Henüz yöneticiden gelen bir mesajınız bulunmuyor.</div>`;
+            } else {
+                let html = '';
+                userNotificationsList.forEach(m => {
+                    const dateStr = m.createdAt ? new Date(m.createdAt).toLocaleString('tr-TR') : '';
+                    html += `
+                        <div style="background:rgba(255,255,255,0.04); border:1px solid ${!m.read ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:6px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:12px; font-weight:800; color:#38bdf8;">${escapeHtml(m.title || 'Yönetici Mesajı')}</span>
+                                <span style="font-size:10px; color:var(--hint-color);">${dateStr}</span>
+                            </div>
+                            <div style="font-size:12px; color:#f1f5f9; line-height:1.45; white-space:pre-wrap;">${escapeHtml(m.text || '')}</div>
+                        </div>
+                    `;
+                });
+                listEl.innerHTML = html;
+            }
+
+            const modal = document.getElementById('user-inbox-modal');
+            if (modal) modal.classList.add('active');
+
+            markUserNotificationsReadUI();
+        }
+
+        function closeUserInboxModal() {
+            const modal = document.getElementById('user-inbox-modal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function closeUserInboxModalOnOverlay(e) {
+            if (e.target.id === 'user-inbox-modal') closeUserInboxModal();
+        }
+
+        async function markUserNotificationsReadUI() {
+            if (!tgUser || !tgUser.id) return;
+            try {
+                await fetch('/api/webapp/notifications/read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: tgUser.id })
+                });
+                const badge = document.getElementById('header-inbox-badge');
+                if (badge) badge.style.display = 'none';
+            } catch (_) {}
         }
 
         async function adminToggleBan(targetUserId, willBan) {
