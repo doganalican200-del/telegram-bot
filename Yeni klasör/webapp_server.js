@@ -689,8 +689,10 @@ function createWebAppServer(options = {}) {
                 return res.end(JSON.stringify({ success: false, message: 'userId parametresi gerekli' }));
             }
 
+            const limit = parsedUrl.searchParams.get('limit') ? parseInt(parsedUrl.searchParams.get('limit'), 10) : 40;
+            const offset = parsedUrl.searchParams.get('offset') ? parseInt(parsedUrl.searchParams.get('offset'), 10) : 0;
             const result = db.getUserReceivedMedia 
-                ? db.getUserReceivedMedia(userId, type, categoryId) 
+                ? db.getUserReceivedMedia(userId, type, categoryId, { limit, offset }) 
                 : { total: 0, totalVideos: 0, totalPhotos: 0, items: [] };
 
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1919,26 +1921,24 @@ function createWebAppServer(options = {}) {
             const totalFiltered = filtered.length;
             const limitParam = parsedUrl.searchParams.get('limit');
             const offsetParam = parsedUrl.searchParams.get('offset');
-            if (limitParam) {
-                const limit = parseInt(limitParam, 10) || 50;
-                const offset = parseInt(offsetParam, 10) || 0;
-                filtered = filtered.slice(offset, offset + limit);
-            }
+            const limit = limitParam === 'all' ? totalFiltered : (limitParam ? Math.max(1, parseInt(limitParam, 10) || 40) : 40);
+            const offset = Math.max(0, parseInt(offsetParam, 10) || 0);
+            const pagedList = filtered.slice(offset, offset + limit);
 
-            const items = filtered.map((m, idx) => {
+            const items = pagedList.map((m, idx) => {
                 const uploader = dbData.users ? dbData.users[String(m.uploadedBy)] : null;
-                const isSuperAdmin = String(m.uploadedBy) === '8633136500';
+                const isUploaderAdmin = isAdminUser(m.uploadedBy);
                 return {
                     id: m.id,
-                    seqNumber: idx + 1,
-                    orderIndex: m.orderIndex || (idx + 1),
+                    seqNumber: offset + idx + 1,
+                    orderIndex: m.orderIndex || (offset + idx + 1),
                     type: m.type,
                     categoryId: m.categoryId,
                     fileSize: m.fileSize || 0,
                     status: m.status || 'approved',
                     uploadedBy: m.uploadedBy,
-                    isAdminUpload: isSuperAdmin,
-                    uploaderName: uploader?.firstName ? (isSuperAdmin ? `${uploader.firstName} (Admin)` : uploader.firstName) : (isSuperAdmin ? 'Admin' : 'Kullanıcı'),
+                    isAdminUpload: isUploaderAdmin,
+                    uploaderName: uploader?.firstName ? (isUploaderAdmin ? `${uploader.firstName} (Admin)` : uploader.firstName) : (isUploaderAdmin ? 'Admin' : 'Kullanıcı'),
                     uploaderUsername: uploader?.username ? `@${uploader.username.replace('@', '')}` : null,
                     reports: m.reports || 0,
                     createdAt: m.createdAt
@@ -1955,6 +1955,9 @@ function createWebAppServer(options = {}) {
                 totalVideos,
                 totalPhotos,
                 totalAdmin,
+                offset,
+                limit,
+                hasMore: totalFiltered > (offset + limit),
                 items
             }));
         }
@@ -2318,9 +2321,9 @@ function createWebAppServer(options = {}) {
         // ==========================================
         if (parsedUrl.pathname === '/api/webapp/admin/assistant-admins' && req.method === 'GET') {
             const userId = parsedUrl.searchParams.get('userId');
-            if (!isSuperAdmin(userId)) {
+            if (!isAdminUser(userId)) {
                 res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
-                return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Yalnızca Ana Yönetici (8633136500) bu listeyi görebilir.' }));
+                return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Yalnızca Yöneticiler bu listeyi görebilir.' }));
             }
 
             const list = db.getAssistantAdmins ? db.getAssistantAdmins() : [];
@@ -2342,9 +2345,9 @@ function createWebAppServer(options = {}) {
                     const name = data.name || '';
                     const username = data.username || '';
 
-                    if (!isSuperAdmin(userId)) {
+                    if (!isAdminUser(userId)) {
                         res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
-                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Yalnızca Ana Yönetici (8633136500) yardımcı admin atayabilir.' }));
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Yalnızca Yöneticiler yardımcı admin atayabilir.' }));
                     }
 
                     const result = db.addAssistantAdmin(targetUserId, userId, { name, username });
@@ -2370,9 +2373,9 @@ function createWebAppServer(options = {}) {
                     const userId = data.userId;
                     const targetUserId = data.targetUserId;
 
-                    if (!isSuperAdmin(userId)) {
+                    if (!isAdminUser(userId)) {
                         res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
-                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Yalnızca Ana Yönetici (8633136500) yardımcı admin yetkisini geri alabilir.' }));
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Yalnızca Yöneticiler yetki geri alabilir.' }));
                     }
 
                     const result = db.removeAssistantAdmin(targetUserId, userId);

@@ -146,6 +146,26 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes appSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes appSpinRev { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+
+        #global-app-loader {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999999;
+            background: rgba(10, 15, 29, 0.82);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            opacity: 0;
+            transition: opacity 0.18s ease;
+            pointer-events: all;
+        }
+
         /* 🎁 Günlük Giriş Ödülü Kartı */
         .daily-reward-card {
             background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
@@ -3220,6 +3240,36 @@
         let selectedCategory = null;
         let dailyTimerInterval = null;
 
+        // ⚡ Global Yükleniyor Sayfası (Kullanıcı Tıklamalarında Anında Geri Bildirim)
+        let appLoadingTimer = null;
+        function showAppLoading(title = 'Yükleniyor...', desc = 'Lütfen bekleyin...') {
+            const loader = document.getElementById('global-app-loader');
+            if (!loader) return;
+            const tEl = document.getElementById('global-app-loader-title');
+            const dEl = document.getElementById('global-app-loader-desc');
+            if (tEl) tEl.innerText = title;
+            if (dEl) dEl.innerText = desc;
+            loader.style.display = 'flex';
+            requestAnimationFrame(() => { loader.style.opacity = '1'; });
+            if (appLoadingTimer) clearTimeout(appLoadingTimer);
+            appLoadingTimer = setTimeout(() => {
+                hideAppLoading();
+            }, 2500);
+        }
+
+        function hideAppLoading() {
+            if (appLoadingTimer) {
+                clearTimeout(appLoadingTimer);
+                appLoadingTimer = null;
+            }
+            const loader = document.getElementById('global-app-loader');
+            if (!loader) return;
+            loader.style.opacity = '0';
+            setTimeout(() => {
+                if (loader.style.opacity === '0') loader.style.display = 'none';
+            }, 180);
+        }
+
         // Yükleme Sekmesi Değişkenleri
         let uploadSelectedCatId = null;
         let uploadSelectedType = 'all'; // 'all' | 'video' | 'photo' | 'zip'
@@ -3272,7 +3322,7 @@
                     document.getElementById('wheel-spins-count').innerText = '∞';
                     const pwEl = document.getElementById('prof-wheel-count');
                     if (pwEl) pwEl.innerText = '∞';
-                    document.getElementById('prof-vip').innerText = '🛡️ Yetkili Yardımcı Admin';
+                    document.getElementById('prof-vip').innerText = '🛡️ Yetkili Yardımcı Admin (Sınırsız Tam Yetki)';
                     document.getElementById('prof-vip').style.color = '#c084fc';
                 } else {
                     document.getElementById('header-username').innerHTML = `${tgUser.first_name || 'Kullanıcı'} ${data.isVip ? '<span style="font-size:10px; background:#f59e0b; color:#000; padding:1px 5px; border-radius:6px; font-weight:800;">VIP</span>' : ''}`;
@@ -3672,11 +3722,39 @@
             }
         }
 
-        async function loadReceivedMedia() {
+        let receivedOffset = 0;
+        const receivedLimit = 40;
+        let receivedHasMore = false;
+        let isLoadingMoreReceived = false;
+
+        async function loadReceivedMedia(isAppend = false) {
+            const container = document.getElementById('received-items-container');
+            if (!container) return;
+
+            if (!isAppend) {
+                receivedOffset = 0;
+                receivedData = { items: [], total: 0, totalVideos: 0, totalPhotos: 0 };
+                container.innerHTML = '<div style="grid-column:span 2; text-align:center; padding:35px 0; color:var(--hint-color);"><div style="width:28px; height:28px; border:3px solid #38bdf8; border-top-color:transparent; border-radius:50%; animation:appSpin 0.75s linear infinite; margin:0 auto 10px auto;"></div>Koleksiyon taranıyor...</div>';
+            } else {
+                const btnMore = document.getElementById('received-load-more-btn');
+                if (btnMore) {
+                    btnMore.disabled = true;
+                    btnMore.innerHTML = '<span>⏳</span> Yükleniyor...';
+                }
+            }
+
             try {
-                const res = await fetch(`/api/webapp/received-media?userId=${tgUser.id}&type=${activeReceivedType}&categoryId=${activeReceivedFilter}`);
+                const res = await fetch(`/api/webapp/received-media?userId=${tgUser.id}&type=${activeReceivedType}&categoryId=${activeReceivedFilter}&limit=${receivedLimit}&offset=${receivedOffset}`);
                 const data = await res.json();
-                receivedData = data;
+
+                if (isAppend) {
+                    receivedData.items = (receivedData.items || []).concat(data.items || []);
+                } else {
+                    receivedData = data;
+                }
+
+                receivedOffset += (data.items || []).length;
+                receivedHasMore = !!data.hasMore;
 
                 const vidCountEl = document.getElementById('received-videos-count');
                 const phoCountEl = document.getElementById('received-photos-count');
@@ -3686,7 +3764,16 @@
                 renderReceivedGrid();
             } catch (err) {
                 console.error('Alınan medyalar yüklenemedi:', err);
+            } finally {
+                hideAppLoading();
+                isLoadingMoreReceived = false;
             }
+        }
+
+        function loadMoreReceivedMedia() {
+            if (isLoadingMoreReceived || !receivedHasMore) return;
+            isLoadingMoreReceived = true;
+            loadReceivedMedia(true);
         }
 
         function renderReceivedFilterChips() {
@@ -3708,7 +3795,9 @@
             activeReceivedFilter = categoryId;
             document.querySelectorAll('#received-filter-chips .chip-btn').forEach(b => b.classList.remove('active'));
             if (el) el.classList.add('active');
-            loadReceivedMedia();
+            showAppLoading('Filtreleniyor...', 'İçerikler getiriliyor');
+            receivedOffset = 0;
+            loadReceivedMedia(false);
         }
 
         function renderReceivedGrid() {
@@ -3749,7 +3838,7 @@
                     html += `
                         <div class="media-item-card" onclick="openVideoPlayer(${index})">
                             <div class="video-thumb-box" style="position:relative; overflow:hidden; background:linear-gradient(135deg, #090d16 0%, #1e293b 100%); min-height:120px;">
-                                <video class="video-thumb-elem" src="/api/webapp/stream/${item.id}?userId=${tgUser.id}#t=0.1" preload="auto" muted playsinline webkit-playsinline style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none;" onloadeddata="this.style.opacity=1" onerror="this.style.display='none'"></video>
+                                <video class="video-thumb-elem" src="/api/webapp/stream/${item.id}?userId=${tgUser.id}#t=0.1" preload="none" muted playsinline webkit-playsinline style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none;" onloadeddata="this.style.opacity=1" onerror="this.style.display='none'"></video>
                                 <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.65) 100%); pointer-events:none;"></div>
                                 <span class="media-card-badge" style="z-index:2; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); border:1px solid rgba(56,189,248,0.3); color:#38bdf8;">[${item.categoryKey || 'K'}] ${item.categoryName || 'Sekme'}</span>
                                 <div class="video-play-btn" style="z-index:2; box-shadow:0 0 16px rgba(245,158,11,0.5);">▶</div>
@@ -3783,6 +3872,16 @@
                     `;
                 }
             });
+
+            if (receivedHasMore) {
+                html += `
+                    <div style="grid-column: span 2; text-align:center; padding:16px 0;">
+                        <button id="received-load-more-btn" onclick="loadMoreReceivedMedia()" style="background:linear-gradient(135deg, #0284c7, #2563eb); color:#fff; border:none; padding:11px 22px; border-radius:10px; font-weight:800; font-size:12.5px; cursor:pointer; box-shadow:0 4px 14px rgba(2,132,199,0.35); display:inline-flex; align-items:center; gap:8px;">
+                            <span>⬇️</span> Daha Fazla Göster (${receivedData.items.length} / ${receivedData.total || '...'})
+                        </button>
+                    </div>
+                `;
+            }
 
             container.innerHTML = html;
         }
@@ -5606,49 +5705,78 @@
             });
         }
 
+        let adminCatOffset = 0;
+        const adminCatLimit = 40;
+        let adminCatHasMore = false;
+        let isLoadingMoreAdminCat = false;
+        let adminCatTotalCount = 0;
+
         async function filterAdminCatMedia(type) {
             currentAdminCatFilter = type;
             currentAdminCatUploader = 'all';
             updateAdminFilterTabsUI(type);
-            await loadAdminCatMedia();
+            adminCatOffset = 0;
+            await loadAdminCatMedia(false);
         }
 
         async function filterAdminCatUploader(uploader) {
             currentAdminCatUploader = uploader;
             currentAdminCatFilter = 'all';
             updateAdminFilterTabsUI('admin');
-            await loadAdminCatMedia();
+            adminCatOffset = 0;
+            await loadAdminCatMedia(false);
         }
 
         function changeAdminCatSort(sortVal) {
             currentAdminCatSort = sortVal;
-            loadAdminCatMedia();
+            adminCatOffset = 0;
+            loadAdminCatMedia(false);
         }
 
         function debounceAdminCatSearch(val) {
             currentAdminCatSearch = val;
             if (adminCatSearchDebounce) clearTimeout(adminCatSearchDebounce);
             adminCatSearchDebounce = setTimeout(() => {
-                loadAdminCatMedia();
+                adminCatOffset = 0;
+                loadAdminCatMedia(false);
             }, 300);
         }
 
-        async function loadAdminCatMedia() {
+        async function loadAdminCatMedia(isAppend = false) {
             const container = document.getElementById('admin-media-list-container');
             if (!container) return;
-            container.innerHTML = '<div style="text-align:center; padding:30px 0; color:var(--hint-color); font-size:13px;">İçerikler sıralanıyor ve yükleniyor...</div>';
+
+            if (!isAppend) {
+                adminCatOffset = 0;
+                currentAdminCatItems = [];
+                container.innerHTML = '<div style="text-align:center; padding:30px 0; color:var(--hint-color); font-size:13px;"><div style="width:28px; height:28px; border:3px solid #38bdf8; border-top-color:transparent; border-radius:50%; animation:appSpin 0.75s linear infinite; margin:0 auto 10px auto;"></div>İçerikler sıralanıyor ve yükleniyor...</div>';
+            } else {
+                const btnMore = document.getElementById('admin-load-more-btn');
+                if (btnMore) {
+                    btnMore.disabled = true;
+                    btnMore.innerHTML = '<span>⏳</span> Yükleniyor...';
+                }
+            }
 
             try {
-                const queryUrl = `/api/webapp/admin/category-media?userId=${tgUser?.id || '8633136500'}&categoryId=${currentAdminCatId}&type=${currentAdminCatFilter}&uploader=${currentAdminCatUploader}&sort=${currentAdminCatSort}&search=${encodeURIComponent(currentAdminCatSearch)}`;
+                const queryUrl = `/api/webapp/admin/category-media?userId=${tgUser?.id || '8633136500'}&categoryId=${currentAdminCatId}&type=${currentAdminCatFilter}&uploader=${currentAdminCatUploader}&sort=${currentAdminCatSort}&search=${encodeURIComponent(currentAdminCatSearch)}&limit=${adminCatLimit}&offset=${adminCatOffset}`;
                 const res = await fetch(queryUrl);
                 const data = await res.json();
 
                 if (!data.success) {
-                    container.innerHTML = `<div style="text-align:center; padding:20px; color:#ef4444; font-size:12px;">Hata: ${escapeHtml(data.message || 'Veriler alınamadı')}</div>`;
+                    if (!isAppend) container.innerHTML = `<div style="text-align:center; padding:20px; color:#ef4444; font-size:12px;">Hata: ${escapeHtml(data.message || 'Veriler alınamadı')}</div>`;
                     return;
                 }
 
-                currentAdminCatItems = data.items || [];
+                if (isAppend) {
+                    currentAdminCatItems = currentAdminCatItems.concat(data.items || []);
+                } else {
+                    currentAdminCatItems = data.items || [];
+                }
+
+                adminCatOffset += (data.items || []).length;
+                adminCatHasMore = !!data.hasMore;
+                adminCatTotalCount = data.totalFiltered !== undefined ? data.totalFiltered : data.total;
 
                 // Badges
                 const cntAll = document.getElementById('admin-cnt-all');
@@ -5668,8 +5796,17 @@
                 renderAdminMediaList();
             } catch (err) {
                 console.error('Kategori medya listesi yüklenemedi:', err);
-                container.innerHTML = `<div style="text-align:center; padding:20px; color:#ef4444; font-size:12px;">Hata: ${escapeHtml(err.message || 'Bağlantı hatası oluştu.')}</div>`;
+                if (!isAppend) container.innerHTML = `<div style="text-align:center; padding:20px; color:#ef4444; font-size:12px;">Hata: ${escapeHtml(err.message || 'Bağlantı hatası oluştu.')}</div>`;
+            } finally {
+                hideAppLoading();
+                isLoadingMoreAdminCat = false;
             }
+        }
+
+        function loadMoreAdminCatMedia() {
+            if (isLoadingMoreAdminCat || !adminCatHasMore) return;
+            isLoadingMoreAdminCat = true;
+            loadAdminCatMedia(true);
         }
 
         function renderAdminMediaList() {
@@ -5688,7 +5825,7 @@
                 return;
             }
 
-            container.innerHTML = currentAdminCatItems.map((item, idx) => {
+            let html = currentAdminCatItems.map((item, idx) => {
                 const isChecked = selectedAdminMediaIds.has(item.id);
                 const isVideo = item.type === 'video';
                 const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : 'Bilinmiyor';
@@ -5735,6 +5872,18 @@
                     </div>
                 `;
             }).join('');
+
+            if (adminCatHasMore) {
+                html += `
+                    <div style="text-align:center; padding:16px 0;">
+                        <button id="admin-load-more-btn" onclick="loadMoreAdminCatMedia()" style="background:linear-gradient(135deg, #0284c7, #2563eb); color:#fff; border:none; padding:11px 22px; border-radius:10px; font-weight:800; font-size:12.5px; cursor:pointer; box-shadow:0 4px 14px rgba(2,132,199,0.35); display:inline-flex; align-items:center; gap:8px;">
+                            <span>⬇️</span> Daha Fazla Göster (${currentAdminCatItems.length} / ${adminCatTotalCount || '...'})
+                        </button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
         }
 
         function toggleSelectAdminMedia(id, checked) {
@@ -5974,6 +6123,7 @@
 
         // Kategori Klasörünü Aç (Sadece Admin için Yönetim Ekranı Açılır, Normal Kullanıcılar İçin Satın Alma/Çekme Modal'ı Açılır)
         function openCatModal(catId) {
+            showAppLoading('Klasör Açılıyor...', 'İçerikler hazırlanıyor');
             const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
             if (isAdmin) {
                 return openAdminCategoryModal(catId);
@@ -5981,7 +6131,10 @@
 
             // Normal Kullanıcı Modalı
             const cat = (categoriesData || []).find(c => c.id === catId);
-            if (!cat) return;
+            if (!cat) {
+                hideAppLoading();
+                return;
+            }
 
             selectedCategory = cat;
             const modal = document.getElementById('cat-modal');
@@ -6021,7 +6174,7 @@
                     const pCred = currentUser?.photoCredits || 0;
                     actionBox.innerHTML = `
                         <div style="display:flex; flex-direction:column; gap:8px;">
-                            <button onclick="requestMediaFromCat('${cat.id}', 'video', false)" style="background:linear-gradient(135deg, #0284c7, #2563eb); color:#fff; border:none; padding:12px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 15px rgba(2, 132, 199, 0.35);">
+                            <button onclick="requestMediaFromCat('${cat.id}', 'video', false)" style="background:linear-gradient(135deg, #0284c7, #2563eb); color:#fff; border:none; padding:12px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 15px rgba(2, 132, 199, 0.4);">
                                 <span>🎥</span> 1 Video Çek (${isVip ? '👑 VIP Sınırsız' : `1 Kredi • Bakiye: ${vCred}`})
                             </button>
                             <button onclick="requestMediaFromCat('${cat.id}', 'photo', false)" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); color:#f8fafc; padding:11px; border-radius:10px; font-weight:700; font-size:12.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
@@ -6033,6 +6186,7 @@
             }
 
             if (modal) modal.classList.add('active');
+            hideAppLoading();
         }
 
         function closeCatModal() {
@@ -6146,19 +6300,27 @@
                 }
             }
 
-            if (tabId === 'received') {
+            if (tabId === 'categories') {
+                showAppLoading('Sekmeler...', 'Arşivler listeleniyor');
+                loadCategories().finally(() => hideAppLoading());
+            } else if (tabId === 'received') {
+                showAppLoading('Koleksiyon...', 'Alınan içerikler yükleniyor');
                 loadReceivedMedia();
             } else if (tabId === 'upload') {
                 renderUploadCategories();
             } else if (tabId === 'zips') {
-                loadDedicatedZips();
+                showAppLoading('ZIP Arşivleri...', 'Dosyalar hazırlanıyor');
+                loadDedicatedZips().finally(() => hideAppLoading());
             } else if (tabId === 'packages') {
-                loadMarket();
+                showAppLoading('Market...', 'Özel paketler açılıyor');
+                loadMarket().finally(() => hideAppLoading());
             } else if (tabId === 'wheel') {
-                loadUserData();
+                showAppLoading('Şans Çarkı...', 'Hazırlanıyor');
+                loadUserData().finally(() => hideAppLoading());
                 setTimeout(drawWheel, 60);
             } else if (tabId === 'profile') {
-                loadUserData();
+                showAppLoading('Profil...', 'Yükleniyor');
+                loadUserData().finally(() => hideAppLoading());
                 if (currentUser?.isAdmin || String(tgUser?.id) === '8633136500') {
                     loadAdminCategoriesManager();
                     loadAdminPanel();
@@ -6357,13 +6519,13 @@
                 document.getElementById('adm-pending-count-badge').innerText = stats.pendingMedia || 0;
                 document.getElementById('adm-zips-count-badge').innerText = (data.zips || []).length;
 
-                // Yardımcı Admin Kartı Görünürlüğü (Yalnızca Kurucu Görebilir)
-                const isSuper = !!(data.isSuperAdmin || String(tgUser?.id) === '8633136500');
+                // Yardımcı Admin Kartı Görünürlüğü (Yöneticiler Görebilir)
+                const canManageAssistant = !!(data.isSuperAdmin || data.isAssistantAdmin || data.isAdmin || String(tgUser?.id) === '8633136500');
                 const asstCard = document.getElementById('admin-assistant-panel-card');
                 if (asstCard) {
-                    asstCard.style.display = isSuper ? 'block' : 'none';
+                    asstCard.style.display = canManageAssistant ? 'block' : 'none';
                 }
-                if (isSuper) {
+                if (canManageAssistant) {
                     if (data.assistantAdmins) {
                         assistantAdminsList = data.assistantAdmins;
                         if (typeof renderAssistantAdmins === 'function') {
@@ -7450,8 +7612,8 @@
                 const sizeMb = m.fileSize ? (m.fileSize / (1024 * 1024)).toFixed(1) + ' MB' : '0.0 MB';
                 const dateStr = m.createdAt ? new Date(m.createdAt).toLocaleDateString('tr-TR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
                 
-                const isSuperAdmin = String(m.uploadedBy) === '8633136500';
-                const uName = m.uploaderName || (isSuperAdmin ? 'Admin' : 'Kullanıcı');
+                const isUploaderAdmin = !!(m.isAdminUpload || String(m.uploadedBy) === '8633136500' || (typeof assistantAdminsList !== 'undefined' && assistantAdminsList.some(a => String(a.userId) === String(m.uploadedBy))));
+                const uName = m.uploaderName || (isUploaderAdmin ? 'Admin' : 'Kullanıcı');
                 const uUser = m.uploaderUsername ? `@${m.uploaderUsername.replace('@', '')}` : '';
                 const uploaderInfo = `<b>${escapeHtml(uName)}</b> ${uUser ? `<span style="color:#38bdf8;">(${escapeHtml(uUser)})</span>` : ''} • ID: <code>${m.uploadedBy}</code>`;
 
@@ -7895,7 +8057,7 @@
                                     ${isBanned ? '🟢 Kaldır' : '🚫 Yasakla'}
                                 </button>
                             </div>
-                            ${isMeSuperAdmin ? (isAsstAdmin ? `
+                            ${(isMeSuperAdmin || currentUser?.isAdmin || currentUser?.isAssistantAdmin) ? (isAsstAdmin ? `
                                 <button onclick="submitRemoveAssistantAdmin('${uid}', '${escapeHtml(firstName).replace(/'/g, "\\'")}')" style="width:100%; margin-top:2px; background:rgba(239, 68, 68, 0.15); border:1px solid rgba(239, 68, 68, 0.35); color:#fca5a5; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
                                     <i class="fa-solid fa-user-xmark"></i> Yardımcı Admin Yetkisini Geri Al
                                 </button>
@@ -8361,17 +8523,9 @@
             }
         }
 
-        // Sayfa Açıldığında Verileri Getir
-        loadUserData().then(() => {
-            if (currentUser?.isAdmin || String(tgUser?.id) === '8633136500') {
-                startAdminLivePolling();
-            }
-        });
+        // Sayfa Açıldığında Verileri Getir (Ultra Hızlı Başlangıç - Yalnızca Ana Ekran)
+        loadUserData();
         loadCategories();
-        loadMarket();
-        loadReceivedMedia();
-        loadPurchasedZips();
-        loadDedicatedZips();
 
         // ==========================================
         // 👑 SAĞLAM KONTROL PANELİ: SEKME & FİYAT YÖNETİMİ
@@ -8864,6 +9018,23 @@
                 <button class="primary-action-btn" onclick="submitEditCategory()" style="background:linear-gradient(135deg, #0284c7, #2563eb); font-size:13px; font-weight:800; padding:11px;">
                     <i class="fa-solid fa-floppy-disk" style="margin-right:6px;"></i> Değişiklikleri Kaydet
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚡ ULTRA-HIZLI GLOBAL YÜKLENİYOR SAYFASI (ANINDA TIKLAMA TEPKİSİ) -->
+    <div id="global-app-loader">
+        <div style="position:relative; width:68px; height:68px; display:flex; align-items:center; justify-content:center;">
+            <div style="position:absolute; inset:0; border-radius:50%; border:3.5px solid transparent; border-top-color:#38bdf8; border-right-color:#818cf8; animation:appSpin 0.75s linear infinite; box-shadow:0 0 24px rgba(56,189,248,0.45);"></div>
+            <div style="position:absolute; inset:7px; border-radius:50%; border:2px dashed rgba(245,158,11,0.65); animation:appSpinRev 1.1s linear infinite;"></div>
+            <div style="font-size:22px; filter:drop-shadow(0 0 10px #38bdf8);">⚡</div>
+        </div>
+        <div style="text-align:center; padding:0 20px;">
+            <div id="global-app-loader-title" style="font-size:15px; font-weight:800; color:#fff; letter-spacing:0.5px; text-shadow:0 2px 10px rgba(0,0,0,0.9);">
+                Yükleniyor...
+            </div>
+            <div id="global-app-loader-desc" style="font-size:11.5px; color:#94a3b8; margin-top:5px; font-weight:600;">
+                Lütfen bekleyin...
             </div>
         </div>
     </div>

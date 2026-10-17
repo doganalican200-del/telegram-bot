@@ -2090,48 +2090,68 @@ function claimDailyReward(userId) {
 // 📦 KULLANICININ ALDIĞI MEDYALAR (VİDEO & FOTOĞRAF)
 // ==========================================
 
-function getUserReceivedMedia(userId, type = 'all', categoryId = 'all') {
+function getUserReceivedMedia(userId, type = 'all', categoryId = 'all', options = {}) {
     const db = loadDb();
     const uid = String(userId);
     const user = db.users[uid];
     const seenIds = new Set(user?.seenMedia || []);
+    const isSuper = isAdminUser(uid);
 
     const mediaList = db.media || [];
-    const items = [];
+    const cats = db.categories || defaultCategories;
+    const catMap = new Map(cats.map(c => [c.id, c]));
+    const defaultCat = { name: 'Genel', key: 'K' };
+
+    const matchedItems = [];
     let totalVideos = 0;
     let totalPhotos = 0;
-    const cats = db.categories || defaultCategories;
 
-    // Kullanıcının gördüğü/aldığı veya bizzat yüklediği onaylı medyaları listele
+    // Normal kullanıcılar kendi yüklediklerini görebilir; ancak Süper Adminin bota yüklediği 10.000+ medya
+    // kişisel "Aldıklarım" kutusunu kilitlememesi için sadece bizzat aldığı/izlediği (seenMedia) gösterilir.
     for (let i = mediaList.length - 1; i >= 0; i--) {
         const m = mediaList[i];
-        if (m.status === 'approved' && (seenIds.has(m.id) || String(m.uploadedBy) === uid)) {
-            if (m.type === 'video') totalVideos++;
-            if (m.type === 'photo') totalPhotos++;
+        if (m.status !== 'approved') continue;
+        const isSeen = seenIds.has(m.id);
+        const isMyUpload = !isSuper && String(m.uploadedBy) === uid;
+        if (!isSeen && !isMyUpload) continue;
 
-            if (type === 'all' || m.type === type) {
-                if (!categoryId || categoryId === 'all' || m.categoryId === categoryId) {
-                    const cat = cats.find(c => c.id === m.categoryId) || { name: 'Genel', key: 'K' };
-                    items.push({
-                        id: m.id,
-                        type: m.type,
-                        categoryId: m.categoryId,
-                        categoryName: cat.name,
-                        categoryKey: cat.key,
-                        fileSize: m.fileSize || 0,
-                        isMyUpload: String(m.uploadedBy) === uid,
-                        isDownloadUnlocked: isMediaDownloadUnlocked(userId, m.id),
-                        createdAt: m.createdAt
-                    });
-                }
+        if (m.type === 'video') totalVideos++;
+        if (m.type === 'photo') totalPhotos++;
+
+        if (type === 'all' || m.type === type) {
+            if (!categoryId || categoryId === 'all' || m.categoryId === categoryId) {
+                matchedItems.push(m);
             }
         }
     }
 
+    const total = matchedItems.length;
+    const limit = options.limit !== undefined ? Math.max(1, parseInt(options.limit, 10) || 40) : 40;
+    const offset = Math.max(0, parseInt(options.offset, 10) || 0);
+    const paged = matchedItems.slice(offset, offset + limit);
+
+    const items = paged.map(m => {
+        const cat = catMap.get(m.categoryId) || defaultCat;
+        return {
+            id: m.id,
+            type: m.type,
+            categoryId: m.categoryId,
+            categoryName: cat.name,
+            categoryKey: cat.key,
+            fileSize: m.fileSize || 0,
+            isMyUpload: String(m.uploadedBy) === uid,
+            isDownloadUnlocked: isMediaDownloadUnlocked(userId, m.id),
+            createdAt: m.createdAt
+        };
+    });
+
     return {
-        total: items.length,
+        total,
         totalVideos,
         totalPhotos,
+        hasMore: total > (offset + limit),
+        offset,
+        limit,
         items
     };
 }
@@ -2289,7 +2309,7 @@ function getPendingMedia() {
             categoryKey: cat.key,
             fileSize: m.fileSize || 0,
             uploadedBy: m.uploadedBy,
-            uploaderName: u.firstName ? (String(m.uploadedBy) === '8633136500' ? `${u.firstName} (Admin)` : u.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Admin' : 'Kullanıcı'),
+            uploaderName: u.firstName ? (isAdminUser(m.uploadedBy) ? `${u.firstName} (Admin)` : u.firstName) : (isAdminUser(m.uploadedBy) ? 'Admin' : 'Kullanıcı'),
             uploaderUsername: u.username ? '@' + u.username.replace('@', '') : null,
             createdAt: m.createdAt
         });
@@ -2656,7 +2676,7 @@ function getReportedMediaList() {
             categoryName: cat.name,
             categoryKey: cat.key,
             uploadedBy: m.uploadedBy,
-            uploaderName: uploader.firstName ? (String(m.uploadedBy) === '8633136500' ? `${uploader.firstName} (Admin)` : uploader.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Admin' : 'Kullanıcı'),
+            uploaderName: uploader.firstName ? (isAdminUser(m.uploadedBy) ? `${uploader.firstName} (Admin)` : uploader.firstName) : (isAdminUser(m.uploadedBy) ? 'Admin' : 'Kullanıcı'),
             uploaderUsername: uploader.username ? `@${uploader.username.replace('@', '')}` : null,
             totalReports: repList.length,
             reports: repList.map(r => {
@@ -2664,7 +2684,7 @@ function getReportedMediaList() {
                 return {
                     id: r.id,
                     reporterUserId: r.reporterUserId,
-                    reporterName: repUser.firstName ? (String(r.reporterUserId) === '8633136500' ? `${repUser.firstName} (Admin)` : repUser.firstName) : (String(r.reporterUserId) === '8633136500' ? 'Admin' : 'Kullanıcı'),
+                    reporterName: repUser.firstName ? (isAdminUser(r.reporterUserId) ? `${repUser.firstName} (Admin)` : repUser.firstName) : (isAdminUser(r.reporterUserId) ? 'Admin' : 'Kullanıcı'),
                     reporterUsername: repUser.username ? `@${repUser.username.replace('@', '')}` : null,
                     reason: r.reason || 'Genel Şikayet',
                     createdAt: r.createdAt
@@ -2716,7 +2736,7 @@ function getAllUploadsWithUsers(limit = 150) {
             fileSize: m.fileSize || 0,
             status: m.status || 'approved',
             uploadedBy: m.uploadedBy,
-            uploaderName: u.firstName ? (String(m.uploadedBy) === '8633136500' ? `${u.firstName} (Admin)` : u.firstName) : (String(m.uploadedBy) === '8633136500' ? 'Admin' : 'Kullanıcı'),
+            uploaderName: u.firstName ? (isAdminUser(m.uploadedBy) ? `${u.firstName} (Admin)` : u.firstName) : (isAdminUser(m.uploadedBy) ? 'Admin' : 'Kullanıcı'),
             uploaderUsername: u.username ? `@${u.username.replace('@', '')}` : null,
             reports: m.reports || 0,
             createdAt: m.createdAt
@@ -3011,8 +3031,8 @@ function getAssistantAdmins() {
 
 function addAssistantAdmin(targetUserId, requesterId, notes = {}) {
     const db = loadDb();
-    if (!isSuperAdmin(requesterId)) {
-        return { success: false, message: 'Yalnızca Ana Yönetici (8633136500) yardımcı admin atayabilir.' };
+    if (!isAdminUser(requesterId)) {
+        return { success: false, message: 'Yalnızca Yöneticiler yardımcı admin atayabilir.' };
     }
     const tid = String(targetUserId || '').trim();
     if (!tid) {
@@ -3045,12 +3065,15 @@ function addAssistantAdmin(targetUserId, requesterId, notes = {}) {
 
 function removeAssistantAdmin(targetUserId, requesterId) {
     const db = loadDb();
-    if (!isSuperAdmin(requesterId)) {
-        return { success: false, message: 'Yalnızca Ana Yönetici (8633136500) yetki geri alabilir.' };
+    if (!isAdminUser(requesterId)) {
+        return { success: false, message: 'Yalnızca Yöneticiler yetki geri alabilir.' };
     }
     const tid = String(targetUserId || '').trim();
     if (!tid) {
         return { success: false, message: 'Geçersiz Kullanıcı ID.' };
+    }
+    if (isSuperAdmin(tid)) {
+        return { success: false, message: 'Ana yöneticinin (Kurucu) yetkisi geri alınamaz.' };
     }
     if (!Array.isArray(db.assistantAdmins)) db.assistantAdmins = [];
     const beforeCount = db.assistantAdmins.length;

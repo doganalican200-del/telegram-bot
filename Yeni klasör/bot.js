@@ -18,8 +18,38 @@ const BANNER_PATH = path.join(__dirname, 'bot_banner.jpg');
 const BOT_TOKEN = process.env.BOT_TOKEN || '8151413936:AAFbhwQNpaGkW1CdShixrq2PJMNzC7jamjM';
 const BACKUP_BOT_TOKEN = process.env.BACKUP_BOT_TOKEN || '8655898447:AAHAcIEkhke2SE2qgcP3mVj0_hy48Sahm1c';
 const SUPER_ADMIN_ID = '8633136500';
-const ADMIN_IDS = [SUPER_ADMIN_ID];
 const ADMIN_ID = SUPER_ADMIN_ID;
+
+// 🔐 Tüm Admin ID'lerini (Kurucu + Yardımcı Adminler) dinamik döner
+function getAllAdminIds() {
+    const list = [SUPER_ADMIN_ID];
+    if (db && db.getAssistantAdmins) {
+        try {
+            const assistants = db.getAssistantAdmins();
+            if (Array.isArray(assistants)) {
+                for (const a of assistants) {
+                    const aid = String(a.userId || a.id);
+                    if (aid && !list.includes(aid)) {
+                        list.push(aid);
+                    }
+                }
+            }
+        } catch (e) {}
+    }
+    return list;
+}
+
+// 🔐 ADMIN_IDS Proxy: Her yerde kurucu + yardımcı adminleri otomatik kapsar
+const ADMIN_IDS = new Proxy([SUPER_ADMIN_ID], {
+    get(target, prop) {
+        const fullList = getAllAdminIds();
+        if (prop === 'length') return fullList.length;
+        if (prop === 'includes') return (val) => fullList.includes(String(val));
+        if (typeof fullList[prop] === 'function') return fullList[prop].bind(fullList);
+        if (!isNaN(prop)) return fullList[prop];
+        return Reflect.get(fullList, prop);
+    }
+});
 
 // 🔐 Ana Yönetici Kontrolü
 function isSuperAdmin(userId) {
@@ -30,7 +60,21 @@ function isSuperAdmin(userId) {
 // 🔐 Yönetici (Ana Yönetici veya Yetkili Yardımcı Admin) Kontrolü
 function isAdminUser(userId) {
     if (!userId) return false;
-    return db.isAdminOrAssistant ? db.isAdminOrAssistant(userId) : String(userId) === SUPER_ADMIN_ID;
+    const uid = String(userId);
+    if (uid === SUPER_ADMIN_ID) return true;
+    if (db.isAdminOrAssistant) return db.isAdminOrAssistant(uid);
+    if (db.isAssistantAdmin) return db.isAssistantAdmin(uid);
+    return false;
+}
+
+// 📢 Tüm Yöneticilere (Kurucu + Yardımcı Adminler) Bildirim Gönderme
+async function notifyAllAdmins(text, extra = {}) {
+    const list = getAllAdminIds();
+    for (const aId of list) {
+        try {
+            await bot.telegram.sendMessage(aId, text, { parse_mode: 'HTML', ...extra }).catch(() => {});
+        } catch (e) {}
+    }
 }
 
 if (!BOT_TOKEN) {
@@ -1450,13 +1494,9 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
 
         successMsg = `🎉 <b>Tebrikler! ${days >= 3650 ? 'Sınırsız' : days + ' Günlük'} VIP Üyeliğiniz Başarıyla Tanımlandı!</b>\n\n👑 <b>Bitiş Tarihi:</b> ${days >= 3650 ? 'Ömür Boyu (Sınırsız)' : vip.until}\nSüre boyunca kredi harcamadan dilediğiniz gibi sınırsız medya alabilirsiniz.`;
 
-        if (ADMIN_ID) {
-            bot.telegram.sendMessage(
-                ADMIN_ID,
-                `💰 <b>YENİ VIP SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n⭐ Tutar: ${totalAmount} Yıldız (${days >= 3650 ? 'Sınırsız VIP' : days + ' Günlük VIP'})`,
-                { parse_mode: 'HTML' }
-            ).catch(() => {});
-        }
+        notifyAllAdmins(
+            `💰 <b>YENİ VIP SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n⭐ Tutar: ${totalAmount} Yıldız (${days >= 3650 ? 'Sınırsız VIP' : days + ' Günlük VIP'})`
+        );
     }
     // 2. Video Paketleri
     else if (payload.startsWith('pkg_video_')) {
@@ -1470,13 +1510,9 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
             `📊 <b>Toplam Video Krediniz:</b> <code>${user.videoCredits || 0}</code>\n\n` +
             `<i>Hemen sekmelerden video almaya başlayabilirsiniz!</i>`;
 
-        if (ADMIN_ID) {
-            bot.telegram.sendMessage(
-                ADMIN_ID,
-                `💰 <b>YENİ VİDEO PAKETİ SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 Paket: +${amount} Video\n⭐ Tutar: ${totalAmount} Yıldız`,
-                { parse_mode: 'HTML' }
-            ).catch(() => {});
-        }
+        notifyAllAdmins(
+            `💰 <b>YENİ VİDEO PAKETİ SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 Paket: +${amount} Video\n⭐ Tutar: ${totalAmount} Yıldız`
+        );
     }
     // 3. Fotoğraf Paketleri
     else if (payload.startsWith('pkg_photo_')) {
@@ -1490,13 +1526,9 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
             `📊 <b>Toplam Resim Krediniz:</b> <code>${user.photoCredits || 0}</code>\n\n` +
             `<i>Hemen sekmelerden fotoğraf almaya başlayabilirsiniz!</i>`;
 
-        if (ADMIN_ID) {
-            bot.telegram.sendMessage(
-                ADMIN_ID,
-                `💰 <b>YENİ FOTOĞRAF PAKETİ SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 Paket: +${amount} Fotoğraf\n⭐ Tutar: ${totalAmount} Yıldız`,
-                { parse_mode: 'HTML' }
-            ).catch(() => {});
-        }
+        notifyAllAdmins(
+            `💰 <b>YENİ FOTOĞRAF PAKETİ SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 Paket: +${amount} Fotoğraf\n⭐ Tutar: ${totalAmount} Yıldız`
+        );
     }
     // 4. Kombo Paketler
     else if (payload.startsWith('pkg_combo_')) {
@@ -1517,13 +1549,9 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
             `📊 <b>Güncel Bakiyeniz:</b> 📸 ${user.photoCredits || 0} Resim | 🎥 ${user.videoCredits || 0} Video\n\n` +
             `<i>Hemen dilediğiniz sekmeden medya alabilirsiniz!</i>`;
 
-        if (ADMIN_ID) {
-            bot.telegram.sendMessage(
-                ADMIN_ID,
-                `💰 <b>YENİ KOMBO PAKET SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 Paket: +${amount} Video & +${amount} Fotoğraf\n⭐ Tutar: ${totalAmount} Yıldız`,
-                { parse_mode: 'HTML' }
-            ).catch(() => {});
-        }
+        notifyAllAdmins(
+            `💰 <b>YENİ KOMBO PAKET SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 Paket: +${amount} Video & +${amount} Fotoğraf\n⭐ Tutar: ${totalAmount} Yıldız`
+        );
     }
     // 4b. Şans Çarkı Paketleri
     else if (payload.startsWith('pkg_wheel_')) {
@@ -1537,13 +1565,9 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
             `📊 <b>Toplam Çark Hakkınız:</b> <code>${user.wheelSpins || 0}</code>\n\n` +
             `<i>Mini App içerisinden hemen çarkı çevirebilirsiniz!</i>`;
 
-        if (ADMIN_ID) {
-            bot.telegram.sendMessage(
-                ADMIN_ID,
-                `💰 <b>YENİ ÇARK PAKETİ SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 Paket: +${amount} Çark Hakkı\n⭐ Tutar: ${totalAmount} Yıldız`,
-                { parse_mode: 'HTML' }
-            ).catch(() => {});
-        }
+        notifyAllAdmins(
+            `💰 <b>YENİ ÇARK PAKETİ SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 Paket: +${amount} Çark Hakkı\n⭐ Tutar: ${totalAmount} Yıldız`
+        );
     }
     // 5. Telegram Yıldızlı Özel Sekme İçerik Satın Alımı (Ensest, İfsa, Onlyfans, Gizli Çekim vb.)
     else if (payload.startsWith('cat_star_') || payload === 'ifsa_video_single' || payload === 'ifsa_photo_single' || payload === 'onlyfans_video_single' || payload === 'onlyfans_photo_single') {
@@ -1623,13 +1647,9 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
             successMsg += `\n\n⚠️ <i>Şu an bu sekmede uygun ${typeLabel.toLowerCase()} bulunamadı. Lütfen yöneticiye bildiriniz.</i>`;
         }
 
-        if (ADMIN_ID) {
-            bot.telegram.sendMessage(
-                ADMIN_ID,
-                `💰 <b>YENİ YILDIZLI İÇERİK SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📂 Sekme: ${cat?.name || targetCatId} (${typeLabel})\n⭐ Tutar: ${totalAmount} Yıldız`,
-                { parse_mode: 'HTML' }
-            ).catch(() => {});
-        }
+        notifyAllAdmins(
+            `💰 <b>YENİ YILDIZLI İÇERİK SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📂 Sekme: ${cat?.name || targetCatId} (${typeLabel})\n⭐ Tutar: ${totalAmount} Yıldız`
+        );
     }
     // 7. Medyaya Yıldız Bahşişi & Kaydetme İzni (1, 5, 10 Yıldız)
     else if (payload.startsWith('tip_media_')) {
@@ -1679,13 +1699,9 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
                 `❤️ Bu içeriğe gönderdiğiniz 1 Yıldız bahşiş başarıyla alındı. Desteğiniz için teşekkür ederiz!`;
         }
 
-        if (ADMIN_ID) {
-            bot.telegram.sendMessage(
-                ADMIN_ID,
-                `💰 <b>YENİ YILDIZ BAHŞİŞİ / İNDİRME!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n⭐ Tutar: ${totalAmount} Yıldız${amount >= 10 ? ' (İndirme & Kaydetme)' : ''}`,
-                { parse_mode: 'HTML' }
-            ).catch(() => {});
-        }
+        notifyAllAdmins(
+            `💰 <b>YENİ YILDIZ BAHŞİŞİ / İNDİRME!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n⭐ Tutar: ${totalAmount} Yıldız${amount >= 10 ? ' (İndirme & Kaydetme)' : ''}`
+        );
     }
     // 7b. 📥 Telefona Kaydet / İndir (Video: 25 Yıldız, Fotoğraf: 10 Yıldız)
     else if (payload.startsWith('dl_media_')) {
@@ -1720,13 +1736,9 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
             }, 600);
         }
 
-        if (ADMIN_ID) {
-            bot.telegram.sendMessage(
-                ADMIN_ID,
-                `📥 <b>YENİ İNDİRME / TELEFONA KAYDETME SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📂 Medya: ${typeLabel} (${mediaId})\n⭐ Tutar: ${totalAmount} Yıldız (Video: 25⭐ / Foto: 10⭐)`,
-                { parse_mode: 'HTML' }
-            ).catch(() => {});
-        }
+        notifyAllAdmins(
+            `📥 <b>YENİ İNDİRME / TELEFONA KAYDETME SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📂 Medya: ${typeLabel} (${mediaId})\n⭐ Tutar: ${totalAmount} Yıldız (Video: 25⭐ / Foto: 10⭐)`
+        );
     }
     // 7c. ⭐ Yıldız Hediye / Bahşiş
     else if (payload.startsWith('tip_gift_')) {
@@ -1739,13 +1751,9 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
         successMsg = `🎉 <b>TEŞEKKÜRLER! (⭐ ${totalAmount} Yıldız Hediye Edildi)</b>\n\n` +
             `❤️ Gönderdiğiniz ${totalAmount} Yıldız hediyeniz başarıyla ulaştı. Desteğiniz için çok teşekkür ederiz!`;
 
-        if (ADMIN_ID) {
-            bot.telegram.sendMessage(
-                ADMIN_ID,
-                `⭐ <b>YENİ YILDIZ HEDİYESİ / BAHŞİŞ!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n⭐ Tutar: ${totalAmount} Yıldız`,
-                { parse_mode: 'HTML' }
-            ).catch(() => {});
-        }
+        notifyAllAdmins(
+            `⭐ <b>YENİ YILDIZ HEDİYESİ / BAHŞİŞ!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n⭐ Tutar: ${totalAmount} Yıldız`
+        );
     }
     // 8. VIP Hariç 100 Yıldız Özel ZIP Arşivi Satın Alımı (2 GB'a Kadar)
     else if (payload.startsWith('zip_buy_')) {
@@ -1776,13 +1784,9 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
             successMsg = `🎉 <b>Ödeme alındı ancak ZIP arşivi bulunamadı!</b>\nLütfen yöneticiyle iletişime geçiniz.`;
         }
 
-        if (ADMIN_ID) {
-            bot.telegram.sendMessage(
-                ADMIN_ID,
-                `💰 <b>YENİ 100 YILDIZ ZIP ARŞİVİ SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 ZIP: ${zip?.name || zipId}\n⭐ Tutar: ${totalAmount} Yıldız`,
-                { parse_mode: 'HTML' }
-            ).catch(() => {});
-        }
+        notifyAllAdmins(
+            `💰 <b>YENİ 100 YILDIZ ZIP ARŞİVİ SATIŞI!</b>\n👤 <b>Kullanıcı:</b> ${userMeta.first_name || ''} (@${userMeta.username || 'yok'})\n🆔 ID: <code>${uid}</code>\n📦 ZIP: ${zip?.name || zipId}\n⭐ Tutar: ${totalAmount} Yıldız`
+        );
     }
 
     // Şans Çarkı Bonusu: VIP üyelik alanlara veya 100+ Yıldız harcama yapanlara çark hakkı verilir
@@ -5028,7 +5032,7 @@ bot.command('admin', async (ctx) => {
     if (authenticatedAdmins.has(uid)) {
         return showAdminPanel(ctx);
     }
-    if (!ADMIN_IDS.includes(uid)) {
+    if (!isAdminUser(uid)) {
         return ctx.reply('⛔ <b>Erişim Reddedildi.</b> Yönetici değilsiniz.', { parse_mode: 'HTML' });
     }
     pendingAdminAuth.add(uid);
@@ -5053,8 +5057,8 @@ bot.action(['admin_panel', 'admin_panel_open', 'admin_panel_auth_request'], asyn
     if (authenticatedAdmins.has(uid)) {
         return showAdminPanel(ctx);
     }
-    // ADMIN_IDS'de değilse hiç erişim yok
-    if (!ADMIN_IDS.includes(uid)) {
+    // Admin değilse hiç erişim yok
+    if (!isAdminUser(uid)) {
         return ctx.reply('⛔ <b>Erişim Reddedildi.</b> Yönetici değilsiniz.', { parse_mode: 'HTML' }).catch(() => {});
     }
     pendingAdminAuth.add(uid);
@@ -6796,13 +6800,9 @@ bot.action('wheel_spin', async (ctx) => {
         }).catch(() => {});
     }
 
-    if (ADMIN_ID) {
-        bot.telegram.sendMessage(
-            ADMIN_ID,
-            `🎰 <b>ÇARK ÇEVRİLDİ!</b>\n👤 <b>Kullanıcı:</b> ${escapeHtml(ctx.from.first_name || '')} (@${ctx.from.username || 'yok'})\n🆔 ID: <code>${userId}</code>\n🎁 <b>Kazanılan:</b> +${prize.amount} ${prize.type === 'photo' ? 'Foto' : 'Video'} Kredisi\n🎟️ Kalan Hak: ${spinRes.remaining}`,
-            { parse_mode: 'HTML' }
-        ).catch(() => {});
-    }
+    notifyAllAdmins(
+        `🎰 <b>ÇARK ÇEVRİLDİ!</b>\n👤 <b>Kullanıcı:</b> ${escapeHtml(ctx.from.first_name || '')} (@${ctx.from.username || 'yok'})\n🆔 ID: <code>${userId}</code>\n🎁 <b>Kazanılan:</b> +${prize.amount} ${prize.type === 'photo' ? 'Foto' : 'Video'} Kredisi\n🎟️ Kalan Hak: ${spinRes.remaining}`
+    );
 });
 
 // Admin: Kullanıcıya Çark Hakkı Ekleme /carkver <userId> <adet>
