@@ -3314,14 +3314,19 @@ function removeAssistantAdmin(targetUserId, requesterId) {
     }
     if (!Array.isArray(db.assistantAdmins)) db.assistantAdmins = [];
     const beforeCount = db.assistantAdmins.length;
-    db.assistantAdmins = db.assistantAdmins.filter(a => String(a.userId) !== tid);
-    if (db.assistantAdmins.length === beforeCount) {
+    db.assistantAdmins = db.assistantAdmins.filter(a => String(a.userId || a.id || a) !== tid);
+    const removedFromList = db.assistantAdmins.length < beforeCount;
+
+    let removedFromUser = false;
+    if (db.users && db.users[tid] && db.users[tid].isAssistantAdmin) {
+        db.users[tid].isAssistantAdmin = false;
+        removedFromUser = true;
+    }
+
+    if (!removedFromList && !removedFromUser) {
         return { success: false, message: 'Bu kullanıcı yardımcı admin listesinde bulunamadı.' };
     }
 
-    if (db.users && db.users[tid]) {
-        db.users[tid].isAssistantAdmin = false;
-    }
     saveDb();
     return { success: true, message: `ID: ${tid} kullanıcısının Yardımcı Admin yetkisi başarıyla geri alındı!` };
 }

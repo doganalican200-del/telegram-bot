@@ -4012,6 +4012,62 @@ bot.command(['vipler', 'viplistesi', 'viptakip'], (ctx) => {
     ctx.reply(msg, { parse_mode: 'HTML' });
 });
 
+// ADMİN: YARDIMCI ADMİN GÖREVDEN AL: /yardimcisil <id> veya /yardimcikaldir <id>
+bot.command(['yardimcisil', 'yardimcikaldir', 'yardimcigorevdenal'], async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    const parts = ctx.message.text.trim().split(/\s+/);
+    if (parts.length < 2) {
+        return ctx.reply('Kullanım: /yardimcisil <kullanici_id>\nÖrnek: /yardimcisil 7808953142');
+    }
+    const targetId = parts[1];
+    const res = db.removeAssistantAdmin(targetId, ctx.from?.id);
+    if (!res || !res.success) {
+        return ctx.reply(`❌ İşlem başarısız: ${res?.message || 'Yetki geri alınamadı.'}`);
+    }
+
+    ctx.reply(`🛡️ <b>Yardımcı Admin Yetkisi Geri Alındı!</b>\n👤 <b>Kullanıcı ID:</b> <code>${targetId}</code>\nİşlem başarıyla tamamlandı.`, { parse_mode: 'HTML' });
+    bot.telegram.sendMessage(targetId, `ℹ️ <b>Bilgilendirme:</b> Yardımcı Admin yetkiniz ana yönetici tarafından sonlandırılmıştır.`, { parse_mode: 'HTML' }).catch(() => {});
+});
+
+// ADMİN: YARDIMCI ADMİN ATA: /yardimciekle <id> [isim]
+bot.command(['yardimciekle', 'yardimciata'], async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    const parts = ctx.message.text.trim().split(/\s+/);
+    if (parts.length < 2) {
+        return ctx.reply('Kullanım: /yardimciekle <kullanici_id> [isim]\nÖrnek: /yardimciekle 7808953142 Ahmet');
+    }
+    const targetId = parts[1];
+    const name = parts.slice(2).join(' ') || '';
+    const res = db.addAssistantAdmin(targetId, ctx.from?.id, name, '');
+    if (!res || !res.success) {
+        return ctx.reply(`❌ İşlem başarısız: ${res?.message || 'Atama yapılamadı.'}`);
+    }
+
+    ctx.reply(`🛡️ <b>Yardımcı Admin Başarıyla Atandı!</b>\n👤 <b>Kullanıcı ID:</b> <code>${targetId}</code>`, { parse_mode: 'HTML' });
+    bot.telegram.sendMessage(targetId, `🎉 <b>Tebrikler!</b> Ana yönetici tarafından <b>Yardımcı Admin</b> olarak görevlendirildiniz!`, { parse_mode: 'HTML' }).catch(() => {});
+});
+
+// ADMİN: YARDIMCI ADMİNLERİ LİSTELE: /yardimcilar
+bot.command(['yardimcilar', 'yardimcilistesi'], async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    const assistants = db.getAssistantAdmins ? db.getAssistantAdmins() : [];
+    if (!assistants || assistants.length === 0) {
+        return ctx.reply('🛡️ Sistemde kayıtlı yardımcı admin bulunmamaktadır.');
+    }
+
+    let msg = `🛡️ <b>YARDIMCI ADMİNLER (${assistants.length})</b>\n━━━━━━━━━━━━━━━━━━━━\n\n`;
+    assistants.forEach((a, i) => {
+        const uid = a.userId || a.id;
+        const name = escapeHtml(a.name || 'İsimsiz');
+        const uname = a.username ? `@${escapeHtml(a.username)}` : 'yok';
+        msg += `<b>${i + 1}.</b> 🛡️ <b>${name}</b> (${uname})\n`;
+        msg += `   🆔 ID: <code>${uid}</code>\n`;
+        msg += `   📅 Atanma: <code>${a.addedAt ? new Date(a.addedAt).toLocaleDateString('tr-TR') : '-'}</code>\n\n`;
+    });
+    msg += `<i>Görevi geri almak için: /yardimcisil <id></i>`;
+    ctx.reply(msg, { parse_mode: 'HTML' });
+});
+
 // ADMİN MANUEL KREDİ VERME: /krediver <id> <resim/video> <adet>
 bot.command('krediver', (ctx) => {
     if (!isAdminUser(ctx.from?.id)) return;

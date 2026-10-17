@@ -5078,32 +5078,9 @@
             window._vipCountdownInterval = setInterval(updateDisplay, 1000);
         }
 
-        // 👑 VIP +1 SAAT EKSTRA UZATMA
-        async function vipExtendOneHour() {
-            const uid = tgUser?.id || currentUser?.id;
-            if (!uid) {
-                showToast('Kullanıcı bilgisi bulunamadı', '⚠️');
-                return;
-            }
-            showAppLoading('VIP Güncelleniyor...', 'VIP sürenize +1 saat ekleniyor');
-            try {
-                const res = await fetch('/api/webapp/vip/extend-hour', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: String(uid), hours: 1 })
-                });
-                const data = await res.json();
-                hideAppLoading();
-                if (data.success) {
-                    showToast(data.message || '⏳ VIP sürenize +1 saat eklendi!', '👑');
-                    await loadUserData();
-                } else {
-                    showToast(data.message || 'İşlem başarısız.', '⚠️');
-                }
-            } catch (err) {
-                hideAppLoading();
-                showToast('Hata: ' + err.message, '⚠️');
-            }
+        // 👑 VIP +1 SAAT EKSTRA UZATMA (Kaldırıldı)
+        function vipExtendOneHour() {
+            showToast('Ücretsiz saat uzatma kaldırılmıştır. Paket satın alabilir veya yönetici ile iletişime geçebilirsiniz.', 'ℹ️');
         }
 
         // ❌ VIP ÜYELİĞİ BİTİR / İPTAL ET
@@ -5257,14 +5234,11 @@
                                 </span>
                             </div>
                             <div style="font-size:11.5px; color:#cbd5e1; line-height:1.45; background:rgba(0,0,0,0.3); padding:9px 12px; border-radius:10px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.06);">
-                                👑 Hesabınızda sınırsız VIP ayrıcalığı mevcuttur. Dilediğiniz an +1 saat uzatmayı test edebilir veya market paketlerine göz atabilirsiniz.
+                                👑 Hesabınızda sınırsız VIP ayrıcalığı mevcuttur. Tüm arşiv ve indirmelere kesintisiz ve sınırsız erişim hakkınız bulunmaktadır.
                             </div>
-                            <div style="display:flex; gap:8px;">
-                                <button onclick="vipExtendOneHour()" style="flex:1; background:linear-gradient(135deg, #0284c7, #2563eb); border:none; color:#fff; font-size:11.5px; font-weight:800; padding:9px 10px; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 10px rgba(2, 132, 199, 0.3);">
-                                    <span>⏳</span> +1 Saat Ekle
-                                </button>
-                                <button onclick="switchNav('packages')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#fff; font-size:11.5px; font-weight:700; padding:9px 12px; border-radius:9px; cursor:pointer;">
-                                    Paketler 👑
+                            <div>
+                                <button onclick="switchNav('packages')" style="width:100%; background:linear-gradient(135deg, #0284c7, #2563eb); border:none; color:#fff; font-size:12px; font-weight:800; padding:10px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 12px rgba(2, 132, 199, 0.35);">
+                                    <span>👑</span> VIP & Kredi Paketlerini İncele
                                 </button>
                             </div>
                         </div>
@@ -5317,16 +5291,11 @@
                                 </div>
                             </div>
 
-                            <!-- Aksiyon Butonları: +1 Saat Uzat, Paketle Uzat, Üyeliği Bitir -->
+                            <!-- Aksiyon Butonları: Paket Al & Üyeliği Bitir -->
                             <div style="display:flex; flex-direction:column; gap:8px;">
-                                <div style="display:flex; gap:8px;">
-                                    <button onclick="vipExtendOneHour()" style="flex:1; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:12px; font-weight:800; padding:10px 12px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 12px rgba(245, 158, 11, 0.35);">
-                                        <span>⏳</span> +1 Saat Ekstra Uzat
-                                    </button>
-                                    <button onclick="switchNav('packages')" style="background:linear-gradient(135deg, #8b5cf6, #6366f1); border:none; color:#fff; font-size:12px; font-weight:800; padding:10px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 12px rgba(139, 92, 246, 0.3);">
-                                        <span>👑</span> Paket Al
-                                    </button>
-                                </div>
+                                <button onclick="switchNav('packages')" style="width:100%; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:12px; font-weight:800; padding:10px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 12px rgba(245, 158, 11, 0.35);">
+                                    <span>👑</span> VIP Süresini Uzat (Paket Satın Al)
+                                </button>
                                 <button onclick="vipCancelMembership()" style="width:100%; background:rgba(239, 68, 68, 0.12); border:1px solid rgba(239, 68, 68, 0.35); color:#f87171; font-size:11.5px; font-weight:700; padding:8px 12px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
                                     <span>❌</span> Üyeliği Sonlandır / Bitir
                                 </button>
@@ -5357,12 +5326,9 @@
                             <div style="font-size:11.5px; color:#94a3b8; line-height:1.45; background:rgba(0,0,0,0.25); padding:9px 12px; border-radius:10px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.05);">
                                 ✨ VIP olarak tüm sekmelerden beklemesiz sınırsız indirme yapabilir ve paket alımlarında <b>Şans Çarkı Hediyesi</b> 🎡 kazanırsınız!
                             </div>
-                            <div style="display:flex; gap:8px;">
-                                <button onclick="vipExtendOneHour()" style="flex:1; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:11.5px; font-weight:800; padding:10px 10px; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 10px rgba(245, 158, 11, 0.3);">
-                                    <span>⏳</span> +1 Saat Başlat / Uzat
-                                </button>
-                                <button onclick="switchNav('packages')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); color:#fff; font-size:11.5px; font-weight:700; padding:10px 14px; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;">
-                                    <span>👑</span> VIP Ol
+                            <div>
+                                <button onclick="switchNav('packages')" style="width:100%; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:12px; font-weight:800; padding:10px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 12px rgba(245, 158, 11, 0.35);">
+                                    <span>👑</span> VIP Paketlerini İncele & Satın Al
                                 </button>
                             </div>
                         </div>
@@ -8398,38 +8364,52 @@
         }
 
         async function quickAddAssistantAdmin(targetUserId, targetName, targetUsername) {
-            if (!confirm(`ID: ${targetUserId} (${targetName || 'Kullanıcı'}) kullanıcısını Yardımcı Admin olarak atamak istiyor musunuz?`)) {
-                return;
+            const doAdd = async () => {
+                await submitAddAssistantAdmin(targetUserId, targetName, targetUsername);
+            };
+            if (window.Telegram?.WebApp?.showConfirm) {
+                Telegram.WebApp.showConfirm(`ID: ${targetUserId} (${targetName || 'Kullanıcı'}) kullanıcısını Yardımcı Admin olarak atamak istiyor musunuz?`, (ok) => {
+                    if (ok) doAdd();
+                });
+            } else {
+                doAdd();
             }
-            await submitAddAssistantAdmin(targetUserId, targetName, targetUsername);
         }
 
         async function submitRemoveAssistantAdmin(targetUserId, targetName) {
-            if (!confirm(`ID: ${targetUserId} (${targetName || 'Kullanıcı'}) kullanıcısının Yardımcı Admin yetkisini geri almak istediğinize emin misiniz?`)) {
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/webapp/admin/assistant-admin-remove', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: tgUser.id,
-                        targetUserId: targetUserId
-                    })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    showToast(data.message || '✅ Yardımcı admin yetkisi geri alındı.', '🛡️');
-                    assistantAdminsList = data.assistantAdmins || [];
-                    renderAssistantAdmins(assistantAdminsList);
-                    if (typeof loadAdminUsers === 'function') loadAdminUsers();
-                } else {
-                    showToast(data.message || 'İşlem başarısız.', '❌');
+            const doRemove = async () => {
+                if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+                showToast('Yetki geri alınıyor...', '⏳');
+                try {
+                    const res = await fetch('/api/webapp/admin/assistant-admin-remove', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: tgUser.id,
+                            targetUserId: targetUserId
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(data.message || '✅ Yardımcı admin yetkisi geri alındı.', '🛡️');
+                        assistantAdminsList = data.assistantAdmins || [];
+                        renderAssistantAdmins(assistantAdminsList);
+                        if (typeof loadAdminUsers === 'function') loadAdminUsers();
+                    } else {
+                        showToast(data.message || 'İşlem başarısız.', '❌');
+                    }
+                } catch (e) {
+                    console.error('submitRemoveAssistantAdmin error:', e);
+                    showToast('Bağlantı hatası oluştu.', '❌');
                 }
-            } catch (e) {
-                console.error('submitRemoveAssistantAdmin error:', e);
-                showToast('Bağlantı hatası oluştu.', '❌');
+            };
+
+            if (window.Telegram?.WebApp?.showConfirm) {
+                Telegram.WebApp.showConfirm(`ID: ${targetUserId} (${targetName || 'Kullanıcı'}) kullanıcısının Yardımcı Admin yetkisini geri almak istediğinize emin misiniz?`, (ok) => {
+                    if (ok) doRemove();
+                });
+            } else {
+                doRemove();
             }
         }
 
@@ -8447,7 +8427,7 @@
                 const res = await fetch(`/api/webapp/admin/vip-users?userId=${tgUser.id}`);
                 const data = await res.json();
                 if (data.success) {
-                    adminVipUsersList = data.vipUsers || [];
+                    adminVipUsersList = data.vipUsers || data.users || [];
                     const countEl = document.getElementById('adm-vip-count');
                     if (countEl) countEl.innerText = `${adminVipUsersList.length} VIP`;
                     renderAdminVipUsers(adminVipUsersList);
@@ -8466,12 +8446,26 @@
                 renderAdminVipUsers(adminVipUsersList);
                 return;
             }
-            const filtered = adminVipUsersList.filter(u => {
+            let filtered = adminVipUsersList.filter(u => {
                 const uid = String(u.id || u.user_id || '');
                 const fn = (u.firstName || u.first_name || '').toLowerCase();
                 const un = (u.username || '').toLowerCase();
                 return uid.includes(q) || fn.includes(q) || un.includes(q);
             });
+
+            // VIP listesinde olmayan diğer üyeleri de getir (Admin istediği üyeye anında VIP tanımlayabilsin)
+            if (window.adminAllUsersList && adminAllUsersList.length > 0) {
+                const existingIds = new Set(filtered.map(u => String(u.id || u.user_id)));
+                const others = adminAllUsersList.filter(u => {
+                    const uid = String(u.id || u.user_id || '');
+                    if (existingIds.has(uid)) return false;
+                    const fn = (u.firstName || u.first_name || '').toLowerCase();
+                    const un = (u.username || '').toLowerCase();
+                    return uid.includes(q) || fn.includes(q) || un.includes(q);
+                });
+                filtered = [...filtered, ...others];
+            }
+
             renderAdminVipUsers(filtered);
         }
 

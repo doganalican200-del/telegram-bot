@@ -426,30 +426,14 @@ function createWebAppServer(options = {}) {
         }
 
         // ==========================================
-        // 1.2 API: VIP ÜYELİĞİ +1 SAAT UZAT
+        // 1.2 API: VIP ÜYELİĞİ +1 SAAT UZAT (DEVRE DIŞI BIRAKILDI)
         // ==========================================
         if (parsedUrl.pathname === '/api/webapp/vip/extend-hour' && req.method === 'POST') {
-            let body = '';
-            req.on('data', chunk => { body += chunk; });
-            req.on('end', () => {
-                try {
-                    const data = JSON.parse(body || '{}');
-                    const userId = String(data.userId || '');
-                    const hours = Number(data.hours || 1);
-                    if (!userId) {
-                        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-                        return res.end(JSON.stringify({ success: false, message: 'Kullanıcı ID gerekli' }));
-                    }
-
-                    const result = db.extendUserVipHour ? db.extendUserVipHour(userId, hours) : { success: false, message: 'İşlem desteklenmiyor' };
-                    res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json; charset=utf-8' });
-                    return res.end(JSON.stringify(result));
-                } catch (e) {
-                    res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-                    return res.end(JSON.stringify({ success: false, message: e.message }));
-                }
-            });
-            return;
+            res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({ 
+                success: false, 
+                message: 'Ücretsiz saat uzatma özelliği devre dışı bırakılmıştır. VIP süreleri yalnızca admin tarafından veya marketten paket satın alınarak güncellenebilir.' 
+            }));
         }
 
         // ==========================================
@@ -2744,7 +2728,7 @@ function createWebAppServer(options = {}) {
             }
             const vipUsers = db.getAllVipUsers ? db.getAllVipUsers() : [];
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            return res.end(JSON.stringify({ success: true, users: vipUsers }));
+            return res.end(JSON.stringify({ success: true, vipUsers, users: vipUsers }));
         }
 
         // ==========================================
