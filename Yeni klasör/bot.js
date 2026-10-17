@@ -289,6 +289,16 @@ bot.use(async (ctx, next) => {
     return next();
 });
 
+// ⚡ OTOMATİK KULLANICI KAYIT & GÜNCELLEME (Bota yazan / tıklayan her kullanıcıyı anında veritabanına kaydeder)
+bot.use(async (ctx, next) => {
+    if (ctx.from && ctx.from.id) {
+        try {
+            db.getOrCreateUser(ctx.from);
+        } catch (_) {}
+    }
+    return next();
+});
+
 // BANLI KULLANICI KONTROLÜ (Giriş ve Tüm Eylemleri Engeller)
 bot.use(async (ctx, next) => {
     if (ctx.from) {
@@ -1832,10 +1842,17 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
 // Telegram Yıldızları Geçmişini / Eksik Ödemeleri Otomatik Senkronize Et
 async function syncStarTransactions() {
     try {
-        const res = await bot.telegram.callApi('getStarTransactions', { limit: 50 });
-        if (!res || !res.transactions || !Array.isArray(res.transactions)) return;
+        let offset = 0;
+        const allTransactions = [];
+        while (true) {
+            const res = await bot.telegram.callApi('getStarTransactions', { offset, limit: 100 });
+            if (!res || !res.transactions || !Array.isArray(res.transactions) || res.transactions.length === 0) break;
+            allTransactions.push(...res.transactions);
+            offset += res.transactions.length;
+            if (res.transactions.length < 100) break;
+        }
 
-        for (const tx of res.transactions) {
+        for (const tx of allTransactions) {
             if (tx.amount <= 0) continue;
             const txId = tx.id;
             if (db.isTransactionProcessed(txId)) continue;

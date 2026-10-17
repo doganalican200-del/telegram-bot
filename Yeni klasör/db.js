@@ -461,29 +461,60 @@ function modifyUserVip(targetUserId, action, value = 1) {
 function getAllVipUsers() {
     const db = loadDb();
     const users = db.users || {};
+    const transactions = Array.isArray(db.transactionHistory) ? db.transactionHistory : [];
     const vipList = [];
     const now = Date.now();
+
+    // Yıldız ile VIP satın alanları haritala
+    const starVipBuyers = new Map();
+    transactions.forEach(t => {
+        const payload = String(t.payload || '');
+        if (payload.includes('vip') || payload.startsWith('vip_')) {
+            const uid = String(t.userId);
+            const prev = starVipBuyers.get(uid) || { amount: 0, count: 0, lastDate: t.processedAt, payload };
+            prev.amount += (Number(t.amount) || 0);
+            prev.count += 1;
+            prev.lastDate = t.processedAt || prev.lastDate;
+            prev.payload = payload;
+            starVipBuyers.set(uid, prev);
+        }
+    });
 
     for (const [uid, user] of Object.entries(users)) {
         if (!user) continue;
         const vipInfo = isUserVip(uid);
-        const hasVipRecord = !!(user.vipUntil || user.isUnlimitedVip || vipInfo.isVip);
+        const starBuyInfo = starVipBuyers.get(uid);
+        const hasVipRecord = !!(user.vipUntil || user.isUnlimitedVip || vipInfo.isVip || starBuyInfo);
 
         if (hasVipRecord) {
             let untilTs = 0;
             if (user.vipUntil) {
                 untilTs = typeof user.vipUntil === 'string' ? new Date(user.vipUntil).getTime() : Number(user.vipUntil);
+                if (isNaN(untilTs)) untilTs = 0;
             }
-            const isActive = vipInfo.isVip && (untilTs > now || vipInfo.isUnlimited);
+            const isUnlimited = !!(user.isUnlimitedVip || vipInfo.isUnlimited);
+            const isActive = isUnlimited || (untilTs > now);
+            
+            let endDateStr = '-';
+            if (isUnlimited) {
+                endDateStr = 'Ömür Boyu (Sınırsız)';
+            } else if (untilTs > 0) {
+                endDateStr = new Date(untilTs).toLocaleString('tr-TR');
+            }
+
             vipList.push({
                 id: uid,
                 firstName: user.firstName || user.first_name || 'Kullanıcı',
                 username: user.username || '',
                 isVip: isActive,
-                isUnlimited: !!(user.isUnlimitedVip || vipInfo.isUnlimited),
+                isUnlimited,
                 remainingHours: vipInfo.remainingHours || 0,
-                vipUntil: vipInfo.until,
+                vipUntil: endDateStr,
                 vipUntilTimestamp: untilTs,
+                boughtWithStars: !!starBuyInfo,
+                starsSpent: starBuyInfo ? starBuyInfo.amount : 0,
+                starVipCount: starBuyInfo ? starBuyInfo.count : 0,
+                starPayload: starBuyInfo ? starBuyInfo.payload : null,
                 photoCredits: user.photoCredits || 0,
                 videoCredits: user.videoCredits || 0,
                 wheelSpins: user.wheelSpins || 0,
@@ -497,6 +528,8 @@ function getAllVipUsers() {
         if (!a.isUnlimited && b.isUnlimited) return 1;
         if (a.isVip && !b.isVip) return -1;
         if (!a.isVip && b.isVip) return 1;
+        if (a.boughtWithStars && !b.boughtWithStars) return -1;
+        if (!a.boughtWithStars && b.boughtWithStars) return 1;
         return (b.vipUntilTimestamp || 0) - (a.vipUntilTimestamp || 0);
     });
 
@@ -510,15 +543,17 @@ function addVipDays(userId, days) {
     const user = db.users[uid];
     if (!user) return null;
 
-    const durationMs = days * 24 * 60 * 60 * 1000;
+    const durationMs = Number(days || 1) * 24 * 60 * 60 * 1000;
     const now = Date.now();
 
-    if (user.vipUntil && user.vipUntil > now) {
-        user.vipUntil += durationMs; // Mevcut sürenin üzerine ekle
-    } else {
-        user.vipUntil = now + durationMs;
+    let base = now;
+    if (user.vipUntil) {
+        const cur = typeof user.vipUntil === 'string' ? new Date(user.vipUntil).getTime() : Number(user.vipUntil);
+        if (!isNaN(cur) && cur > now) base = cur;
     }
 
+    user.vipUntil = new Date(base + durationMs).toISOString();
+    user.isUnlimitedVip = (days >= 3650);
     saveDb();
     return user.vipUntil;
 }
@@ -2639,11 +2674,29 @@ function unlockMediaDownload(userId, mediaId) {
 function getAllUsersDetailed() {
     const db = loadDb();
     const users = Object.values(db.users || {});
+    const transactions = Array.isArray(db.transactionHistory) ? db.transactionHistory : [];
+    
+    const starsPerUser = new Map();
+    transactions.forEach(t => {
+        const uid = String(t.userId);
+        const cur = starsPerUser.get(uid) || 0;
+        starsPerUser.set(uid, cur + (Number(t.amount) || 0));
+    });
+
     return users.map(u => {
-        const vip = isUserVip(u.id);
+        const uid = String(u.id);
+        const vip = isUserVip(uid);
+        let untilTs = 0;
+        if (u.vipUntil) {
+            untilTs = typeof u.vipUntil === 'string' ? new Date(u.vipUntil).getTime() : Number(u.vipUntil);
+            if (isNaN(untilTs)) untilTs = 0;
+        }
+        const createdTs = u.createdAt ? new Date(u.createdAt).getTime() : 0;
+        const totalStars = starsPerUser.get(uid) || 0;
+
         return {
-            id: u.id,
-            user_id: u.id,
+            id: uid,
+            user_id: uid,
             firstName: u.firstName || 'İsimsiz',
             first_name: u.firstName || 'İsimsiz',
             username: u.username || null,
@@ -2655,9 +2708,10 @@ function getAllUsersDetailed() {
             wheel_spins: u.wheelSpins || 0,
             isVip: vip.isVip,
             is_vip: vip.isVip,
-            vipUntil: vip.until || null,
-            isSuperAdmin: isSuperAdmin(u.id),
-            isAssistantAdmin: isAssistantAdmin(u.id),
+            vipUntil: vip.until || (untilTs > 0 ? new Date(untilTs).toLocaleString('tr-TR') : null),
+            vipUntilTimestamp: untilTs,
+            isSuperAdmin: isSuperAdmin(uid),
+            isAssistantAdmin: isAssistantAdmin(uid),
             isBanned: !!u.isBanned,
             is_banned: !!u.isBanned,
             bannedReason: u.bannedReason || null,
@@ -2665,10 +2719,13 @@ function getAllUsersDetailed() {
             uploadedVideos: u.uploadedVideos || 0,
             receivedPhotos: u.receivedPhotos || 0,
             receivedVideos: u.receivedVideos || 0,
+            totalStarsSpent: totalStars,
+            boughtWithStars: totalStars > 0,
             createdAt: u.createdAt || new Date().toISOString(),
-            created_at: u.createdAt || new Date().toISOString()
+            created_at: u.createdAt || new Date().toISOString(),
+            createdTimestamp: createdTs
         };
-    }).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }).sort((a, b) => (b.createdTimestamp || 0) - (a.createdTimestamp || 0));
 }
 
 // ==========================================

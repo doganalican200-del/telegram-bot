@@ -8494,17 +8494,19 @@
                 let untilTs = 0;
                 if (u.vipUntilTimestamp) untilTs = Number(u.vipUntilTimestamp);
                 else if (u.vipUntil) untilTs = typeof u.vipUntil === 'number' ? u.vipUntil : new Date(u.vipUntil).getTime();
+                if (isNaN(untilTs)) untilTs = 0;
 
                 const isActive = isUnlimited || (untilTs > now);
-                const endDateStr = untilTs > 0 ? new Date(untilTs).toLocaleString('tr-TR') : '-';
+                const endDateStr = untilTs > 0 ? new Date(untilTs).toLocaleString('tr-TR') : (isUnlimited ? 'Sonsuz' : '-');
+                const isBoughtWithStars = !!(u.boughtWithStars || (u.starsSpent && u.starsSpent > 0));
 
                 html += `
-                    <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid ${isActive ? 'rgba(245, 158, 11, 0.4)' : 'rgba(255,255,255,0.08)'}; border-radius: 12px; padding: 12px; display:flex; flex-direction:column; gap:8px;">
+                    <div style="background: rgba(15, 23, 42, 0.75); border: 1.5px solid ${isActive ? 'rgba(245, 158, 11, 0.5)' : isBoughtWithStars ? 'rgba(234, 179, 8, 0.4)' : 'rgba(255,255,255,0.08)'}; border-radius: 12px; padding: 12px; display:flex; flex-direction:column; gap:8px;">
                         <!-- Üst Başlık & Kullanıcı Bilgisi -->
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
                             <div style="display:flex; align-items:center; gap:8px;">
-                                <div style="width:36px; height:36px; border-radius:10px; background:${isActive ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(255,255,255,0.1)'}; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:14px; box-shadow: ${isActive ? '0 0 10px rgba(245, 158, 11, 0.35)' : 'none'};">
-                                    ${isActive ? '👑' : '👤'}
+                                <div style="width:36px; height:36px; border-radius:10px; background:${isActive ? 'linear-gradient(135deg, #f59e0b, #d97706)' : isBoughtWithStars ? 'linear-gradient(135deg, #eab308, #ca8a04)' : 'rgba(255,255,255,0.1)'}; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:14px; box-shadow: ${isActive ? '0 0 10px rgba(245, 158, 11, 0.35)' : 'none'};">
+                                    ${isActive ? '👑' : isBoughtWithStars ? '⭐' : '👤'}
                                 </div>
                                 <div>
                                     <div style="font-size:12.5px; font-weight:800; color:#fff; display:flex; align-items:center; gap:5px;">
@@ -8516,10 +8518,15 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- Durum Rozeti -->
-                            <div style="text-align:right;">
+                            <!-- Durum ve Yıldız Rozetleri -->
+                            <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                                ${isBoughtWithStars ? `
+                                    <span style="font-size:9.5px; font-weight:800; padding:2px 7px; border-radius:6px; background:rgba(234, 179, 8, 0.2); color:#facc15; border:1px solid rgba(234, 179, 8, 0.45);">
+                                        ⭐ ${u.starsSpent || 100} Yıldız İle Alındı
+                                    </span>
+                                ` : ''}
                                 <span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; background:${isUnlimited ? 'linear-gradient(135deg, #f59e0b, #d97706)' : (isActive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)')}; color:${isUnlimited ? '#000' : (isActive ? '#10b981' : '#f87171')}; border:1px solid ${isActive ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'};">
-                                    ${isUnlimited ? '👑 SINIRSIZ' : (isActive ? '🟢 AKTİF' : '🔴 BİTTİ')}
+                                    ${isUnlimited ? '👑 SINIRSIZ' : (isActive ? '🟢 AKTİF VIP' : '🔴 SÜRESİ DOLDU')}
                                 </span>
                             </div>
                         </div>
@@ -8528,13 +8535,13 @@
                         <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:7px 10px; display:flex; justify-content:space-between; align-items:center;">
                             <div>
                                 <div style="font-size:9.5px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Kalan Süre (Canlı)</div>
-                                <div id="vip-timer-user-${uid}" class="admin-vip-live-countdown" data-until="${untilTs}" data-unlimited="${isUnlimited ? '1' : '0'}" style="font-size:13px; font-weight:900; color:${isActive ? '#fbbf24' : '#94a3b8'}; font-family:monospace; margin-top:1px;">
-                                    ${isUnlimited ? '👑 ÖMÜR BOYU SINIRSIZ' : (isActive ? 'Hesaplanıyor...' : 'SÜRESİ DOLDU')}
+                                <div id="vip-timer-user-${uid}" class="admin-vip-live-countdown" data-until="${untilTs}" data-unlimited="${isUnlimited ? '1' : '0'}" style="font-size:13px; font-weight:900; color:${isActive ? '#fbbf24' : '#f87171'}; font-family:monospace; margin-top:1px;">
+                                    ${isUnlimited ? '👑 ÖMÜR BOYU SINIRSIZ' : (isActive ? 'Hesaplanıyor...' : '🔴 SÜRESİ DOLDU')}
                                 </div>
                             </div>
                             <div style="text-align:right;">
-                                <div style="font-size:9.5px; color:#94a3b8;">Bitiş Tarihi:</div>
-                                <div style="font-size:10.5px; color:#cbd5e1; font-weight:600;">${isUnlimited ? 'Sonsuz' : endDateStr}</div>
+                                <div style="font-size:9.5px; color:#94a3b8;">${isActive ? 'Bitiş Tarihi:' : 'Bittiği Tarih:'}</div>
+                                <div style="font-size:10.5px; color:${isActive ? '#cbd5e1' : '#fca5a5'}; font-weight:600;">${isUnlimited ? 'Sonsuz' : endDateStr}</div>
                             </div>
                         </div>
 
@@ -8706,23 +8713,25 @@
                 const isMeSuperAdmin = String(tgUser?.id) === '8633136500';
                 const isBanned = !!(u.isBanned || u.is_banned);
                 const isVip = !!(u.isVip || u.is_vip);
-                const regDate = (u.createdAt || u.created_at) ? new Date(u.createdAt || u.created_at).toLocaleDateString('tr-TR') : 'Bilinmiyor';
+                const starsSpent = Number(u.totalStarsSpent || u.starsSpent || 0);
+                const regDate = (u.createdAt || u.created_at) ? new Date(u.createdAt || u.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Bilinmiyor';
 
                 html += `
                     <div style="background:rgba(0,0,0,0.4); border:1px solid ${isBanned ? 'rgba(239,68,68,0.4)' : isSuperAdmin ? 'rgba(56,189,248,0.4)' : isAsstAdmin ? 'rgba(168,85,247,0.4)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                             <div>
                                 <div style="display:flex; align-items:center; gap:6px;">
-                                    <span style="font-size:14px;">${isSuperAdmin ? '👑' : isAsstAdmin ? '🛡️' : isVip ? '⭐' : '👤'}</span>
+                                    <span style="font-size:14px;">${isSuperAdmin ? '👑' : isAsstAdmin ? '🛡️' : starsSpent > 0 ? '⭐' : isVip ? '💎' : '👤'}</span>
                                     <span style="font-size:12px; font-weight:800; color:#fff;">${escapeHtml(firstName)}</span>
                                     ${username ? `<span style="font-size:10px; color:#38bdf8;">@${escapeHtml(username)}</span>` : ''}
                                 </div>
                                 <div style="font-size:10px; color:var(--hint-color); margin-top:2px;">
-                                    ID: <code style="background:rgba(255,255,255,0.06); padding:1px 4px; border-radius:4px; color:#38bdf8;">${uid}</code> • Kayıt: ${regDate}
+                                    ID: <code style="background:rgba(255,255,255,0.06); padding:1px 4px; border-radius:4px; color:#38bdf8;">${uid}</code> • Kayıt: ${regDate} ${u.vipUntil ? `<span style="color:#fbbf24; margin-left:4px;">• VIP Bitiş: ${escapeHtml(String(u.vipUntil))}</span>` : ''}
                                 </div>
                             </div>
                             <div style="display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end;">
                                 ${isSuperAdmin ? `<span style="background:rgba(56,189,248,0.2); color:#38bdf8; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px;">KURUCU</span>` : isAsstAdmin ? `<span style="background:rgba(168,85,247,0.25); color:#c084fc; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid rgba(168,85,247,0.4);">🛡️ YARDIMCI ADMİN</span>` : ''}
+                                ${starsSpent > 0 ? `<span style="background:linear-gradient(135deg, rgba(245,158,11,0.25), rgba(217,119,6,0.35)); color:#fbbf24; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid rgba(245,158,11,0.5);">⭐ ${starsSpent} YILDIZ</span>` : ''}
                                 ${isVip ? `<span style="background:rgba(245,158,11,0.2); color:#f59e0b; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px;">VIP</span>` : ''}
                                 ${isBanned ? `<span style="background:rgba(239,68,68,0.2); color:#f87171; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px;">YASAKLI</span>` : `<span style="background:rgba(16,185,129,0.15); color:#10b981; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px;">AKTİF</span>`}
                             </div>
