@@ -2070,6 +2070,123 @@
                     </div>
                 </div>
 
+                <!-- 🎁 TOPLU HERKESE ÖDÜL DAĞITIMI (TÜM KULLANICILAR) -->
+                <div id="admin-mass-reward-panel" style="margin-top:14px; margin-bottom:14px; background:linear-gradient(145deg, rgba(30, 27, 75, 0.45), rgba(15, 23, 42, 0.6)); border:1px solid rgba(168, 85, 247, 0.4); border-radius:14px; padding:14px; box-shadow:0 8px 24px rgba(168, 85, 247, 0.12);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;">
+                        <div style="font-size:13px; font-weight:900; color:#c084fc; display:flex; align-items:center; gap:6px;">
+                            <span>🎁</span>
+                            <span>Toplu Herkese Ödül Dağıtımı</span>
+                        </div>
+                        <button onclick="adminUndoMassRewardUI()" style="background:rgba(239, 68, 68, 0.18); border:1px solid #ef4444; color:#fca5a5; font-size:10px; font-weight:800; padding:4px 9px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 2px 8px rgba(239, 68, 68, 0.2);">
+                            ↩️ Son Dağıtımı Geri Al
+                        </button>
+                    </div>
+
+                    <div style="font-size:11px; color:#94a3b8; line-height:1.4; margin-bottom:12px;">
+                        Sistemdeki tüm kayıtlı kullanıcılara tek tıkla toplu hediye tanımlayın. Yanlışlık olursa tek tıkla geri alınabilir.
+                    </div>
+
+                    <!-- Hızlı Seçim Butonları -->
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+                        <!-- Video Kredisi -->
+                        <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(56, 189, 248, 0.2); border-radius:8px; padding:8px 10px;">
+                            <div style="font-size:10.5px; font-weight:800; color:#38bdf8; margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                                <span>🎥</span> Herkese Video Kredisi Dağıt:
+                            </div>
+                            <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:5px;">
+                                <button onclick="adminMassDistributeQuick(1, 0, 0, 0, '+1 Video')" style="background:rgba(56, 189, 248, 0.12); border:1px solid #38bdf8; color:#38bdf8; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+1</button>
+                                <button onclick="adminMassDistributeQuick(2, 0, 0, 0, '+2 Video')" style="background:rgba(56, 189, 248, 0.12); border:1px solid #38bdf8; color:#38bdf8; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+2</button>
+                                <button onclick="adminMassDistributeQuick(3, 0, 0, 0, '+3 Video')" style="background:rgba(56, 189, 248, 0.12); border:1px solid #38bdf8; color:#38bdf8; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+3</button>
+                                <button onclick="adminMassDistributeQuick(4, 0, 0, 0, '+4 Video')" style="background:rgba(56, 189, 248, 0.12); border:1px solid #38bdf8; color:#38bdf8; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+4</button>
+                                <button onclick="adminMassDistributeQuick(5, 0, 0, 0, '+5 Video')" style="background:rgba(56, 189, 248, 0.18); border:1px solid #38bdf8; color:#38bdf8; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+5</button>
+                            </div>
+                        </div>
+
+                        <!-- Resim Kredisi -->
+                        <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(236, 72, 153, 0.2); border-radius:8px; padding:8px 10px;">
+                            <div style="font-size:10.5px; font-weight:800; color:#ec4899; margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                                <span>📸</span> Herkese Resim Kredisi Dağıt:
+                            </div>
+                            <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:5px;">
+                                <button onclick="adminMassDistributeQuick(0, 1, 0, 0, '+1 Resim')" style="background:rgba(236, 72, 153, 0.12); border:1px solid #ec4899; color:#ec4899; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+1</button>
+                                <button onclick="adminMassDistributeQuick(0, 2, 0, 0, '+2 Resim')" style="background:rgba(236, 72, 153, 0.12); border:1px solid #ec4899; color:#ec4899; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+2</button>
+                                <button onclick="adminMassDistributeQuick(0, 3, 0, 0, '+3 Resim')" style="background:rgba(236, 72, 153, 0.12); border:1px solid #ec4899; color:#ec4899; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+3</button>
+                                <button onclick="adminMassDistributeQuick(0, 4, 0, 0, '+4 Resim')" style="background:rgba(236, 72, 153, 0.12); border:1px solid #ec4899; color:#ec4899; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+4</button>
+                                <button onclick="adminMassDistributeQuick(0, 5, 0, 0, '+5 Resim')" style="background:rgba(236, 72, 153, 0.18); border:1px solid #ec4899; color:#ec4899; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+5</button>
+                            </div>
+                        </div>
+
+                        <!-- Şans Çarkı Hakkı -->
+                        <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(234, 179, 8, 0.25); border-radius:8px; padding:8px 10px;">
+                            <div style="font-size:10.5px; font-weight:800; color:#eab308; margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                                <span>🎡</span> Herkese Şans Çarkı Hakkı Dağıt:
+                            </div>
+                            <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:5px;">
+                                <button onclick="adminMassDistributeQuick(0, 0, 1, 0, '+1 Çark')" style="background:rgba(234, 179, 8, 0.12); border:1px solid #eab308; color:#fde047; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+1</button>
+                                <button onclick="adminMassDistributeQuick(0, 0, 2, 0, '+2 Çark')" style="background:rgba(234, 179, 8, 0.12); border:1px solid #eab308; color:#fde047; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+2</button>
+                                <button onclick="adminMassDistributeQuick(0, 0, 3, 0, '+3 Çark')" style="background:rgba(234, 179, 8, 0.12); border:1px solid #eab308; color:#fde047; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+3</button>
+                                <button onclick="adminMassDistributeQuick(0, 0, 4, 0, '+4 Çark')" style="background:rgba(234, 179, 8, 0.12); border:1px solid #eab308; color:#fde047; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+4</button>
+                                <button onclick="adminMassDistributeQuick(0, 0, 5, 0, '+5 Çark')" style="background:rgba(234, 179, 8, 0.2); border:1px solid #eab308; color:#fde047; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">+5</button>
+                            </div>
+                        </div>
+
+                        <!-- Krallık (VIP) Gün -->
+                        <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(168, 85, 247, 0.25); border-radius:8px; padding:8px 10px;">
+                            <div style="font-size:10.5px; font-weight:800; color:#a855f7; margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                                <span>👑</span> Herkese Krallık (VIP) Üyelik Dağıt:
+                            </div>
+                            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:5px;">
+                                <button onclick="adminMassDistributeQuick(0, 0, 0, 1, '+1 Gün VIP')" style="background:rgba(168, 85, 247, 0.12); border:1px solid #a855f7; color:#d8b4fe; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">1 Gün</button>
+                                <button onclick="adminMassDistributeQuick(0, 0, 0, 3, '+3 Gün VIP')" style="background:rgba(168, 85, 247, 0.12); border:1px solid #a855f7; color:#d8b4fe; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">3 Gün</button>
+                                <button onclick="adminMassDistributeQuick(0, 0, 0, 7, '+7 Gün VIP')" style="background:rgba(168, 85, 247, 0.12); border:1px solid #a855f7; color:#d8b4fe; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">7 Gün</button>
+                                <button onclick="adminMassDistributeQuick(0, 0, 0, 30, '+30 Gün VIP')" style="background:rgba(168, 85, 247, 0.2); border:1px solid #a855f7; color:#d8b4fe; font-size:11px; font-weight:900; padding:6px 0; border-radius:6px; cursor:pointer;">30 Gün</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gelişmiş Özel Dağıtım Accordion / Formu -->
+                    <details style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:8px 10px;">
+                        <summary style="font-size:11px; font-weight:800; color:#cbd5e1; cursor:pointer; user-select:none;">
+                            ⚙️ Özel Miktar & Duyuru Mesajı ile Dağıt
+                        </summary>
+                        <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px;">
+                                <div>
+                                    <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:3px;">🎥 Video Kredisi:</label>
+                                    <input type="number" id="mass-v-cred" value="0" min="0" max="50" style="width:100%; background:#0b1120; border:1px solid var(--card-border); color:#fff; padding:6px 8px; border-radius:6px; font-size:11px; box-sizing:border-box;">
+                                </div>
+                                <div>
+                                    <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:3px;">📸 Resim Kredisi:</label>
+                                    <input type="number" id="mass-p-cred" value="0" min="0" max="50" style="width:100%; background:#0b1120; border:1px solid var(--card-border); color:#fff; padding:6px 8px; border-radius:6px; font-size:11px; box-sizing:border-box;">
+                                </div>
+                                <div>
+                                    <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:3px;">🎡 Çark Hakkı:</label>
+                                    <input type="number" id="mass-wheel" value="0" min="0" max="50" style="width:100%; background:#0b1120; border:1px solid var(--card-border); color:#fff; padding:6px 8px; border-radius:6px; font-size:11px; box-sizing:border-box;">
+                                </div>
+                                <div>
+                                    <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:3px;">👑 VIP (Gün):</label>
+                                    <input type="number" id="mass-vip" value="0" min="0" max="365" style="width:100%; background:#0b1120; border:1px solid var(--card-border); color:#fff; padding:6px 8px; border-radius:6px; font-size:11px; box-sizing:border-box;">
+                                </div>
+                            </div>
+                            <div>
+                                <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:3px;">Duyuru Başlığı (Opsiyonel):</label>
+                                <input type="text" id="mass-msg-title" placeholder="🎁 Yönetici Sürpriz Hediyesi!" style="width:100%; background:#0b1120; border:1px solid var(--card-border); color:#fff; padding:6px 8px; border-radius:6px; font-size:11px; box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:3px;">Özel Mesaj Metni (Opsiyonel):</label>
+                                <textarea id="mass-msg-text" rows="2" placeholder="Keyifli kullanımlar dileriz! Yeni videolarımız eklendi..." style="width:100%; background:#0b1120; border:1px solid var(--card-border); color:#fff; padding:6px 8px; border-radius:6px; font-size:11px; box-sizing:border-box; resize:none;"></textarea>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                                <input type="checkbox" id="mass-broadcast-tg" checked style="accent-color:#38bdf8; cursor:pointer;">
+                                <label for="mass-broadcast-tg" style="font-size:10.5px; color:#cbd5e1; cursor:pointer;">Telegram DM üzerinden de bildirim gönder</label>
+                            </div>
+                            <button onclick="adminMassDistributeCustom()" style="margin-top:4px; background:linear-gradient(135deg, #7c3aed, #a855f7); border:none; color:#fff; font-weight:800; font-size:12px; padding:10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 12px rgba(168, 85, 247, 0.4);">
+                                🚀 Tüm Kullanıcılara Dağıt
+                            </button>
+                        </div>
+                    </details>
+                </div>
+
                 <!-- 👑 KATILAN KİŞİLER (ÜYE YÖNETİMİ) -->
                 <div style="margin-top:14px; margin-bottom:14px; background:rgba(0,0,0,0.3); border:1px solid rgba(56, 189, 248, 0.35); border-radius:12px; padding:12px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;">
@@ -2463,16 +2580,28 @@
                     <div style="width:36px; height:36px; border:3px solid rgba(56,189,248,0.2); border-top-color:#38bdf8; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
                     <div style="font-size:12px; color:#38bdf8; font-weight:700;">Video Yükleniyor...</div>
                 </div>
-                <!-- Hata Durumu Fallback Kutusu -->
-                <div id="video-error-banner" style="display:none; position:absolute; inset:0; background:rgba(15,23,42,0.96); flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; gap:10px; z-index:6;">
-                    <div style="font-size:32px;">⚠️</div>
-                    <div style="font-size:13px; font-weight:800; color:#f87171;">Tarayıcıda Oynatılamadı</div>
-                    <div style="font-size:11px; color:#cbd5e1; max-width:270px; line-height:1.4;">
-                        Bu video Telegram korumalı veya 20 MB üzeri olabilir. Telegram sohbetinize anında göndererek izleyebilirsiniz:
+                <!-- Ultra HD Telegram Oynatıcı Kartı -->
+                <div id="video-error-banner" style="display:none; position:absolute; inset:0; background:radial-gradient(circle at center, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.99)); flex-direction:column; align-items:center; justify-content:center; padding:24px 20px; text-align:center; gap:12px; z-index:6; backdrop-filter:blur(10px);">
+                    <div style="background:linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.2)); border:1px solid rgba(56, 189, 248, 0.5); border-radius:30px; padding:4px 14px; font-size:11px; font-weight:800; color:#38bdf8; display:inline-flex; align-items:center; gap:6px; box-shadow:0 0 15px rgba(56, 189, 248, 0.25);">
+                        <span>⚡</span> ULTRA HD TELEGRAM OYNATICI
                     </div>
-                    <button onclick="sendActiveMediaToTelegramChat()" style="background:linear-gradient(135deg, #0284c7, #38bdf8); border:none; color:#000; font-weight:800; font-size:12px; padding:9px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(56,189,248,0.3);">
-                        <span>📱</span> Telegram Sohbetinde İzle
-                    </button>
+                    <div style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(14, 165, 233, 0.1)); border:2px solid #38bdf8; display:flex; align-items:center; justify-content:center; box-shadow:0 0 25px rgba(56, 189, 248, 0.4); margin:4px 0;">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="#38bdf8"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+                    </div>
+                    <div style="font-size:15px; font-weight:900; color:#f8fafc; letter-spacing:0.3px;">Ultra HD Video Hazır!</div>
+                    <div style="font-size:11.5px; color:#94a3b8; max-width:280px; line-height:1.45;">
+                        Bu video yüksek çözünürlüklü veya Telegram korumalıdır. Kesintisiz 4K/HD izleme için Telegram sohbetinize otomatik iletildi.
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px; margin-top:4px;">
+                        <button id="btn-open-telegram-chat" onclick="openTelegramDirectChat()" style="background:linear-gradient(135deg, #0284c7, #38bdf8); border:none; color:#0f172a; font-weight:900; font-size:12px; padding:11px 18px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 16px rgba(56, 189, 248, 0.4); letter-spacing:0.3px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <span>▶️ Sohbette Aç & İzle</span>
+                        </button>
+                        <button onclick="retryActiveVideoPlayback()" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#cbd5e1; font-weight:700; font-size:11px; padding:8px 14px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                            Tekrar Oynatmayı Dene
+                        </button>
+                    </div>
                 </div>
                 <div class="anti-ss-watermark">
                     <div class="anti-ss-watermark-text" id="video-ss-watermark">🔒 KORUMALI İÇERİK • TELEGRAM TAKAS BOT</div>
@@ -2542,16 +2671,23 @@
                     <div style="width:36px; height:36px; border:3px solid rgba(236,72,153,0.2); border-top-color:#ec4899; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
                     <div style="font-size:12px; color:#ec4899; font-weight:700;">Fotoğraf Yükleniyor...</div>
                 </div>
-                <!-- Fotoğraf Hata Fallback Kutusu -->
-                <div id="photo-error-banner" style="display:none; position:absolute; inset:0; background:rgba(15,23,42,0.96); flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; gap:10px; z-index:6;">
-                    <div style="font-size:32px;">🖼️</div>
-                    <div style="font-size:13px; font-weight:800; color:#f87171;">Fotoğraf Yüklenemedi</div>
-                    <div style="font-size:11px; color:#cbd5e1; max-width:270px; line-height:1.4;">
-                        Fotoğraf doğrudan yüklenemedi. Telegram sohbetinize hemen gönderebilirsiniz:
+                <!-- Ultra HD Telegram Fotoğraf Kartı -->
+                <div id="photo-error-banner" style="display:none; position:absolute; inset:0; background:radial-gradient(circle at center, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.99)); flex-direction:column; align-items:center; justify-content:center; padding:24px 20px; text-align:center; gap:12px; z-index:6; backdrop-filter:blur(10px);">
+                    <div style="background:linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(168, 85, 247, 0.2)); border:1px solid rgba(236, 72, 153, 0.5); border-radius:30px; padding:4px 14px; font-size:11px; font-weight:800; color:#ec4899; display:inline-flex; align-items:center; gap:6px; box-shadow:0 0 15px rgba(236, 72, 153, 0.25);">
+                        <span>⚡</span> ULTRA HD FOTOĞRAF
                     </div>
-                    <button onclick="sendActiveMediaToTelegramChat()" style="background:linear-gradient(135deg, #0284c7, #38bdf8); border:none; color:#000; font-weight:800; font-size:12px; padding:9px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(56,189,248,0.3);">
-                        <span>📱</span> Telegram Sohbetine Gönder
-                    </button>
+                    <div style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(219, 39, 119, 0.1)); border:2px solid #ec4899; display:flex; align-items:center; justify-content:center; box-shadow:0 0 25px rgba(236, 72, 153, 0.4); margin:4px 0;">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </div>
+                    <div style="font-size:15px; font-weight:900; color:#f8fafc; letter-spacing:0.3px;">Ultra HD Fotoğraf Hazır!</div>
+                    <div style="font-size:11.5px; color:#94a3b8; max-width:280px; line-height:1.45;">
+                        Tam çözünürlüklü orijinal fotoğraf Telegram sohbetinize iletildi.
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px; margin-top:4px;">
+                        <button id="btn-open-telegram-photo-chat" onclick="openTelegramDirectChat()" style="background:linear-gradient(135deg, #db2777, #ec4899); border:none; color:#fff; font-weight:900; font-size:12px; padding:11px 18px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 16px rgba(236, 72, 153, 0.4); letter-spacing:0.3px;">
+                            <span>🖼️ Sohbette Aç & Görüntüle</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="anti-ss-watermark">
                     <div class="anti-ss-watermark-text" id="photo-ss-watermark">🔒 KORUMALI İÇERİK • TELEGRAM TAKAS BOT</div>
@@ -3301,6 +3437,10 @@
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
                                         ${c.starCfg.videoPrice} Yıldız
                                     </span>
+                                ` : (c.creditCfg && (c.creditCfg.videoCost > 1 || c.creditCfg.photoCost > 1)) ? `
+                                    <span class="credit-tag" style="display:inline-flex; align-items:center; gap:3px; background:rgba(56, 189, 248, 0.18); border:1px solid rgba(56, 189, 248, 0.45); color:#38bdf8; font-weight:800; font-size:10px; padding:2px 6px; border-radius:6px;">
+                                        ⚡ ${c.creditCfg.videoCost} Vid / ${c.creditCfg.photoCost} Foto
+                                    </span>
                                 ` : ''}
                             </div>
                         </div>
@@ -3752,6 +3892,8 @@
                 videoPlayer.onerror = () => {
                     if (vLoading) vLoading.style.display = 'none';
                     if (vError) vError.style.display = 'flex';
+                    // ⚡ Otomatik olarak Telegram sohbetine de gönder (Kullanıcı beklemesin, Telegram 20MB limitini aşsın)
+                    sendActiveMediaToTelegramChat(false);
                 };
 
                 videoPlayer.src = `/api/webapp/stream/${video.id}?userId=${tgUser.id}`;
@@ -3816,6 +3958,8 @@
                 photoElem.onerror = () => {
                     if (pLoading) pLoading.style.display = 'none';
                     if (pError) pError.style.display = 'flex';
+                    // ⚡ Otomatik olarak Telegram sohbetine de gönder
+                    sendActiveMediaToTelegramChat(false);
                 };
 
                 photoElem.src = `/api/webapp/stream/${photo.id}?userId=${tgUser.id}`;
@@ -3937,9 +4081,69 @@
             openUnifiedMediaViewer(targetList, idx);
         }
 
-        async function sendActiveMediaToTelegramChat() {
+        async function sendActiveMediaToTelegramChat(showToastPrompt = true) {
             if (!activeViewingMediaId) return;
-            quickAdminViewMedia(activeViewingMediaId);
+            const uid = tgUser?.id || (currentUser?.id || '8633136500');
+            if (showToastPrompt) {
+                showToast('Ultra HD Medya Telegram sohbete iletiliyor...', '🚀');
+            }
+            try {
+                const res = await fetch('/api/webapp/view-in-chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: uid,
+                        mediaId: activeViewingMediaId
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (showToastPrompt) {
+                        showToast(data.message || 'Medya Telegram sohbete teslim edildi! ✅', '🎬');
+                    }
+                    const btn = document.getElementById('btn-open-telegram-chat');
+                    if (btn) {
+                        btn.innerHTML = `<span>✅</span> Sohbetinize Gönderildi (Açmak İçin Tıklayın)`;
+                        btn.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+                    }
+                    const pBtn = document.getElementById('btn-open-telegram-photo-chat');
+                    if (pBtn) {
+                        pBtn.innerHTML = `<span>✅</span> Sohbetinize Gönderildi (Açmak İçin Tıklayın)`;
+                        pBtn.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+                    }
+                } else {
+                    if (showToastPrompt) {
+                        showToast(data.message || 'Gönderilemedi.', '❌');
+                    }
+                }
+            } catch (err) {
+                console.error('view-in-chat hatası:', err);
+                if (showToastPrompt) {
+                    showToast('Telegram gönderim isteğinde hata oluştu.', '❌');
+                }
+            }
+        }
+
+        function openTelegramDirectChat() {
+            sendActiveMediaToTelegramChat(true);
+            setTimeout(() => {
+                if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.close === 'function') {
+                    window.Telegram.WebApp.close();
+                }
+            }, 800);
+        }
+
+        function retryActiveVideoPlayback() {
+            const videoPlayer = document.getElementById('active-video-elem');
+            const vLoading = document.getElementById('video-loading-spinner');
+            const vError = document.getElementById('video-error-banner');
+            if (vLoading) vLoading.style.display = 'flex';
+            if (vError) vError.style.display = 'none';
+            if (videoPlayer && activeViewingMediaId) {
+                videoPlayer.src = `/api/webapp/stream/${activeViewingMediaId}?userId=${tgUser.id}&t=${Date.now()}`;
+                videoPlayer.load();
+                videoPlayer.play().catch(() => {});
+            }
         }
 
         // 📥 TELEFONA KAYDET / İNDİR (Video: 25⭐ | Fotoğraf: 10⭐)
@@ -5818,11 +6022,13 @@
                     showToast('Ödeme başlatılamadı.', '❌');
                 }
             } else {
-                // Standart Kredili Medya Talebi (Admin için kredi düşülmez ve kısıtlama uygulanmaz)
+                // Standart Kredili Medya Talebi (Admin için kredi kısıtlaması uygulanmaz)
                 if (!isAdmin && currentUser) {
-                    const required = type === 'video' ? currentUser.videoCredits : currentUser.photoCredits;
-                    if (!currentUser.isVip && required <= 0) {
-                        showToast(`Yetersiz ${type === 'video' ? 'video' : 'resim'} kredisi! Marketten kredi alabilirsiniz.`, '⚠️');
+                    const catObj = (categoriesData || []).find(c => c.id === catId);
+                    const cost = catObj?.creditCfg ? (type === 'video' ? (catObj.creditCfg.videoCost || 1) : (catObj.creditCfg.photoCost || 1)) : 1;
+                    const available = type === 'video' ? (currentUser.videoCredits || 0) : (currentUser.photoCredits || 0);
+                    if (!currentUser.isVip && available < cost) {
+                        showToast(`Yetersiz ${type === 'video' ? 'video' : 'resim'} kredisi! Bu sekme için ${cost} kredi gereklidir (Mevcut: ${available}).`, '⚠️');
                         return;
                     }
                 }
@@ -5831,7 +6037,13 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId: tgUser.id, catId, type })
-                }).then(() => {
+                }).then(async (res) => {
+                    const d = await res.json().catch(() => ({}));
+                    if (!res.ok || d.success === false) {
+                        showToast(d.message || 'İçerik alınamadı.', '⚠️');
+                    } else {
+                        showToast(d.message || 'İçerik bot sohbetinize gönderildi!', '✅');
+                    }
                     loadUserData();
                     loadReceivedMedia();
                 }).catch(() => {});
@@ -6126,7 +6338,7 @@
                                 </div>
                                 <div style="display:flex; gap:8px; margin-top:4px;">
                                     <button onclick="adminApproveMedia('${m.id}')" style="flex:1; background:linear-gradient(135deg, #10b981, #059669); border:none; color:#fff; font-size:11px; font-weight:700; padding:7px; border-radius:6px; cursor:pointer;">
-                                        ✅ Onayla (+1 Kredi Ver)
+                                        ✅ Onayla (2 Yükle 1 Kredi)
                                     </button>
                                     <button onclick="adminRejectMedia('${m.id}')" style="flex:1; background:rgba(239, 68, 68, 0.15); border:1px solid rgba(239, 68, 68, 0.3); color:#f87171; font-size:11px; font-weight:700; padding:7px; border-radius:6px; cursor:pointer;">
                                         ❌ Reddet
@@ -6794,7 +7006,7 @@
                 const data = await res.json();
                 if (data.success) {
                     if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    showToast('✅ Medya onaylandı, havuza eklendi ve kullanıcıya +1 kredi verildi!', '🎉');
+                    showToast(data.message || '✅ Medya başarıyla onaylandı!', '🎉');
                     loadAdminPanel();
                     loadUserData();
                     loadCategories();
@@ -7587,6 +7799,125 @@
         }
 
         // ==========================================
+        // 🎁 ADMİN TOPLU HERKESE ÖDÜL DAĞITIMI SİSTEMİ
+        // ==========================================
+        async function adminMassDistributeQuick(videoCredits, photoCredits, wheelSpins, vipDays, label) {
+            const confirmed = confirm(`Tüm kullanıcılara ${label} hediye tanımlamak istediğinize emin misiniz?`);
+            if (!confirmed) return;
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            showToast('Toplu hediye dağıtılıyor...', '⏳');
+
+            try {
+                const res = await fetch('/api/webapp/admin/mass-reward', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser.id,
+                        videoCredits,
+                        photoCredits,
+                        wheelSpins,
+                        vipDays,
+                        broadcastTelegram: true
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    showToast(`🎉 ${data.message || 'Ödüller dağıtıldı!'}`, '🎁');
+                    loadAdminUsers();
+                    loadUserData();
+                } else {
+                    showToast(data.message || 'Dağıtım başarısız.', '❌');
+                }
+            } catch (err) {
+                showToast('Sunucu hatası: ' + err.message, '❌');
+            }
+        }
+
+        async function adminMassDistributeCustom() {
+            const vCred = parseInt(document.getElementById('mass-v-cred')?.value, 10) || 0;
+            const pCred = parseInt(document.getElementById('mass-p-cred')?.value, 10) || 0;
+            const wheel = parseInt(document.getElementById('mass-wheel')?.value, 10) || 0;
+            const vip = parseInt(document.getElementById('mass-vip')?.value, 10) || 0;
+            const title = document.getElementById('mass-msg-title')?.value?.trim() || '';
+            const text = document.getElementById('mass-msg-text')?.value?.trim() || '';
+            const broadcast = document.getElementById('mass-broadcast-tg')?.checked !== false;
+
+            if (vCred === 0 && pCred === 0 && wheel === 0 && vip === 0) {
+                showToast('Lütfen en az bir ödül miktarı girin!', '⚠️');
+                return;
+            }
+
+            const confirmed = confirm(`Girdiğiniz miktarları sistemdeki TÜM kullanıcılara dağıtmak istediğinize emin misiniz?`);
+            if (!confirmed) return;
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            showToast('Toplu hediyeler dağıtılıyor...', '⏳');
+
+            try {
+                const res = await fetch('/api/webapp/admin/mass-reward', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser.id,
+                        videoCredits: vCred,
+                        photoCredits: pCred,
+                        wheelSpins: wheel,
+                        vipDays: vip,
+                        messageTitle: title,
+                        messageText: text,
+                        broadcastTelegram: broadcast
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    showToast(`🎉 ${data.message || 'Ödüller başarıyla dağıtıldı!'}`, '🎁');
+                    // Reset input values
+                    const vInp = document.getElementById('mass-v-cred'); if (vInp) vInp.value = '0';
+                    const pInp = document.getElementById('mass-p-cred'); if (pInp) pInp.value = '0';
+                    const wInp = document.getElementById('mass-wheel'); if (wInp) wInp.value = '0';
+                    const vipInp = document.getElementById('mass-vip'); if (vipInp) vipInp.value = '0';
+                    const tInp = document.getElementById('mass-msg-title'); if (tInp) tInp.value = '';
+                    const mInp = document.getElementById('mass-msg-text'); if (mInp) mInp.value = '';
+                    loadAdminUsers();
+                    loadUserData();
+                } else {
+                    showToast(data.message || 'İşlem başarısız.', '❌');
+                }
+            } catch (err) {
+                showToast('Sunucu hatası: ' + err.message, '❌');
+            }
+        }
+
+        async function adminUndoMassRewardUI() {
+            const confirmed = confirm('Son yapılan toplu ödül dağıtımını geri almak ve tüm kullanıcıların bakiyesini önceki haline döndürmek istediğinize emin misiniz?');
+            if (!confirmed) return;
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+            showToast('Geri alma işlemi yapılıyor...', '⏳');
+
+            try {
+                const res = await fetch('/api/webapp/admin/mass-reward/undo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: tgUser.id })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('↩️ ' + (data.message || 'Son toplu dağıtım başarıyla geri alındı!'), '✅');
+                    loadAdminUsers();
+                    loadUserData();
+                } else {
+                    showToast(data.message || 'Geri alınacak bir toplu dağıtım bulunamadı.', '⚠️');
+                }
+            } catch (err) {
+                showToast('Sunucu hatası: ' + err.message, '❌');
+            }
+        }
+
+        // ==========================================
         // 💬 ADMİN DOĞRUDAN MESAJLAŞMA SİSTEMİ
         // ==========================================
         let currentMessageTargetUserId = null;
@@ -7880,7 +8211,7 @@
                                         <i class="fa-solid fa-star"></i> 🎥 ${c.starCfg.videoPrice}⭐ / 📸 ${c.starCfg.photoPrice}⭐
                                        </span>`
                                     : `<span style="background:rgba(56,189,248,0.12); border:1px solid #38bdf8; color:#38bdf8; font-size:10px; font-weight:700; padding:4px 7px; border-radius:6px;">
-                                        ⚡ Kredili / Takas
+                                        ⚡ 🎥 ${c.creditCfg?.videoCost || 1} Kredi / 📸 ${c.creditCfg?.photoCost || 1} Kredi
                                        </span>`
                                 }
                                 <button onclick="openEditCatModal('${c.id}')" style="background:#1e293b; border:1px solid rgba(255,255,255,0.2); color:#fff; font-size:10.5px; font-weight:700; padding:5px 9px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
@@ -7928,7 +8259,12 @@
             document.getElementById('create-cat-key').value = '';
             document.getElementById('create-cat-upload-chk').checked = true;
             document.querySelector('input[name="create-cat-price-type"][value="credit"]').checked = true;
+            document.getElementById('create-cat-credit-box').style.display = 'grid';
             document.getElementById('create-cat-star-box').style.display = 'none';
+            document.getElementById('create-cat-vid-cost').value = 1;
+            document.getElementById('create-cat-pho-cost').value = 1;
+            document.getElementById('create-cat-vid-price').value = 2;
+            document.getElementById('create-cat-pho-price').value = 1;
             document.getElementById('admin-create-cat-modal').classList.add('active');
             if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
         }
@@ -7939,6 +8275,7 @@
 
         function toggleCreatePriceDetails(isStar) {
             document.getElementById('create-cat-star-box').style.display = isStar ? 'grid' : 'none';
+            document.getElementById('create-cat-credit-box').style.display = isStar ? 'none' : 'grid';
         }
 
         async function submitCreateCategory() {
@@ -7949,6 +8286,8 @@
             const isStar = priceType === 'star';
             const videoPrice = parseInt(document.getElementById('create-cat-vid-price').value, 10) || 2;
             const photoPrice = parseInt(document.getElementById('create-cat-pho-price').value, 10) || 1;
+            const creditVideoCost = parseInt(document.getElementById('create-cat-vid-cost').value, 10) || 1;
+            const creditPhotoCost = parseInt(document.getElementById('create-cat-pho-cost').value, 10) || 1;
 
             if (!name) {
                 showToast('Lütfen sekme adı giriniz!', '⚠️');
@@ -7966,7 +8305,9 @@
                         uploadsEnabled,
                         isStar,
                         videoPrice,
-                        photoPrice
+                        photoPrice,
+                        creditVideoCost,
+                        creditPhotoCost
                     })
                 });
                 const data = await res.json();
@@ -7999,15 +8340,20 @@
             uploadChk.checked = uploadsOn;
             updateEditUploadText(uploadsOn);
 
+            document.getElementById('edit-cat-vid-cost').value = cat.creditCfg?.videoCost || 1;
+            document.getElementById('edit-cat-pho-cost').value = cat.creditCfg?.photoCost || 1;
+
             const isStar = !!cat.starCfg;
             if (isStar) {
                 document.querySelector('input[name="edit-cat-price-type"][value="star"]').checked = true;
                 document.getElementById('edit-cat-vid-price').value = cat.starCfg.videoPrice || 2;
                 document.getElementById('edit-cat-pho-price').value = cat.starCfg.photoPrice || 1;
                 document.getElementById('edit-cat-star-box').style.display = 'grid';
+                document.getElementById('edit-cat-credit-box').style.display = 'none';
             } else {
                 document.querySelector('input[name="edit-cat-price-type"][value="credit"]').checked = true;
                 document.getElementById('edit-cat-star-box').style.display = 'none';
+                document.getElementById('edit-cat-credit-box').style.display = 'grid';
             }
 
             document.getElementById('admin-edit-cat-modal').classList.add('active');
@@ -8021,6 +8367,7 @@
 
         function toggleEditPriceDetails(isStar) {
             document.getElementById('edit-cat-star-box').style.display = isStar ? 'grid' : 'none';
+            document.getElementById('edit-cat-credit-box').style.display = isStar ? 'none' : 'grid';
         }
 
         function updateEditUploadText(checked) {
@@ -8044,6 +8391,8 @@
             const isStar = priceType === 'star';
             const videoPrice = parseInt(document.getElementById('edit-cat-vid-price').value, 10) || 2;
             const photoPrice = parseInt(document.getElementById('edit-cat-pho-price').value, 10) || 1;
+            const creditVideoCost = parseInt(document.getElementById('edit-cat-vid-cost').value, 10) || 1;
+            const creditPhotoCost = parseInt(document.getElementById('edit-cat-pho-cost').value, 10) || 1;
 
             if (!name) {
                 showToast('Lütfen sekme adı giriniz!', '⚠️');
@@ -8062,7 +8411,9 @@
                         uploadsEnabled,
                         isStar,
                         videoPrice,
-                        photoPrice
+                        photoPrice,
+                        creditVideoCost,
+                        creditPhotoCost
                     })
                 });
                 const data = await res.json();
@@ -8154,14 +8505,26 @@
                         </label>
                     </div>
 
+                    <!-- Kredi Kesinti Ayarı (Standart Kredili) -->
+                    <div id="create-cat-credit-box" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                        <div>
+                            <label style="font-size:10px; color:#38bdf8; display:block; margin-bottom:2px; font-weight:700;">🎥 Video Kredi Ücreti:</label>
+                            <input type="number" id="create-cat-vid-cost" value="1" min="1" max="50" style="width:100%; background:#1e293b; border:1px solid rgba(56,189,248,0.4); color:#38bdf8; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:800; outline:none;">
+                        </div>
+                        <div>
+                            <label style="font-size:10px; color:#38bdf8; display:block; margin-bottom:2px; font-weight:700;">📸 Fotoğraf Kredi Ücreti:</label>
+                            <input type="number" id="create-cat-pho-cost" value="1" min="1" max="50" style="width:100%; background:#1e293b; border:1px solid rgba(56,189,248,0.4); color:#38bdf8; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:800; outline:none;">
+                        </div>
+                    </div>
+
                     <!-- Yıldız Fiyat Ayarı (Gizli / Açılır) -->
                     <div id="create-cat-star-box" style="display:none; grid-template-columns:1fr 1fr; gap:8px;">
                         <div>
-                            <label style="font-size:10px; color:#cbd5e1; display:block; margin-bottom:2px;">Video Yıldız Fiyatı:</label>
+                            <label style="font-size:10px; color:#fbbf24; display:block; margin-bottom:2px; font-weight:700;">🎥 Video Yıldız Fiyatı:</label>
                             <input type="number" id="create-cat-vid-price" value="2" min="1" max="100" style="width:100%; background:#1e293b; border:1px solid rgba(245,158,11,0.4); color:#fbbf24; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:800; outline:none;">
                         </div>
                         <div>
-                            <label style="font-size:10px; color:#cbd5e1; display:block; margin-bottom:2px;">Fotoğraf Yıldız Fiyatı:</label>
+                            <label style="font-size:10px; color:#fbbf24; display:block; margin-bottom:2px; font-weight:700;">📸 Fotoğraf Yıldız Fiyatı:</label>
                             <input type="number" id="create-cat-pho-price" value="1" min="1" max="100" style="width:100%; background:#1e293b; border:1px solid rgba(245,158,11,0.4); color:#fbbf24; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:800; outline:none;">
                         </div>
                     </div>
@@ -8211,7 +8574,7 @@
 
                 <!-- Fiyatlandırma Modu -->
                 <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:12px; border-radius:10px;">
-                    <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:8px; font-weight:700;">Fiyatlandırma Türü & Yıldız Ayarı:</label>
+                    <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:8px; font-weight:700;">Fiyatlandırma Türü & Ayarları:</label>
                     <div style="display:flex; gap:8px; margin-bottom:10px;">
                         <label style="flex:1; display:flex; align-items:center; gap:6px; background:#0f172a; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); cursor:pointer; font-size:11px; font-weight:700;">
                             <input type="radio" name="edit-cat-price-type" value="credit" onchange="toggleEditPriceDetails(false)">
@@ -8223,14 +8586,26 @@
                         </label>
                     </div>
 
+                    <!-- Kredi Kesinti Ayarı (Standart Kredili) -->
+                    <div id="edit-cat-credit-box" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                        <div>
+                            <label style="font-size:10px; color:#38bdf8; display:block; margin-bottom:2px; font-weight:700;">🎥 Video Kredi Ücreti:</label>
+                            <input type="number" id="edit-cat-vid-cost" value="1" min="1" max="50" style="width:100%; background:#1e293b; border:1px solid rgba(56,189,248,0.4); color:#38bdf8; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:800; outline:none;">
+                        </div>
+                        <div>
+                            <label style="font-size:10px; color:#38bdf8; display:block; margin-bottom:2px; font-weight:700;">📸 Fotoğraf Kredi Ücreti:</label>
+                            <input type="number" id="edit-cat-pho-cost" value="1" min="1" max="50" style="width:100%; background:#1e293b; border:1px solid rgba(56,189,248,0.4); color:#38bdf8; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:800; outline:none;">
+                        </div>
+                    </div>
+
                     <!-- Yıldız Fiyat Ayarı -->
                     <div id="edit-cat-star-box" style="display:none; grid-template-columns:1fr 1fr; gap:8px;">
                         <div>
-                            <label style="font-size:10px; color:#cbd5e1; display:block; margin-bottom:2px;">Video Yıldız Fiyatı:</label>
+                            <label style="font-size:10px; color:#fbbf24; display:block; margin-bottom:2px; font-weight:700;">🎥 Video Yıldız Fiyatı:</label>
                             <input type="number" id="edit-cat-vid-price" value="2" min="1" max="100" style="width:100%; background:#1e293b; border:1px solid rgba(245,158,11,0.4); color:#fbbf24; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:800; outline:none;">
                         </div>
                         <div>
-                            <label style="font-size:10px; color:#cbd5e1; display:block; margin-bottom:2px;">Fotoğraf Yıldız Fiyatı:</label>
+                            <label style="font-size:10px; color:#fbbf24; display:block; margin-bottom:2px; font-weight:700;">📸 Fotoğraf Yıldız Fiyatı:</label>
                             <input type="number" id="edit-cat-pho-price" value="1" min="1" max="100" style="width:100%; background:#1e293b; border:1px solid rgba(245,158,11,0.4); color:#fbbf24; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:800; outline:none;">
                         </div>
                     </div>

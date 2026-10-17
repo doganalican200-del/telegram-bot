@@ -86,8 +86,12 @@ function loadDb() {
                 if (u.warnings === undefined) u.warnings = 0;
                 if (u.activeUploadCategory === undefined) u.activeUploadCategory = null;
                 if (u.wheelSpins === undefined) u.wheelSpins = 0;
-                if (u.photoProgress === undefined) u.photoProgress = 0;
-                if (u.videoProgress === undefined) u.videoProgress = 0;
+                if (u.photoProgress === undefined || typeof u.photoProgress !== 'number' || isNaN(u.photoProgress) || u.photoProgress < 0 || u.photoProgress >= 2) {
+                    u.photoProgress = Math.max(0, parseInt(u.photoProgress, 10) || 0) % 2;
+                }
+                if (u.videoProgress === undefined || typeof u.videoProgress !== 'number' || isNaN(u.videoProgress) || u.videoProgress < 0 || u.videoProgress >= 2) {
+                    u.videoProgress = Math.max(0, parseInt(u.videoProgress, 10) || 0) % 2;
+                }
             }
 
             // Kategori kontrolü ve migrasyonu
@@ -815,7 +819,7 @@ function getBannedUsers() {
     return Object.values(db.users).filter(u => u.isBanned);
 }
 
-// Medyayı onayla
+// Medyayı onayla (2 Yükle 1 Al kuralı: Her 2 resim için 1 resim kredisi, her 2 video için 1 video kredisi)
 function approveMedia(mediaId) {
     const db = loadDb();
     const item = db.media.find(m => m.id === mediaId);
@@ -830,17 +834,30 @@ function approveMedia(mediaId) {
         user = res.user;
     }
     let creditAwarded = false;
+    let currentProgress = 0;
 
     if (user) {
         if (item.type === 'photo') {
             user.uploadedPhotos = (user.uploadedPhotos || 0) + 1;
-            user.photoCredits = (user.photoCredits || 0) + 1;
-            creditAwarded = true;
+            user.photoProgress = (user.photoProgress || 0) + 1;
+            if (user.photoProgress >= 2) {
+                user.photoCredits = (user.photoCredits || 0) + 1;
+                user.photoProgress = 0;
+                creditAwarded = true;
+            }
+            currentProgress = user.photoProgress;
         } else if (item.type === 'video') {
             user.uploadedVideos = (user.uploadedVideos || 0) + 1;
-            user.videoCredits = (user.videoCredits || 0) + 1;
-            creditAwarded = true;
+            user.videoProgress = (user.videoProgress || 0) + 1;
+            if (user.videoProgress >= 2) {
+                user.videoCredits = (user.videoCredits || 0) + 1;
+                user.videoProgress = 0;
+                creditAwarded = true;
+            }
+            currentProgress = user.videoProgress;
         }
+
+        item.creditAwarded = creditAwarded;
 
         // Onaylanan medyasını kullanıcının kendi arşivinde (Aldıklarım) görebilmesi için seenMedia'ya ekle
         if (!Array.isArray(user.seenMedia)) user.seenMedia = [];
@@ -850,7 +867,7 @@ function approveMedia(mediaId) {
     }
 
     saveDb();
-    return { success: true, media: item, user, creditAwarded };
+    return { success: true, media: item, user, creditAwarded, currentProgress };
 }
 
 // Medyayı reddet
@@ -876,11 +893,22 @@ function undoApproveMedia(mediaId) {
     if (user) {
         if (item.type === 'photo') {
             user.uploadedPhotos = Math.max(0, (user.uploadedPhotos || 0) - 1);
-            user.photoCredits = Math.max(0, (user.photoCredits || 0) - 1);
+            if (item.creditAwarded) {
+                user.photoCredits = Math.max(0, (user.photoCredits || 0) - 1);
+                user.photoProgress = 1;
+            } else {
+                user.photoProgress = Math.max(0, (user.photoProgress || 0) - 1);
+            }
         } else if (item.type === 'video') {
             user.uploadedVideos = Math.max(0, (user.uploadedVideos || 0) - 1);
-            user.videoCredits = Math.max(0, (user.videoCredits || 0) - 1);
+            if (item.creditAwarded) {
+                user.videoCredits = Math.max(0, (user.videoCredits || 0) - 1);
+                user.videoProgress = 1;
+            } else {
+                user.videoProgress = Math.max(0, (user.videoProgress || 0) - 1);
+            }
         }
+        item.creditAwarded = false;
         if (Array.isArray(user.seenMedia)) {
             user.seenMedia = user.seenMedia.filter(id => id !== item.id);
         }
@@ -1026,6 +1054,15 @@ function getStarCategories() {
     return result;
 }
 
+// 💳 Sekmenin Kredi Kesinti Miktarını Getir (Varsayılan 1 Kredi)
+function getCategoryCreditCost(catId, type) {
+    if (!catId) return 1;
+    const cat = getCategory(catId);
+    if (!cat || !cat.creditCfg) return 1;
+    const cost = type === 'video' ? cat.creditCfg.videoCost : cat.creditCfg.photoCost;
+    return Math.max(1, parseInt(cost, 10) || 1);
+}
+
 // 📤 Kullanıcının bu kategoriye yükleme yapma izni var mı?
 function isCategoryUploadEnabled(catId, userId) {
     if (userId && isAdminUser(userId)) return true;
@@ -1049,7 +1086,7 @@ function toggleCategoryUpload(catId, enabled = null) {
 }
 
 // 💰 Sekme Fiyatlandırmasını Güncelle (Yıldızlı vs Kredili)
-function updateCategoryPricing(catId, starCfg = null) {
+function updateCategoryPricing(catId, starCfg = null, creditCfg = null) {
     const db = loadDb();
     const cat = db.categories.find(c => c.id === catId);
     if (!cat) return null;
@@ -1062,12 +1099,20 @@ function updateCategoryPricing(catId, starCfg = null) {
             photoPrice: Math.max(1, parseInt(starCfg.photoPrice, 10) || 1)
         };
     }
+
+    if (creditCfg) {
+        cat.creditCfg = {
+            videoCost: Math.max(1, parseInt(creditCfg.videoCost, 10) || 1),
+            photoCost: Math.max(1, parseInt(creditCfg.photoCost, 10) || 1)
+        };
+    }
+
     saveDb();
     return cat;
 }
 
 // ➕ Yeni Sekme Oluştur
-function addCategory({ name, key, uploadsEnabled = true, starCfg = null }) {
+function addCategory({ name, key, uploadsEnabled = true, starCfg = null, creditCfg = null }) {
     const db = loadDb();
     if (!db.categories) db.categories = [];
 
@@ -1101,7 +1146,11 @@ function addCategory({ name, key, uploadsEnabled = true, starCfg = null }) {
         starCfg: starCfg && (starCfg.videoPrice > 0 || starCfg.photoPrice > 0) ? {
             videoPrice: Math.max(1, parseInt(starCfg.videoPrice, 10) || 1),
             photoPrice: Math.max(1, parseInt(starCfg.photoPrice, 10) || 1)
-        } : null
+        } : null,
+        creditCfg: creditCfg ? {
+            videoCost: Math.max(1, parseInt(creditCfg.videoCost, 10) || 1),
+            photoCost: Math.max(1, parseInt(creditCfg.photoCost, 10) || 1)
+        } : { videoCost: 1, photoCost: 1 }
     };
 
     db.categories.push(newCat);
@@ -1109,7 +1158,7 @@ function addCategory({ name, key, uploadsEnabled = true, starCfg = null }) {
     return newCat;
 }
 
-// ✏️ Sekme Bilgilerini Güncelle (İsim, Harf, Yükleme Durumu, Yıldız Fiyatı)
+// ✏️ Sekme Bilgilerini Güncelle (İsim, Harf, Yükleme Durumu, Yıldız Fiyatı, Kredi Ücreti)
 function updateCategory(catId, updates = {}) {
     const db = loadDb();
     const cat = db.categories.find(c => c.id === catId);
@@ -1125,6 +1174,16 @@ function updateCategory(catId, updates = {}) {
             cat.starCfg = {
                 videoPrice: Math.max(1, parseInt(updates.starCfg.videoPrice, 10) || 1),
                 photoPrice: Math.max(1, parseInt(updates.starCfg.photoPrice, 10) || 1)
+            };
+        }
+    }
+    if (updates.creditCfg !== undefined) {
+        if (!updates.creditCfg) {
+            cat.creditCfg = { videoCost: 1, photoCost: 1 };
+        } else {
+            cat.creditCfg = {
+                videoCost: Math.max(1, parseInt(updates.creditCfg.videoCost, 10) || 1),
+                photoCost: Math.max(1, parseInt(updates.creditCfg.photoCost, 10) || 1)
             };
         }
     }
@@ -1309,14 +1368,16 @@ function getRandomMedia(userId, type, categoryId = null, skipCreditDeduct = fals
     }
     user.alRobotInteractions = (user.alRobotInteractions || 0) + 1;
 
-    // SAYIDAN DÜŞME: VIP üyeliği yoksa ve skipCreditDeduct false ise 1 kredi düşülür
+    // SAYIDAN DÜŞME: VIP üyeliği yoksa ve skipCreditDeduct false ise kategorinin kredi ücreti kadar düşülür
+    const effectiveCatId = categoryId || selected.categoryId;
+    const creditCost = getCategoryCreditCost(effectiveCatId, type);
     const vipStatus = isUserVip(uid);
     if (!vipStatus.isVip && !skipCreditDeduct) {
         if (type === 'photo') {
-            user.photoCredits = Math.max(0, (user.photoCredits || 0) - 1);
+            user.photoCredits = Math.max(0, (user.photoCredits || 0) - creditCost);
             user.receivedPhotos = (user.receivedPhotos || 0) + 1;
         } else if (type === 'video') {
-            user.videoCredits = Math.max(0, (user.videoCredits || 0) - 1);
+            user.videoCredits = Math.max(0, (user.videoCredits || 0) - creditCost);
             user.receivedVideos = (user.receivedVideos || 0) + 1;
         }
     } else {
@@ -1630,6 +1691,7 @@ module.exports = {
     getCategory,
     updateCategoryName,
     getStarCategories,
+    getCategoryCreditCost,
     isCategoryUploadEnabled,
     toggleCategoryUpload,
     updateCategoryPricing,
@@ -1703,7 +1765,9 @@ module.exports = {
     adminUndoUserAction,
     addUserNotification,
     getUserNotifications,
-    markUserNotificationsRead
+    markUserNotificationsRead,
+    massDistributeRewards,
+    undoLastMassReward
 };
 
 // ==========================================
@@ -2510,11 +2574,9 @@ function autoHealUser(userId) {
         }
     }
 
-    // 5. İlerleme sayacı senkronizasyonu (Kafasına göre kredi dağıtımı yapmaz)
-    const approvedUploads = (db.media || []).filter(m => String(m.uploadedBy) === uid && m.status === 'approved').length;
-    if (approvedUploads > 0 && (user.videoProgress || 0) < approvedUploads) {
-        user.videoProgress = approvedUploads;
-    }
+    // 5. İlerleme sayacı senkronizasyonu (2 Yükle 1 Al: 0 veya 1 döngüsü)
+    user.photoProgress = (user.uploadedPhotos || 0) % 2;
+    user.videoProgress = (user.uploadedVideos || 0) % 2;
 
     if (fixes.length > 0) {
         saveDb();
@@ -2607,6 +2669,113 @@ function autoHealSystem() {
         repairedMedia,
         repairedUsers,
         fixes
+    };
+}
+
+// ==========================================
+// 🎁 TOPLU HERKESE ÖDÜL DAĞITMA SİSTEMİ & GERİ ALMA (UNDO)
+// ==========================================
+function massDistributeRewards({ videoCredits = 0, photoCredits = 0, wheelSpins = 0, vipDays = 0, messageTitle = '🎁 Toplu Yönetici Hediyesi!', messageText = '' }) {
+    const db = loadDb();
+    const users = db.users || {};
+    const affectedUserIds = [];
+    const previousStates = {};
+
+    const vCred = parseInt(videoCredits, 10) || 0;
+    const pCred = parseInt(photoCredits, 10) || 0;
+    const spins = parseInt(wheelSpins, 10) || 0;
+    const vDays = parseInt(vipDays, 10) || 0;
+
+    const now = Date.now();
+    for (const [uid, user] of Object.entries(users)) {
+        previousStates[uid] = {
+            photoCredits: user.photoCredits || 0,
+            videoCredits: user.videoCredits || 0,
+            wheelSpins: user.wheelSpins || 0,
+            vipUntil: user.vipUntil || null
+        };
+
+        if (pCred !== 0) user.photoCredits = Math.max(0, (user.photoCredits || 0) + pCred);
+        if (vCred !== 0) user.videoCredits = Math.max(0, (user.videoCredits || 0) + vCred);
+        if (spins !== 0) user.wheelSpins = Math.max(0, (user.wheelSpins || 0) + spins);
+
+        if (vDays > 0) {
+            const currentVip = user.vipUntil ? new Date(user.vipUntil).getTime() : now;
+            const base = currentVip > now ? currentVip : now;
+            user.vipUntil = new Date(base + (vDays * 24 * 60 * 60 * 1000)).toISOString();
+        }
+
+        // Uygulama içi bildirim ekle
+        if (!db.userMessages) db.userMessages = {};
+        if (!db.userMessages[uid]) db.userMessages[uid] = [];
+
+        const rewardSummary = [];
+        if (vCred > 0) rewardSummary.push(`🎥 +${vCred} Video Kredisi`);
+        if (pCred > 0) rewardSummary.push(`📸 +${pCred} Resim Kredisi`);
+        if (spins > 0) rewardSummary.push(`🎡 +${spins} Şans Çarkı`);
+        if (vDays > 0) rewardSummary.push(`👑 +${vDays} Gün VIP`);
+
+        const defaultBody = `Yönetici tüm kullanıcılara hediye dağıttı!\n\nTanımlanan Hediyeler:\n${rewardSummary.join('\n')}\n\nKeyifli kullanımlar dileriz!`;
+
+        db.userMessages[uid].unshift({
+            id: 'msg_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            title: messageTitle || '🎁 Toplu Yönetici Hediyesi!',
+            text: messageText ? `${messageText}\n\n${rewardSummary.join('\n')}` : defaultBody,
+            sender: 'Yönetici',
+            read: false,
+            createdAt: new Date().toISOString()
+        });
+
+        affectedUserIds.push(uid);
+    }
+
+    const logEntry = {
+        id: 'mass_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        rewards: { videoCredits: vCred, photoCredits: pCred, wheelSpins: spins, vipDays: vDays },
+        previousStates,
+        totalUsers: affectedUserIds.length
+    };
+
+    if (!db.massRewardLogs) db.massRewardLogs = [];
+    db.massRewardLogs.push(logEntry);
+    if (db.massRewardLogs.length > 20) db.massRewardLogs = db.massRewardLogs.slice(-20);
+
+    saveDb();
+    return {
+        success: true,
+        affectedCount: affectedUserIds.length,
+        rewards: { videoCredits: vCred, photoCredits: pCred, wheelSpins: spins, vipDays: vDays },
+        logId: logEntry.id
+    };
+}
+
+function undoLastMassReward() {
+    const db = loadDb();
+    if (!Array.isArray(db.massRewardLogs) || db.massRewardLogs.length === 0) {
+        return { success: false, message: 'Geri alınacak bir toplu dağıtım işlemi bulunamadı.' };
+    }
+
+    const lastLog = db.massRewardLogs.pop();
+    const prevStates = lastLog.previousStates || {};
+
+    let restoredCount = 0;
+    for (const [uid, prevState] of Object.entries(prevStates)) {
+        const user = db.users[uid];
+        if (user) {
+            user.photoCredits = prevState.photoCredits;
+            user.videoCredits = prevState.videoCredits;
+            user.wheelSpins = prevState.wheelSpins;
+            user.vipUntil = prevState.vipUntil;
+            restoredCount++;
+        }
+    }
+
+    saveDb();
+    return {
+        success: true,
+        message: `Son yapılan toplu ödül dağıtımı geri alındı! (${restoredCount} kullanıcının bakiyesi eski haline döndürüldü)`,
+        restoredCount
     };
 }
 

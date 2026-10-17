@@ -1541,9 +1541,10 @@ async function processSuccessfulPayment(userId, payload, totalAmount, userMeta =
         let isVideo = false;
 
         if (payload.startsWith('cat_star_')) {
-            const parts = payload.split('_'); // ['cat', 'star', 'cat_1', 'video']
-            targetCatId = parts[2];
-            isVideo = parts[3] === 'video';
+            const raw = payload.replace('cat_star_', '');
+            const lastUnderscore = raw.lastIndexOf('_');
+            targetCatId = raw.substring(0, lastUnderscore);
+            isVideo = raw.substring(lastUnderscore + 1) === 'video';
         } else if (payload.startsWith('ifsa_')) {
             targetCatId = 'cat_3';
             isVideo = payload === 'ifsa_video_single';
@@ -2011,18 +2012,23 @@ async function sendMediaToUser(ctx, type, categoryId = null, requestedCount = 1)
         );
     }
 
+    const singleCost = db.getCategoryCreditCost ? db.getCategoryCreditCost(categoryId, type) : 1;
+    const neededCredits = targetCount * singleCost;
+
     // Yetersiz Kredi (İstenen miktar mevcut bakiyeden fazla ise)
-    if (!vip.isVip && credits < targetCount) {
-        await ctx.answerCbQuery(`❌ Yetersiz Kredi! (${targetCount} adet istediniz, bakiyeniz: ${credits})`, { show_alert: true }).catch(() => {});
+    if (!vip.isVip && credits < neededCredits) {
+        await ctx.answerCbQuery(`❌ Yetersiz Kredi! (${targetCount} adet için ${neededCredits} kredi gerekir, bakiyeniz: ${credits})`, { show_alert: true }).catch(() => {});
+        const maxAffordable = Math.floor(credits / singleCost);
         return ctx.reply(
             `❌ <b>Yetersiz ${typeLabel} Kredisi!</b>\n\n` +
-            `Talep Ettiğiniz: <b>${targetCount} Adet ${typeLabel}</b>\n` +
-            `Mevcut Bakiyeniz: <b>${credits} Adet ${typeLabel}</b>\n\n` +
+            `Talep Ettiğiniz: <b>${targetCount} Adet ${typeLabel}</b> ${singleCost > 1 ? `(Sekme Ücreti: <code>${singleCost} Kredi/adet</code>)` : ''}\n` +
+            `Gereken Toplam: <b>${neededCredits} Kredi</b>\n` +
+            `Mevcut Bakiyeniz: <b>${credits} Adet ${typeLabel} Kredisi</b>\n\n` +
             `Mevcut kredinizle alabileceğiniz miktarı seçebilir veya Paket Marketinden kredi satın alabilirsiniz:`,
             {
                 parse_mode: 'HTML',
                 ...Markup.inlineKeyboard([
-                    credits > 0 ? [Markup.button.callback(`⚡ Mevcut Kredinizle Al (${credits} Adet)`, `take_media_${cat ? cat.id : 'all'}_${type}_${credits}`)] : [],
+                    maxAffordable > 0 ? [Markup.button.callback(`⚡ Mevcut Kredinizle Al (${maxAffordable} Adet)`, `take_media_${cat ? cat.id : 'all'}_${type}_${maxAffordable}`)] : [],
                     [
                         Markup.button.callback(`⭐ 1 Yıldız = 1 ${typeLabel}`, isVideo ? 'buy_vid_1' : 'buy_pho_1'),
                         Markup.button.callback('⭐ Paket Marketi', 'menu_packages')
@@ -2099,7 +2105,7 @@ async function sendMediaToUser(ctx, type, categoryId = null, requestedCount = 1)
             sentCount++;
         } catch (sendErr) {
             console.error(`${typeLabel} gönderme hatası:`, sendErr.message);
-            if (!vip.isVip) db.updateCredits(userId, type, 1);
+            if (!vip.isVip) db.updateCredits(userId, type, singleCost);
             db.removeSeenMedia(userId, media.id);
         }
 
@@ -3183,12 +3189,15 @@ bot.action(/admin_app_(.+)/, async (ctx) => {
 
     const typeLabel = res.media.type === 'photo' ? 'Resim' : 'Video';
     const newCredit = res.media.type === 'photo' ? res.user.photoCredits : res.user.videoCredits;
+    const progressMsg = res.creditAwarded
+        ? `🎉 <b>Tebrikler!</b> 2 adet ${typeLabel.toLowerCase()} yüklemeniz tamamlandı!\n💰 Hesabınıza <b>+1 ${typeLabel} Kredisi</b> yüklendi. (Mevcut: <code>${newCredit}</code>)`
+        : `✅ Gönderdiğiniz ${typeLabel.toLowerCase()} yönetici tarafından <b>onaylandı</b> ve takas havuzuna eklendi!\n📊 <b>İlerleme: 1/2</b> (2 Yükle 1 Al: 1 adet daha ${typeLabel.toLowerCase()} onaylandığında +1 Kredi kazanacaksınız!)`;
 
     // Yükleyen kullanıcıya onay ve kredi bildirimi gönder
     if (res.media && res.media.uploadedBy) {
         bot.telegram.sendMessage(
             res.media.uploadedBy,
-            `🎉 <b>Tebrikler!</b> Gönderdiğiniz ${typeLabel.toLowerCase()} yönetici tarafından <b>onaylandı</b> ve takas havuzuna eklendi!\n\n💰 Hesabınıza <b>+1 ${typeLabel} Kredisi</b> yüklendi. (Mevcut: <code>${newCredit}</code>)`,
+            `🔔 <b>MEDYA ONAY BİLDİRİMİ</b>\n\n${progressMsg}`,
             {
                 parse_mode: 'HTML',
                 ...Markup.inlineKeyboard([
@@ -3265,7 +3274,7 @@ bot.action(/admin_undo_app_(.+)/, async (ctx) => {
     const pendingKeyboard = {
         inline_keyboard: [
             [
-                { text: '✅ Onayla (+1 Kredi Ver)', callback_data: `admin_app_${mediaId}` },
+                { text: '✅ Onayla (2 Yükle 1 Kredi)', callback_data: `admin_app_${mediaId}` },
                 { text: '❌ Reddet', callback_data: `admin_rej_${mediaId}` }
             ],
             [
@@ -3317,7 +3326,7 @@ bot.action(/admin_undo_rej_(.+)/, async (ctx) => {
     const pendingKeyboard = {
         inline_keyboard: [
             [
-                { text: '✅ Onayla (+1 Kredi Ver)', callback_data: `admin_app_${mediaId}` },
+                { text: '✅ Onayla (2 Yükle 1 Kredi)', callback_data: `admin_app_${mediaId}` },
                 { text: '❌ Reddet', callback_data: `admin_rej_${mediaId}` }
             ],
             [
@@ -3382,7 +3391,7 @@ bot.action(/admin_setcat_([^_]+)_(.+)/, async (ctx) => {
     const pendingKeyboard = {
         inline_keyboard: [
             [
-                { text: '✅ Onayla (+1 Kredi Ver)', callback_data: `admin_app_${mediaId}` },
+                { text: '✅ Onayla (2 Yükle 1 Kredi)', callback_data: `admin_app_${mediaId}` },
                 { text: '❌ Reddet', callback_data: `admin_rej_${mediaId}` }
             ],
             [
@@ -3413,7 +3422,7 @@ bot.action(/admin_back_(.+)/, async (ctx) => {
     const pendingKeyboard = {
         inline_keyboard: [
             [
-                { text: '✅ Onayla (+1 Kredi Ver)', callback_data: `admin_app_${mediaId}` },
+                { text: '✅ Onayla (2 Yükle 1 Kredi)', callback_data: `admin_app_${mediaId}` },
                 { text: '❌ Reddet', callback_data: `admin_rej_${mediaId}` }
             ],
             [

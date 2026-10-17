@@ -246,9 +246,26 @@ async function resolveTelegramFileLink(fileId, activeBot) {
 
 // 🚀 Evrensel Cross-Bot Güvenli Medya Gönderici (Hem aktif bot hem fallback bot garantili)
 async function sendTelegramMediaUniversal(targetBot, recipientId, media, options = {}) {
-    if (!media || !media.fileId) throw new Error('Medya veya fileId bulunamadı');
+    if (!media) throw new Error('Medya bulunamadı');
     const isVideo = media.type === 'video';
     const fileId = media.fileId;
+    const localFile = media.localPath && fs.existsSync(media.localPath) ? media.localPath :
+                      (fs.existsSync(path.join(__dirname, 'media_store', `${media.id}${isVideo ? '.mp4' : '.jpg'}`)) ? path.join(__dirname, 'media_store', `${media.id}${isVideo ? '.mp4' : '.jpg'}`) : null);
+
+    // 0. Öncelik: Eğer medya yerel diskte varsa doğrudan disk kaynağından gönder (2GB'a kadar limitsiz!)
+    if (localFile && targetBot) {
+        try {
+            if (isVideo) {
+                return await targetBot.telegram.sendVideo(recipientId, { source: localFile }, options);
+            } else {
+                return await targetBot.telegram.sendPhoto(recipientId, { source: localFile }, options);
+            }
+        } catch (localSendErr) {
+            console.warn('Yerel dosyadan gönderim başarısız oldu, fileId ile devam ediliyor:', localSendErr.message);
+        }
+    }
+
+    if (!fileId) throw new Error('Medya fileId bulunamadı');
 
     // 1. Önce doğrudan hedef bot ile fileId gönderimi dene
     if (targetBot) {
@@ -293,6 +310,16 @@ async function sendTelegramMediaUniversal(targetBot, recipientId, media, options
             throw fbErr;
         }
     }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 function createWebAppServer(options = {}) {
@@ -491,6 +518,7 @@ function createWebAppServer(options = {}) {
                     name: c.name,
                     uploadsEnabled: c.uploadsEnabled !== false,
                     starCfg: c.starCfg || STAR_CATEGORIES[c.id] || null,
+                    creditCfg: c.creditCfg || { videoCost: 1, photoCost: 1 },
                     stats: {
                         approvedPhotos: stats.approvedPhotos,
                         approvedVideos: stats.approvedVideos
@@ -587,21 +615,21 @@ function createWebAppServer(options = {}) {
                     const user = db.getUser(userId) || {};
                     const isVideo = type === 'video';
                     const credits = isVideo ? (user.videoCredits || 0) : (user.photoCredits || 0);
+                    const cost = db.getCategoryCreditCost ? db.getCategoryCreditCost(catId, type) : 1;
 
-                    if (!vip.isVip && credits <= 0) {
-                        res.writeHead(400, { 'Content-Type': 'application/json' });
-                        return res.end(JSON.stringify({ success: false, message: `Yetersiz ${isVideo ? 'video' : 'resim'} kredisi` }));
+                    if (!vip.isVip && credits < cost) {
+                        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({ 
+                            success: false, 
+                            message: `Yetersiz ${isVideo ? 'video' : 'resim'} kredisi! Bu sekme için ${cost} kredi gereklidir (Mevcut: ${credits}).` 
+                        }));
                     }
 
+                    // db.getRandomMedia zaten VIP olmayan kullanıcıdan bu sekmenin creditCost miktarını düşer ve görülenlere ekler.
                     const media = db.getRandomMedia(userId, type, catId);
                     if (!media) {
-                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
                         return res.end(JSON.stringify({ success: false, message: 'Bu sekmede henüz izlemediğiniz içerik kalmadı.' }));
-                    }
-
-                    // Kredi düş (VIP değilse)
-                    if (!vip.isVip) {
-                        db.updateCredits(userId, type, -1);
                     }
 
                     // Telegram sohbetine gönder
@@ -617,6 +645,11 @@ function createWebAppServer(options = {}) {
                             });
                         } catch (e) {
                             console.error('Mini App medya gönderim hatası:', e.message);
+                            // Gönderim başarısız olursa kullanıcının kredisini iade et
+                            if (!vip.isVip) db.updateCredits(userId, type, cost);
+                            db.removeSeenMedia(userId, media.id);
+                            res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+                            return res.end(JSON.stringify({ success: false, message: 'Telegram gönderim hatası: ' + e.message }));
                         }
                     }
 
@@ -677,14 +710,61 @@ function createWebAppServer(options = {}) {
             const isVideo = media.type === 'video';
             const defaultContentType = isVideo ? 'video/mp4' : 'image/jpeg';
 
+            // 1. ÖNCELİK: Eğer medya yerel diskte varsa doğrudan Range destekli yüksek hızlı yerel stream yap!
+            const localFile = media.localPath && fs.existsSync(media.localPath) ? media.localPath :
+                              (fs.existsSync(path.join(__dirname, 'media_store', `${media.id}${isVideo ? '.mp4' : '.jpg'}`)) ? path.join(__dirname, 'media_store', `${media.id}${isVideo ? '.mp4' : '.jpg'}`) : null);
+
+            if (localFile) {
+                const stat = fs.statSync(localFile);
+                const fileSize = stat.size;
+                const range = req.headers.range;
+
+                if (range) {
+                    const parts = range.replace(/bytes=/, "").split("-");
+                    const start = parseInt(parts[0], 10);
+                    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+                    const chunksize = (end - start) + 1;
+                    const file = fs.createReadStream(localFile, { start, end });
+                    const head = {
+                        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+                        'Accept-Ranges': 'bytes',
+                        'Content-Length': chunksize,
+                        'Content-Type': defaultContentType,
+                        'Access-Control-Allow-Origin': '*',
+                        'Cache-Control': 'public, max-age=86400',
+                        'Content-Disposition': 'inline'
+                    };
+                    res.writeHead(206, head);
+                    if (req.method === 'HEAD') return res.end();
+                    return file.pipe(res);
+                } else {
+                    const head = {
+                        'Content-Length': fileSize,
+                        'Content-Type': defaultContentType,
+                        'Accept-Ranges': 'bytes',
+                        'Access-Control-Allow-Origin': '*',
+                        'Cache-Control': 'public, max-age=86400',
+                        'Content-Disposition': 'inline'
+                    };
+                    res.writeHead(200, head);
+                    if (req.method === 'HEAD') return res.end();
+                    return fs.createReadStream(localFile).pipe(res);
+                }
+            }
+
+            // 2. Telegram Linkini Çöz
             const fileLink = await resolveTelegramFileLink(media.fileId, botInstance);
 
             if (!fileLink) {
                 res.writeHead(502, { 
-                    'Content-Type': 'text/plain; charset=utf-8',
+                    'Content-Type': 'application/json; charset=utf-8',
                     'Access-Control-Allow-Origin': '*'
                 });
-                return res.end('Medya kaynağına erişilemedi (Telegram sınırı veya dosya silinmiş)');
+                return res.end(JSON.stringify({
+                    error: 'FILE_TOO_BIG',
+                    message: 'Bu video 20 MB üzeri olduğu için Telegram HD oynatıcısına yönlendirildi.',
+                    mediaId: media.id
+                }));
             }
 
             // HTTP Range ve Stream Desteği (Redirect ve CORS tam destekli)
@@ -816,7 +896,7 @@ function createWebAppServer(options = {}) {
                         const keyboard = {
                             inline_keyboard: [
                                 [
-                                    { text: '✅ Onayla (+1 Kredi Ver)', callback_data: `admin_app_${tempMediaId}` },
+                                    { text: '✅ Onayla (2 Yükle 1 Kredi)', callback_data: `admin_app_${tempMediaId}` },
                                     { text: '❌ Reddet', callback_data: `admin_rej_${tempMediaId}` }
                                 ],
                                 [
@@ -858,6 +938,21 @@ function createWebAppServer(options = {}) {
                         }
                     }
 
+                    // Medya dosyasını yerel diskte de sakla (20MB üzeri veya Telegram erişim sorunlarına karşı yerel akış garantisi)
+                    let localSavedPath = null;
+                    try {
+                        const mediaStoreDir = path.join(__dirname, 'media_store');
+                        if (!fs.existsSync(mediaStoreDir)) {
+                            fs.mkdirSync(mediaStoreDir, { recursive: true });
+                        }
+                        const ext = isVideo ? '.mp4' : '.jpg';
+                        const safeFileName = `upload_${tempMediaId}_${Date.now()}${ext}`;
+                        localSavedPath = path.join(mediaStoreDir, safeFileName);
+                        fs.writeFileSync(localSavedPath, buffer);
+                    } catch (storeErr) {
+                        console.error('Local media_store write error:', storeErr.message);
+                    }
+
                     // Medyayı PENDING olarak kaydet (KREDİ VERİLMEZ!)
                     const dbData = db.loadDb();
                     const newMedia = {
@@ -865,6 +960,7 @@ function createWebAppServer(options = {}) {
                         type: isVideo ? 'video' : 'photo',
                         fileId: fileId || tempMediaId,
                         fileUniqueId: fileUniqueId || null,
+                        localPath: localSavedPath || null,
                         fileSize: buffer.length,
                         categoryId: categoryId,
                         uploadedBy: String(userId),
@@ -879,7 +975,7 @@ function createWebAppServer(options = {}) {
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     return res.end(JSON.stringify({
                         success: true,
-                        message: 'Medyanız başarıyla yüklendi ve yönetici onayına iletildi! Admin onayladıktan sonra hesabınıza +1 Kredi tanımlanacaktır.',
+                        message: 'Medyanız başarıyla yüklendi ve yönetici onayına iletildi! (2 Yükle 1 Al kuralına göre onaylandıkça krediniz tanımlanacaktır)',
                         mediaId: tempMediaId
                     }));
 
@@ -1006,7 +1102,7 @@ function createWebAppServer(options = {}) {
                         const keyboard = {
                             inline_keyboard: [
                                 [
-                                    { text: '✅ Onayla (+1 Kredi Ver)', callback_data: `admin_app_${tempMediaId}` },
+                                    { text: '✅ Onayla (2 Yükle 1 Kredi)', callback_data: `admin_app_${tempMediaId}` },
                                     { text: '❌ Reddet', callback_data: `admin_rej_${tempMediaId}` }
                                 ],
                                 [
@@ -1059,6 +1155,17 @@ function createWebAppServer(options = {}) {
                         }
                     }
 
+                    const mediaStoreDir = path.join(__dirname, 'media_store');
+                    if (!fs.existsSync(mediaStoreDir)) fs.mkdirSync(mediaStoreDir, { recursive: true });
+                    const ext = isVideo ? '.mp4' : (mediaType === 'zip' ? '.zip' : '.jpg');
+                    const permFilePath = path.join(mediaStoreDir, `${tempMediaId}${ext}`);
+                    try {
+                        fs.copyFileSync(tempFilePath, permFilePath);
+                        fs.unlinkSync(tempFilePath);
+                    } catch (copyErr) {
+                        console.warn('Media store copy error:', copyErr.message);
+                    }
+
                     const dbData = db.loadDb();
                     const newMedia = {
                         id: tempMediaId,
@@ -1066,6 +1173,7 @@ function createWebAppServer(options = {}) {
                         fileId: fileId || tempMediaId,
                         fileUniqueId: fileUniqueId || null,
                         fileSize: totalBytes,
+                        localPath: fs.existsSync(permFilePath) ? permFilePath : null,
                         categoryId: categoryId,
                         uploadedBy: String(userId),
                         status: 'pending',
@@ -1076,12 +1184,10 @@ function createWebAppServer(options = {}) {
                     dbData.media.push(newMedia);
                     db.saveDb();
 
-                    try { fs.unlinkSync(tempFilePath); } catch (_) {}
-
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     return res.end(JSON.stringify({
                         success: true,
-                        message: `Medyanız (${sizeMb} MB) başarıyla yüklendi ve yönetici onayına sunuldu! Admin onaylayınca +1 Krediniz tanımlanacaktır.`,
+                        message: `Medyanız (${sizeMb} MB) başarıyla yüklendi ve yönetici onayına sunuldu! (2 Yükle 1 Al kuralına göre onaylandıkça krediniz tanımlanacaktır)`,
                         mediaId: tempMediaId
                     }));
 
@@ -1262,6 +1368,52 @@ function createWebAppServer(options = {}) {
                     console.error('ZIP resend hatası:', e.message);
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 14A-2. API: MEDYAYI TELEGRAM SOHBETE GÖNDER (HD İZLEME GARANTİSİ)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/view-in-chat' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, mediaId } = data;
+                    if (!userId || !mediaId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'userId ve mediaId gereklidir' }));
+                    }
+
+                    const media = db.getMedia(mediaId);
+                    if (!media) {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Medya bulunamadı' }));
+                    }
+
+                    const isVideo = media.type === 'video';
+                    const caption = `🎬 <b>Ultra HD ${isVideo ? 'Video' : 'Fotoğraf'} Teslim Edildi!</b>\n\n` +
+                                    `📌 <b>Medya ID:</b> #${media.orderIndex || media.id}\n` +
+                                    `🍿 <i>Telegram oynatıcı desteği ile yüksek çözünürlükte kesintisiz izleyebilirsiniz.</i>`;
+
+                    await sendTelegramMediaUniversal(botInstance, userId, media, {
+                        caption,
+                        parse_mode: 'HTML',
+                        protect_content: false
+                    });
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ 
+                        success: true, 
+                        message: `${isVideo ? 'Video' : 'Fotoğraf'} Telegram sohbetinize gönderildi! İstediğiniz zaman sohbette izleyebilirsiniz.` 
+                    }));
+                } catch (e) {
+                    console.error('view-in-chat hatası:', e.message);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: 'Telegram gönderim hatası: ' + e.message }));
                 }
             });
             return;
@@ -1471,6 +1623,7 @@ function createWebAppServer(options = {}) {
                     name: c.name,
                     uploadsEnabled: c.uploadsEnabled !== false,
                     starCfg: c.starCfg || null,
+                    creditCfg: c.creditCfg || { videoCost: 1, photoCost: 1 },
                     stats: {
                         approvedPhotos: stats.approvedPhotos,
                         approvedVideos: stats.approvedVideos,
@@ -1528,14 +1681,18 @@ function createWebAppServer(options = {}) {
             req.on('end', () => {
                 try {
                     const data = JSON.parse(body || '{}');
-                    const { userId, categoryId, isStar, videoPrice, photoPrice } = data;
+                    const { userId, categoryId, isStar, videoPrice, photoPrice, creditVideoCost, creditPhotoCost } = data;
                     if (!isAdminUser(userId)) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });
                         return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
                     }
 
                     const starCfg = isStar ? { videoPrice: parseInt(videoPrice, 10) || 2, photoPrice: parseInt(photoPrice, 10) || 1 } : null;
-                    const updated = db.updateCategoryPricing(categoryId, starCfg);
+                    const creditCfg = {
+                        videoCost: Math.max(1, parseInt(creditVideoCost, 10) || 1),
+                        photoCost: Math.max(1, parseInt(creditPhotoCost, 10) || 1)
+                    };
+                    const updated = db.updateCategoryPricing(categoryId, starCfg, creditCfg);
                     if (!updated) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         return res.end(JSON.stringify({ success: false, message: 'Kategori bulunamadı.' }));
@@ -1547,7 +1704,7 @@ function createWebAppServer(options = {}) {
                         category: updated, 
                         message: isStar 
                             ? `[${updated.name}] sekmesi Yıldızlı yapıldı: 🎥 ${updated.starCfg.videoPrice}⭐ / 📸 ${updated.starCfg.photoPrice}⭐`
-                            : `[${updated.name}] sekmesi Standart Kredili/Takaslı moda alındı!` 
+                            : `[${updated.name}] sekmesi Standart Kredili moda alındı: 🎥 ${creditCfg.videoCost} Kredi / 📸 ${creditCfg.photoCost} Kredi` 
                     }));
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -1566,7 +1723,7 @@ function createWebAppServer(options = {}) {
             req.on('end', () => {
                 try {
                     const data = JSON.parse(body || '{}');
-                    const { userId, name, key, uploadsEnabled, isStar, videoPrice, photoPrice } = data;
+                    const { userId, name, key, uploadsEnabled, isStar, videoPrice, photoPrice, creditVideoCost, creditPhotoCost } = data;
                     if (!isAdminUser(userId)) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });
                         return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
@@ -1578,11 +1735,16 @@ function createWebAppServer(options = {}) {
                     }
 
                     const starCfg = isStar ? { videoPrice: parseInt(videoPrice, 10) || 2, photoPrice: parseInt(photoPrice, 10) || 1 } : null;
+                    const creditCfg = {
+                        videoCost: Math.max(1, parseInt(creditVideoCost, 10) || 1),
+                        photoCost: Math.max(1, parseInt(creditPhotoCost, 10) || 1)
+                    };
                     const newCat = db.addCategory({
                         name: name.trim(),
                         key: key ? key.trim().toUpperCase() : '',
                         uploadsEnabled: uploadsEnabled !== false,
-                        starCfg
+                        starCfg,
+                        creditCfg
                     });
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1608,18 +1770,23 @@ function createWebAppServer(options = {}) {
             req.on('end', () => {
                 try {
                     const data = JSON.parse(body || '{}');
-                    const { userId, categoryId, name, key, uploadsEnabled, isStar, videoPrice, photoPrice } = data;
+                    const { userId, categoryId, name, key, uploadsEnabled, isStar, videoPrice, photoPrice, creditVideoCost, creditPhotoCost } = data;
                     if (!isAdminUser(userId)) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });
                         return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
                     }
 
                     const starCfg = isStar ? { videoPrice: parseInt(videoPrice, 10) || 2, photoPrice: parseInt(photoPrice, 10) || 1 } : null;
+                    const creditCfg = {
+                        videoCost: Math.max(1, parseInt(creditVideoCost, 10) || 1),
+                        photoCost: Math.max(1, parseInt(creditPhotoCost, 10) || 1)
+                    };
                     const updated = db.updateCategory(categoryId, {
                         name,
                         key,
                         uploadsEnabled: uploadsEnabled !== false,
-                        starCfg
+                        starCfg,
+                        creditCfg
                     });
 
                     if (!updated) {
@@ -2200,15 +2367,25 @@ function createWebAppServer(options = {}) {
                     if (botInstance && resDb.media?.uploadedBy) {
                         const typeLabel = resDb.media.type === 'photo' ? 'Resim' : 'Video';
                         const newCredit = resDb.media.type === 'photo' ? resDb.user.photoCredits : resDb.user.videoCredits;
+                        const progressMsg = resDb.creditAwarded
+                            ? `🎉 <b>Tebrikler!</b> 2 adet ${typeLabel.toLowerCase()} yüklemeniz tamamlandı!\n💰 Hesabınıza <b>+1 ${typeLabel} Kredisi</b> yüklendi. (Mevcut: <code>${newCredit}</code>)`
+                            : `✅ Gönderdiğiniz ${typeLabel.toLowerCase()} yönetici tarafından <b>onaylandı</b> ve takas havuzuna eklendi!\n📊 <b>İlerleme: 1/2</b> (2 Yükle 1 Al: 1 adet daha ${typeLabel.toLowerCase()} onaylandığında +1 Kredi kazanacaksınız!)`;
+
                         botInstance.telegram.sendMessage(
                             resDb.media.uploadedBy,
-                            `🎉 <b>Tebrikler!</b> Gönderdiğiniz ${typeLabel.toLowerCase()} yönetici tarafından onaylandı ve takas havuzuna eklendi!\n\n💰 Hesabınıza <b>+1 ${typeLabel} Kredisi</b> yüklendi. (Mevcut: <code>${newCredit}</code>)`,
+                            `🔔 <b>MEDYA ONAY BİLDİRİMİ</b>\n\n${progressMsg}`,
                             { parse_mode: 'HTML' }
                         ).catch(() => {});
                     }
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-                    return res.end(JSON.stringify({ success: true, message: 'Medya onaylandı ve kullanıcıya +1 kredi yüklendi!' }));
+                    return res.end(JSON.stringify({ 
+                        success: true, 
+                        creditAwarded: resDb.creditAwarded,
+                        message: resDb.creditAwarded 
+                            ? 'Medya onaylandı ve 2 yükleme tamamlandığı için kullanıcıya +1 kredi yüklendi!' 
+                            : 'Medya onaylandı! (İlerleme: 1/2 - 2 Yükle 1 Al)' 
+                    }));
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify({ success: false, message: e.message }));
@@ -2567,6 +2744,107 @@ function createWebAppServer(options = {}) {
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     return res.end(JSON.stringify({ success: true, message: 'Mesaj başarıyla iletildi!', msg: savedMsg }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 23-G. API: ADMİN TÜM KULLANICILARA TOPLU ÖDÜL DAĞITIMI
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/mass-reward' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, videoCredits, photoCredits, wheelSpins, vipDays, messageTitle, messageText, broadcastTelegram } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
+                    }
+
+                    const result = db.massDistributeRewards({
+                        videoCredits: parseInt(videoCredits, 10) || 0,
+                        photoCredits: parseInt(photoCredits, 10) || 0,
+                        wheelSpins: parseInt(wheelSpins, 10) || 0,
+                        vipDays: parseInt(vipDays, 10) || 0,
+                        messageTitle: messageTitle || '🎁 Yönetici Sürpriz Ödülü!',
+                        messageText: messageText || ''
+                    });
+
+                    if (!result.success) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify(result));
+                    }
+
+                    // Telegram üzerinden toplu duyuru (arka planda, rate-limit korumalı)
+                    if (broadcastTelegram !== false && botInstance) {
+                        const summaryParts = [];
+                        if (result.rewards.videoCredits > 0) summaryParts.push(`🎥 +${result.rewards.videoCredits} Video Kredisi`);
+                        if (result.rewards.photoCredits > 0) summaryParts.push(`📸 +${result.rewards.photoCredits} Resim Kredisi`);
+                        if (result.rewards.wheelSpins > 0) summaryParts.push(`🎡 +${result.rewards.wheelSpins} Şans Çarkı Hakkı`);
+                        if (result.rewards.vipDays > 0) summaryParts.push(`👑 +${result.rewards.vipDays} Gün VIP Üyelik`);
+
+                        const tgMsg = `🎁 <b>TEBRİKLER! YÖNETİCİDEN GENEL HEDİYE!</b>\n\n` +
+                                      `Yönetici tüm kullanıcılara hediye dağıttı:\n` +
+                                      `${summaryParts.map(s => `• <b>${s}</b>`).join('\n')}\n\n` +
+                                      (messageText ? `💬 <i>"${escapeHtml(messageText)}"</i>\n\n` : '') +
+                                      `<i>Bakiyeleriniz profilinize otomatik olarak yansıtılmıştır. Keyifli kullanımlar dileriz!</i>`;
+
+                        const dbData = db.loadDb();
+                        const userIds = Object.keys(dbData.users || {});
+                        (async () => {
+                            for (const uid of userIds) {
+                                try {
+                                    await botInstance.telegram.sendMessage(uid, tgMsg, { parse_mode: 'HTML' });
+                                } catch (_) {}
+                                await new Promise(r => setTimeout(r, 60));
+                            }
+                        })().catch(() => {});
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({
+                        success: true,
+                        affectedCount: result.affectedCount,
+                        rewards: result.rewards,
+                        message: `${result.affectedCount} kullanıcıya ödüller başarıyla dağıtıldı!`
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 23-H. API: ADMİN SON TOPLU DAĞITIMI GERİ AL (UNDO)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/mass-reward/undo' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
+                    }
+
+                    const result = db.undoLastMassReward();
+                    if (!result.success) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify(result));
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify(result));
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify({ success: false, message: e.message }));
