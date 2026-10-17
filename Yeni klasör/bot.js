@@ -180,13 +180,28 @@ function saveAuthenticatedAdmins() {}
 const pendingCatAdminAuth = {}; // userId -> catId (sekme yönetici şifre doğrulaması)
 const pendingRenameAuth = {}; // userId -> catId (sekme isim değiştirme şifre doğrulaması)
 
-// ⭐ Telegram Yıldızları ile Satılan Özel Sekmeler ve Fiyatları
-const STAR_CATEGORIES = {
-    cat_1: { videoPrice: 2, photoPrice: 1 }, // Ensest: 2 Yıldız Video, 1 Yıldız Resim
-    cat_3: { videoPrice: 5, photoPrice: 1 }, // İfsa: 5 Yıldız Video, 1 Yıldız Resim
-    cat_5: { videoPrice: 10, photoPrice: 3 }, // Onlyfans: 10 Yıldız Video, 3 Yıldız Resim
-    cat_8: { videoPrice: 2, photoPrice: 1 }  // Gizli Çekim IPCAM: 2 Yıldız Video, 1 Yıldız Resim
-};
+// ⭐ Telegram Yıldızları ile Satılan Özel Sekmeler ve Fiyatları (Veritabanından Canlı Okunur)
+const STAR_CATEGORIES = new Proxy({}, {
+    get(target, prop) {
+        if (typeof prop === 'symbol') return undefined;
+        const live = db.getStarCategories();
+        return live[prop];
+    },
+    has(target, prop) {
+        const live = db.getStarCategories();
+        return prop in live;
+    },
+    ownKeys(target) {
+        return Object.keys(db.getStarCategories());
+    },
+    getOwnPropertyDescriptor(target, prop) {
+        const live = db.getStarCategories();
+        if (prop in live) {
+            return { configurable: true, enumerable: true, value: live[prop] };
+        }
+        return undefined;
+    }
+});
 
 function hasActivePaidVip(userId) {
     if (!userId) return false;
@@ -3130,6 +3145,9 @@ bot.on('web_app_data', async (ctx) => {
 
 // ADMİN: ONAYLA
 bot.action(/admin_app_(.+)/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) {
+        return ctx.answerCbQuery('Bu işlem sadece yöneticiye özeldir.');
+    }
     const mediaId = ctx.match[1];
     const res = db.approveMedia(mediaId);
 
@@ -3141,15 +3159,25 @@ bot.action(/admin_app_(.+)/, async (ctx) => {
     await ctx.answerCbQuery('✅ Medya onaylandı ve havuza eklendi!');
     const statusText = `\n\n<b>✅ DURUM: ONAYLANDI (Havuza eklendi & Kredi verildi)</b>`;
 
+    const undoKeyboard = {
+        inline_keyboard: [
+            [
+                { text: '↩️ İşlemi Geri Al (Onayı İptal Et)', callback_data: `admin_undo_app_${mediaId}` }
+            ]
+        ]
+    };
+
     if (ctx.callbackQuery.message.caption) {
+        const cleanCaption = ctx.callbackQuery.message.caption.replace(/\n\n<b>.*DURUM:.*<\/b>/g, '');
         await ctx.editMessageCaption(
-            `${ctx.callbackQuery.message.caption}${statusText}`,
-            { parse_mode: 'HTML' }
+            `${cleanCaption}${statusText}`,
+            { parse_mode: 'HTML', reply_markup: undoKeyboard }
         ).catch(() => {});
     } else if (ctx.callbackQuery.message.text) {
+        const cleanText = ctx.callbackQuery.message.text.replace(/\n\n<b>.*DURUM:.*<\/b>/g, '');
         await ctx.editMessageText(
-            `${ctx.callbackQuery.message.text}${statusText}`,
-            { parse_mode: 'HTML' }
+            `${cleanText}${statusText}`,
+            { parse_mode: 'HTML', reply_markup: undoKeyboard }
         ).catch(() => {});
     }
 
@@ -3174,6 +3202,9 @@ bot.action(/admin_app_(.+)/, async (ctx) => {
 
 // ADMİN: REDDET
 bot.action(/admin_rej_(.+)/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) {
+        return ctx.answerCbQuery('Bu işlem sadece yöneticiye özeldir.');
+    }
     const mediaId = ctx.match[1];
     const res = db.rejectMedia(mediaId);
 
@@ -3185,15 +3216,25 @@ bot.action(/admin_rej_(.+)/, async (ctx) => {
     await ctx.answerCbQuery('❌ Medya reddedildi!');
     const statusText = `\n\n<b>❌ DURUM: REDDEDİLDİ (Havuza eklenmedi)</b>`;
 
+    const undoKeyboard = {
+        inline_keyboard: [
+            [
+                { text: '↩️ İşlemi Geri Al (Yeniden İncele)', callback_data: `admin_undo_rej_${mediaId}` }
+            ]
+        ]
+    };
+
     if (ctx.callbackQuery.message.caption) {
+        const cleanCaption = ctx.callbackQuery.message.caption.replace(/\n\n<b>.*DURUM:.*<\/b>/g, '');
         await ctx.editMessageCaption(
-            `${ctx.callbackQuery.message.caption}${statusText}`,
-            { parse_mode: 'HTML' }
+            `${cleanCaption}${statusText}`,
+            { parse_mode: 'HTML', reply_markup: undoKeyboard }
         ).catch(() => {});
     } else if (ctx.callbackQuery.message.text) {
+        const cleanText = ctx.callbackQuery.message.text.replace(/\n\n<b>.*DURUM:.*<\/b>/g, '');
         await ctx.editMessageText(
-            `${ctx.callbackQuery.message.text}${statusText}`,
-            { parse_mode: 'HTML' }
+            `${cleanText}${statusText}`,
+            { parse_mode: 'HTML', reply_markup: undoKeyboard }
         ).catch(() => {});
     }
 
@@ -3204,6 +3245,184 @@ bot.action(/admin_rej_(.+)/, async (ctx) => {
             { parse_mode: 'HTML' }
         ).catch(() => {});
     }
+});
+
+// ADMİN: ONAYI GERİ AL (KREDİYİ GERİ ÇEK & BEKLEMEYE AL)
+bot.action(/admin_undo_app_(.+)/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) {
+        return ctx.answerCbQuery('Bu işlem sadece yöneticiye özeldir.');
+    }
+    const mediaId = ctx.match[1];
+    const res = db.undoApproveMedia(mediaId);
+
+    if (!res.success) {
+        return ctx.answerCbQuery(res.message, { show_alert: true });
+    }
+
+    await ctx.answerCbQuery('↩️ Onay geri alındı, kredi geri çekildi ve beklemeye alındı!');
+    const statusText = `\n\n<b>⏳ DURUM: Onay Bekliyor (Onay Geri Alındı ↩️)</b>`;
+
+    const pendingKeyboard = {
+        inline_keyboard: [
+            [
+                { text: '✅ Onayla (+1 Kredi Ver)', callback_data: `admin_app_${mediaId}` },
+                { text: '❌ Reddet', callback_data: `admin_rej_${mediaId}` }
+            ],
+            [
+                { text: '📁 Sekmeyi Değiştir', callback_data: `admin_chgcat_${mediaId}` }
+            ]
+        ]
+    };
+
+    if (ctx.callbackQuery.message.caption) {
+        const cleanCaption = ctx.callbackQuery.message.caption.replace(/\n\n<b>.*DURUM:.*<\/b>/g, '');
+        await ctx.editMessageCaption(
+            `${cleanCaption}${statusText}`,
+            { parse_mode: 'HTML', reply_markup: pendingKeyboard }
+        ).catch(() => {});
+    } else if (ctx.callbackQuery.message.text) {
+        const cleanText = ctx.callbackQuery.message.text.replace(/\n\n<b>.*DURUM:.*<\/b>/g, '');
+        await ctx.editMessageText(
+            `${cleanText}${statusText}`,
+            { parse_mode: 'HTML', reply_markup: pendingKeyboard }
+        ).catch(() => {});
+    }
+
+    if (res.user && res.media && res.media.uploadedBy) {
+        const typeLabel = res.media.type === 'photo' ? 'Resim' : 'Video';
+        const currentCredits = res.media.type === 'photo' ? (res.user.photoCredits || 0) : (res.user.videoCredits || 0);
+        bot.telegram.sendMessage(
+            res.media.uploadedBy,
+            `⚠️ <b>Bilgilendirme:</b> Yüklediğiniz ${typeLabel.toLowerCase()} için verilen onay yönetici tarafından geri alındı. Verilen +1 kredi geri çekildi. (Mevcut Krediniz: <code>${currentCredits}</code>)`,
+            { parse_mode: 'HTML' }
+        ).catch(() => {});
+    }
+});
+
+// ADMİN: REDDETMEYİ GERİ AL (YENİDEN İNCELEMEYE AL)
+bot.action(/admin_undo_rej_(.+)/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) {
+        return ctx.answerCbQuery('Bu işlem sadece yöneticiye özeldir.');
+    }
+    const mediaId = ctx.match[1];
+    const res = db.undoRejectMedia(mediaId);
+
+    if (!res.success) {
+        return ctx.answerCbQuery(res.message, { show_alert: true });
+    }
+
+    await ctx.answerCbQuery('↩️ Reddetme geri alındı, beklemeye alındı!');
+    const statusText = `\n\n<b>⏳ DURUM: Onay Bekliyor (Red Geri Alındı ↩️)</b>`;
+
+    const pendingKeyboard = {
+        inline_keyboard: [
+            [
+                { text: '✅ Onayla (+1 Kredi Ver)', callback_data: `admin_app_${mediaId}` },
+                { text: '❌ Reddet', callback_data: `admin_rej_${mediaId}` }
+            ],
+            [
+                { text: '📁 Sekmeyi Değiştir', callback_data: `admin_chgcat_${mediaId}` }
+            ]
+        ]
+    };
+
+    if (ctx.callbackQuery.message.caption) {
+        const cleanCaption = ctx.callbackQuery.message.caption.replace(/\n\n<b>.*DURUM:.*<\/b>/g, '');
+        await ctx.editMessageCaption(
+            `${cleanCaption}${statusText}`,
+            { parse_mode: 'HTML', reply_markup: pendingKeyboard }
+        ).catch(() => {});
+    } else if (ctx.callbackQuery.message.text) {
+        const cleanText = ctx.callbackQuery.message.text.replace(/\n\n<b>.*DURUM:.*<\/b>/g, '');
+        await ctx.editMessageText(
+            `${cleanText}${statusText}`,
+            { parse_mode: 'HTML', reply_markup: pendingKeyboard }
+        ).catch(() => {});
+    }
+});
+
+// ADMİN: SEKME DEĞİŞTİRME MENÜSÜNÜ AÇ
+bot.action(/admin_chgcat_(.+)/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) {
+        return ctx.answerCbQuery('Bu işlem sadece yöneticiye özeldir.');
+    }
+    const mediaId = ctx.match[1];
+    const cats = db.getCategories();
+
+    const rows = [];
+    for (let i = 0; i < cats.length; i += 3) {
+        const slice = cats.slice(i, i + 3);
+        rows.push(slice.map(c => ({
+            text: `[${c.key}] ${c.name.slice(0, 12)}`,
+            callback_data: `admin_setcat_${mediaId}_${c.id}`
+        })));
+    }
+    rows.push([{ text: '🔙 Vazgeç / Geri Dön', callback_data: `admin_back_${mediaId}` }]);
+
+    await ctx.answerCbQuery('📁 Taşımak istediğiniz sekmeyi seçin:');
+    await ctx.editMessageReplyMarkup({ inline_keyboard: rows }).catch(() => {});
+});
+
+// ADMİN: SEKME DEĞİŞİKLİĞİNİ UYGULA
+bot.action(/admin_setcat_([^_]+)_(.+)/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) {
+        return ctx.answerCbQuery('Bu işlem sadece yöneticiye özeldir.');
+    }
+    const mediaId = ctx.match[1];
+    const newCatId = ctx.match[2];
+
+    const cat = db.getCategory(newCatId);
+    if (!cat) {
+        return ctx.answerCbQuery('Hedef kategori bulunamadı!', { show_alert: true });
+    }
+
+    db.changeMediaCategory(mediaId, newCatId);
+    await ctx.answerCbQuery(`✅ Sekme [${cat.key}] ${cat.name} olarak değiştirildi!`, { show_alert: true });
+
+    const pendingKeyboard = {
+        inline_keyboard: [
+            [
+                { text: '✅ Onayla (+1 Kredi Ver)', callback_data: `admin_app_${mediaId}` },
+                { text: '❌ Reddet', callback_data: `admin_rej_${mediaId}` }
+            ],
+            [
+                { text: '📁 Sekmeyi Değiştir', callback_data: `admin_chgcat_${mediaId}` }
+            ]
+        ]
+    };
+
+    if (ctx.callbackQuery.message.caption) {
+        let caption = ctx.callbackQuery.message.caption;
+        caption = caption.replace(/📁 <b>Hedef Sekme:<\/b> [^\n]+/g, `📁 <b>Hedef Sekme:</b> [${cat.key}] <b>${cat.name}</b> <i>(Değiştirildi ✨)</i>`);
+        await ctx.editMessageCaption(caption, { parse_mode: 'HTML', reply_markup: pendingKeyboard }).catch(() => {});
+    } else if (ctx.callbackQuery.message.text) {
+        let text = ctx.callbackQuery.message.text;
+        text = text.replace(/📁 <b>Hedef Sekme:<\/b> [^\n]+/g, `📁 <b>Hedef Sekme:</b> [${cat.key}] <b>${cat.name}</b> <i>(Değiştirildi ✨)</i>`);
+        await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: pendingKeyboard }).catch(() => {});
+    }
+});
+
+// ADMİN: SEKME DEĞİŞİKLİĞİNDEN VAZGEÇ
+bot.action(/admin_back_(.+)/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) {
+        return ctx.answerCbQuery('Bu işlem sadece yöneticiye özeldir.');
+    }
+    const mediaId = ctx.match[1];
+    await ctx.answerCbQuery('İşlem iptal edildi.');
+
+    const pendingKeyboard = {
+        inline_keyboard: [
+            [
+                { text: '✅ Onayla (+1 Kredi Ver)', callback_data: `admin_app_${mediaId}` },
+                { text: '❌ Reddet', callback_data: `admin_rej_${mediaId}` }
+            ],
+            [
+                { text: '📁 Sekmeyi Değiştir', callback_data: `admin_chgcat_${mediaId}` }
+            ]
+        ]
+    };
+
+    await ctx.editMessageReplyMarkup(pendingKeyboard).catch(() => {});
 });
 
 // ADMİN: HAVUZDAN MEDYA SİL (OTOMATİK ONAYLANAN İÇERİĞİ KALDIRMA)

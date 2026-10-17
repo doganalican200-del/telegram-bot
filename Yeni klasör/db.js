@@ -864,6 +864,43 @@ function rejectMedia(mediaId) {
     return { success: true, media: item, user: db.users[item.uploadedBy] };
 }
 
+// ↩️ Medya Onayını Geri Al (Krediyi Geri Çek ve Beklemeye Al)
+function undoApproveMedia(mediaId) {
+    const db = loadDb();
+    const item = db.media.find(m => m.id === mediaId);
+    if (!item) return { success: false, message: 'Medya bulunamadı.' };
+
+    item.status = 'pending';
+
+    let user = db.users[item.uploadedBy];
+    if (user) {
+        if (item.type === 'photo') {
+            user.uploadedPhotos = Math.max(0, (user.uploadedPhotos || 0) - 1);
+            user.photoCredits = Math.max(0, (user.photoCredits || 0) - 1);
+        } else if (item.type === 'video') {
+            user.uploadedVideos = Math.max(0, (user.uploadedVideos || 0) - 1);
+            user.videoCredits = Math.max(0, (user.videoCredits || 0) - 1);
+        }
+        if (Array.isArray(user.seenMedia)) {
+            user.seenMedia = user.seenMedia.filter(id => id !== item.id);
+        }
+    }
+
+    saveDb();
+    return { success: true, media: item, user };
+}
+
+// ↩️ Medya Reddetmesini Geri Al (Yeniden İnceleme Beklemesine Al)
+function undoRejectMedia(mediaId) {
+    const db = loadDb();
+    const item = db.media.find(m => m.id === mediaId);
+    if (!item) return { success: false, message: 'Medya bulunamadı.' };
+
+    item.status = 'pending';
+    saveDb();
+    return { success: true, media: item, user: db.users[item.uploadedBy] };
+}
+
 // Tüm bekleyen medyaları toplu onayla
 function approveAllPending(userId = null) {
     const db = loadDb();
@@ -972,6 +1009,152 @@ function updateCategoryName(catIdOrKey, newName) {
         return catInDb;
     }
     return null;
+}
+
+// ⭐ Dinamik Yıldızlı Sekme Fiyatlandırmalarını Veritabanından Getir
+function getStarCategories() {
+    const cats = getCategories();
+    const result = {};
+    cats.forEach(c => {
+        if (c.starCfg && (c.starCfg.videoPrice > 0 || c.starCfg.photoPrice > 0)) {
+            result[c.id] = {
+                videoPrice: parseInt(c.starCfg.videoPrice, 10) || 1,
+                photoPrice: parseInt(c.starCfg.photoPrice, 10) || 1
+            };
+        }
+    });
+    return result;
+}
+
+// 📤 Kullanıcının bu kategoriye yükleme yapma izni var mı?
+function isCategoryUploadEnabled(catId, userId) {
+    if (userId && isAdminUser(userId)) return true;
+    const cat = getCategory(catId);
+    if (!cat) return true;
+    return cat.uploadsEnabled !== false;
+}
+
+// 🔄 Sekme Yükleme İznini Aç / Kapat (Toggle)
+function toggleCategoryUpload(catId, enabled = null) {
+    const db = loadDb();
+    const cat = db.categories.find(c => c.id === catId);
+    if (!cat) return null;
+    if (enabled === null) {
+        cat.uploadsEnabled = (cat.uploadsEnabled === false) ? true : false;
+    } else {
+        cat.uploadsEnabled = !!enabled;
+    }
+    saveDb();
+    return cat;
+}
+
+// 💰 Sekme Fiyatlandırmasını Güncelle (Yıldızlı vs Kredili)
+function updateCategoryPricing(catId, starCfg = null) {
+    const db = loadDb();
+    const cat = db.categories.find(c => c.id === catId);
+    if (!cat) return null;
+
+    if (!starCfg || (!starCfg.videoPrice && !starCfg.photoPrice)) {
+        cat.starCfg = null;
+    } else {
+        cat.starCfg = {
+            videoPrice: Math.max(1, parseInt(starCfg.videoPrice, 10) || 1),
+            photoPrice: Math.max(1, parseInt(starCfg.photoPrice, 10) || 1)
+        };
+    }
+    saveDb();
+    return cat;
+}
+
+// ➕ Yeni Sekme Oluştur
+function addCategory({ name, key, uploadsEnabled = true, starCfg = null }) {
+    const db = loadDb();
+    if (!db.categories) db.categories = [];
+
+    // Kısayol harfi belirle (A-Z)
+    let targetKey = (key || '').trim().toUpperCase();
+    if (!targetKey) {
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const usedKeys = new Set(db.categories.map(c => (c.key || '').toUpperCase()));
+        for (const char of alphabet) {
+            if (!usedKeys.has(char)) {
+                targetKey = char;
+                break;
+            }
+        }
+        if (!targetKey) targetKey = 'S' + (db.categories.length + 1);
+    }
+
+    // ID otomatik oluştur (cat_12, cat_13, ...)
+    let maxNum = 0;
+    db.categories.forEach(c => {
+        const m = String(c.id).match(/^cat_(\d+)$/);
+        if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+    });
+    const newId = `cat_${maxNum + 1}`;
+
+    const newCat = {
+        id: newId,
+        key: targetKey,
+        name: (name || 'Yeni Sekme').trim(),
+        uploadsEnabled: uploadsEnabled !== false,
+        starCfg: starCfg && (starCfg.videoPrice > 0 || starCfg.photoPrice > 0) ? {
+            videoPrice: Math.max(1, parseInt(starCfg.videoPrice, 10) || 1),
+            photoPrice: Math.max(1, parseInt(starCfg.photoPrice, 10) || 1)
+        } : null
+    };
+
+    db.categories.push(newCat);
+    saveDb();
+    return newCat;
+}
+
+// ✏️ Sekme Bilgilerini Güncelle (İsim, Harf, Yükleme Durumu, Yıldız Fiyatı)
+function updateCategory(catId, updates = {}) {
+    const db = loadDb();
+    const cat = db.categories.find(c => c.id === catId);
+    if (!cat) return null;
+
+    if (updates.name !== undefined) cat.name = updates.name.trim();
+    if (updates.key !== undefined) cat.key = updates.key.trim().toUpperCase();
+    if (updates.uploadsEnabled !== undefined) cat.uploadsEnabled = !!updates.uploadsEnabled;
+    if (updates.starCfg !== undefined) {
+        if (!updates.starCfg || (!updates.starCfg.videoPrice && !updates.starCfg.photoPrice)) {
+            cat.starCfg = null;
+        } else {
+            cat.starCfg = {
+                videoPrice: Math.max(1, parseInt(updates.starCfg.videoPrice, 10) || 1),
+                photoPrice: Math.max(1, parseInt(updates.starCfg.photoPrice, 10) || 1)
+            };
+        }
+    }
+
+    saveDb();
+    return cat;
+}
+
+// 🗑️ Sekme Sil (İçindeki medyaları güvenle Genel sekmesine taşır)
+function deleteCategory(catId) {
+    const db = loadDb();
+    const idx = db.categories.findIndex(c => c.id === catId);
+    if (idx === -1) return { success: false, message: 'Sekme bulunamadı.' };
+
+    const removed = db.categories.splice(idx, 1)[0];
+
+    // Bu sekmedeki medyaları Genel (cat_11) sekmesine aktar
+    const fallbackCat = db.categories.find(c => c.id === 'cat_11') || db.categories[0];
+    let movedMediaCount = 0;
+    if (fallbackCat) {
+        db.media.forEach(m => {
+            if (m.categoryId === catId) {
+                m.categoryId = fallbackCat.id;
+                movedMediaCount++;
+            }
+        });
+    }
+
+    saveDb();
+    return { success: true, removed, movedMediaCount };
 }
 
 // Kullanıcının aktif yükleme kategorisini ayarla
@@ -1399,11 +1582,20 @@ module.exports = {
     getBannedUsers,
     approveMedia,
     rejectMedia,
+    undoApproveMedia,
+    undoRejectMedia,
     approveAllPending,
     rejectAllPending,
     getCategories,
     getCategory,
     updateCategoryName,
+    getStarCategories,
+    isCategoryUploadEnabled,
+    toggleCategoryUpload,
+    updateCategoryPricing,
+    addCategory,
+    updateCategory,
+    deleteCategory,
     setUserActiveCategory,
     getUserActiveCategory,
     getCategoryStats,

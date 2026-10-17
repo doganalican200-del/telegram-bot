@@ -20,13 +20,28 @@ const recovery = require('./recovery');
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
-// ⭐ Özel Yıldızlı Sekme Fiyatlandırmaları
-const STAR_CATEGORIES = {
-    cat_1: { videoPrice: 2, photoPrice: 1 },  // Ensest
-    cat_3: { videoPrice: 5, photoPrice: 1 },  // İfsa
-    cat_5: { videoPrice: 10, photoPrice: 3 }, // Onlyfans
-    cat_8: { videoPrice: 2, photoPrice: 1 }   // Gizli Çekim IPCAM
-};
+// ⭐ Özel Yıldızlı Sekme Fiyatlandırmaları (Veritabanından Canlı Okunur)
+const STAR_CATEGORIES = new Proxy({}, {
+    get(target, prop) {
+        if (typeof prop === 'symbol') return undefined;
+        const live = db.getStarCategories();
+        return live[prop];
+    },
+    has(target, prop) {
+        const live = db.getStarCategories();
+        return prop in live;
+    },
+    ownKeys(target) {
+        return Object.keys(db.getStarCategories());
+    },
+    getOwnPropertyDescriptor(target, prop) {
+        const live = db.getStarCategories();
+        if (prop in live) {
+            return { configurable: true, enumerable: true, value: live[prop] };
+        }
+        return undefined;
+    }
+});
 
 // 🛒 Gelişmiş Market Paketleri Kataloğu
 const MARKET_PACKAGES = [
@@ -474,7 +489,8 @@ function createWebAppServer(options = {}) {
                     id: c.id,
                     key: c.key,
                     name: c.name,
-                    starCfg: STAR_CATEGORIES[c.id] || null,
+                    uploadsEnabled: c.uploadsEnabled !== false,
+                    starCfg: c.starCfg || STAR_CATEGORIES[c.id] || null,
                     stats: {
                         approvedPhotos: stats.approvedPhotos,
                         approvedVideos: stats.approvedVideos
@@ -770,6 +786,11 @@ function createWebAppServer(options = {}) {
                         return res.end(JSON.stringify({ success: false, message: 'Hesabınız banlanmıştır, yükleme yapamazsınız.' }));
                     }
 
+                    if (!isAdminUser(userId) && !db.isCategoryUploadEnabled(categoryId, userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({ success: false, message: 'Bu sekme kullanıcı yüklemelerine kapalıdır.' }));
+                    }
+
                     // Base64 verisini çözümle
                     const base64Data = fileData.replace(/^data:.*?;base64,/, '');
                     const buffer = Buffer.from(base64Data, 'base64');
@@ -797,6 +818,9 @@ function createWebAppServer(options = {}) {
                                 [
                                     { text: '✅ Onayla (+1 Kredi Ver)', callback_data: `admin_app_${tempMediaId}` },
                                     { text: '❌ Reddet', callback_data: `admin_rej_${tempMediaId}` }
+                                ],
+                                [
+                                    { text: '📁 Sekmeyi Değiştir', callback_data: `admin_chgcat_${tempMediaId}` }
                                 ]
                             ]
                         };
@@ -886,6 +910,11 @@ function createWebAppServer(options = {}) {
             if (db.isUserBanned(userId)) {
                 res.writeHead(403, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({ success: false, message: 'Hesabınız banlanmıştır.' }));
+            }
+
+            if (mediaType !== 'zip' && !isAdminUser(userId) && !db.isCategoryUploadEnabled(categoryId, userId)) {
+                res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+                return res.end(JSON.stringify({ success: false, message: 'Bu sekme kullanıcı yüklemelerine kapalıdır.' }));
             }
 
             const tempDir = path.join(__dirname, 'temp_uploads');
@@ -979,6 +1008,9 @@ function createWebAppServer(options = {}) {
                                 [
                                     { text: '✅ Onayla (+1 Kredi Ver)', callback_data: `admin_app_${tempMediaId}` },
                                     { text: '❌ Reddet', callback_data: `admin_rej_${tempMediaId}` }
+                                ],
+                                [
+                                    { text: '📁 Sekmeyi Değiştir', callback_data: `admin_chgcat_${tempMediaId}` }
                                 ]
                             ]
                         };
@@ -1418,6 +1450,234 @@ function createWebAppServer(options = {}) {
             const uploads = db.getAllUploadsWithUsers ? db.getAllUploadsWithUsers(150) : [];
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             return res.end(JSON.stringify({ success: true, uploads }));
+        }
+
+        // ==========================================
+        // 14G-2. API: ADMIN KATEGORİ YÖNETİM LİSTESİ (KONTROL PANELİ)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/categories' && req.method === 'GET') {
+            const userId = parsedUrl.searchParams.get('userId');
+            if (!isAdminUser(userId)) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim.' }));
+            }
+
+            const allCats = db.getCategories();
+            const result = allCats.map(c => {
+                const stats = db.getCategoryStats(c.id);
+                return {
+                    id: c.id,
+                    key: c.key,
+                    name: c.name,
+                    uploadsEnabled: c.uploadsEnabled !== false,
+                    starCfg: c.starCfg || null,
+                    stats: {
+                        approvedPhotos: stats.approvedPhotos,
+                        approvedVideos: stats.approvedVideos,
+                        pendingMedia: stats.pendingMedia,
+                        total: stats.total
+                    }
+                };
+            });
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({ success: true, categories: result }));
+        }
+
+        // ==========================================
+        // 14G-3. API: ADMIN KATEGORİ YÜKLEME AÇ/KAPAT TOGGLE
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/category-toggle-upload' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, categoryId, enabled } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
+                    }
+
+                    const updated = db.toggleCategoryUpload(categoryId, enabled);
+                    if (!updated) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Kategori bulunamadı.' }));
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ 
+                        success: true, 
+                        category: updated, 
+                        message: `[${updated.name}] sekmesi için kullanıcı yüklemesi: ${updated.uploadsEnabled ? 'AÇIK 🟢' : 'KAPALI 🔴'}` 
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 14G-4. API: ADMIN KATEGORİ FİYAT AYARLAMA (YILDIZ / KREDİ)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/category-set-price' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, categoryId, isStar, videoPrice, photoPrice } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
+                    }
+
+                    const starCfg = isStar ? { videoPrice: parseInt(videoPrice, 10) || 2, photoPrice: parseInt(photoPrice, 10) || 1 } : null;
+                    const updated = db.updateCategoryPricing(categoryId, starCfg);
+                    if (!updated) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Kategori bulunamadı.' }));
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ 
+                        success: true, 
+                        category: updated, 
+                        message: isStar 
+                            ? `[${updated.name}] sekmesi Yıldızlı yapıldı: 🎥 ${updated.starCfg.videoPrice}⭐ / 📸 ${updated.starCfg.photoPrice}⭐`
+                            : `[${updated.name}] sekmesi Standart Kredili/Takaslı moda alındı!` 
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 14G-5. API: ADMIN YENİ KATEGORİ OLUŞTUR
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/category-create' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, name, key, uploadsEnabled, isStar, videoPrice, photoPrice } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
+                    }
+
+                    if (!name || !name.trim()) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Sekme adı boş olamaz.' }));
+                    }
+
+                    const starCfg = isStar ? { videoPrice: parseInt(videoPrice, 10) || 2, photoPrice: parseInt(photoPrice, 10) || 1 } : null;
+                    const newCat = db.addCategory({
+                        name: name.trim(),
+                        key: key ? key.trim().toUpperCase() : '',
+                        uploadsEnabled: uploadsEnabled !== false,
+                        starCfg
+                    });
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ 
+                        success: true, 
+                        category: newCat, 
+                        message: `[${newCat.key}] ${newCat.name} sekmesi başarıyla oluşturuldu!` 
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 14G-6. API: ADMIN KATEGORİ GÜNCELLE
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/category-update' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, categoryId, name, key, uploadsEnabled, isStar, videoPrice, photoPrice } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
+                    }
+
+                    const starCfg = isStar ? { videoPrice: parseInt(videoPrice, 10) || 2, photoPrice: parseInt(photoPrice, 10) || 1 } : null;
+                    const updated = db.updateCategory(categoryId, {
+                        name,
+                        key,
+                        uploadsEnabled: uploadsEnabled !== false,
+                        starCfg
+                    });
+
+                    if (!updated) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Sekme bulunamadı.' }));
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ 
+                        success: true, 
+                        category: updated, 
+                        message: `[${updated.key}] ${updated.name} sekmesi güncellendi!` 
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 14G-7. API: ADMIN KATEGORİ SİL
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/category-delete' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, categoryId } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
+                    }
+
+                    if (categoryId === 'cat_11') {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, message: 'Genel (ana havuz) sekmesi silinemez.' }));
+                    }
+
+                    const resDel = db.deleteCategory(categoryId);
+                    if (!resDel.success) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify(resDel));
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ 
+                        success: true, 
+                        message: `Sekme silindi! ${resDel.movedMediaCount > 0 ? `${resDel.movedMediaCount} adet medya Genel sekmesine aktarıldı.` : ''}` 
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
         }
 
         // ==========================================

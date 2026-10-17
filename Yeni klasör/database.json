@@ -26489,57 +26489,170 @@
     {
       "id": "cat_1",
       "key": "A",
-      "name": "Ensest"
+      "name": "Ensest",
+      "starCfg": {
+        "videoPrice": 2,
+        "photoPrice": 1
+      },
+      "uploadsEnabled": false
     },
     {
       "id": "cat_2",
       "key": "B",
-      "name": "Gay"
+      "name": "Gay",
+      "starCfg": null,
+      "uploadsEnabled": true
     },
     {
       "id": "cat_3",
       "key": "C",
-      "name": "İfsa"
+      "name": "İfsa",
+      "starCfg": {
+        "videoPrice": 5,
+        "photoPrice": 1
+      },
+      "uploadsEnabled": false
     },
     {
       "id": "cat_4",
       "key": "D",
-      "name": "Cucklod"
+      "name": "Cucklod",
+      "starCfg": null,
+      "uploadsEnabled": true
     },
     {
       "id": "cat_5",
       "key": "E",
-      "name": "Onlyfans"
+      "name": "Onlyfans",
+      "starCfg": {
+        "videoPrice": 10,
+        "photoPrice": 3
+      },
+      "uploadsEnabled": false
     },
     {
       "id": "cat_6",
       "key": "F",
-      "name": "Tribute/cumtribute"
+      "name": "Tribute/cumtribute",
+      "starCfg": null,
+      "uploadsEnabled": true
     },
     {
       "id": "cat_7",
       "key": "G",
-      "name": "Ünlü"
+      "name": "Ünlü",
+      "starCfg": null,
+      "uploadsEnabled": true
     },
     {
       "id": "cat_8",
       "key": "H",
-      "name": "GİZLİ ÇEKİM IPCAM"
+      "name": "GİZLİ ÇEKİM IPCAM",
+      "starCfg": {
+        "videoPrice": 2,
+        "photoPrice": 1
+      },
+      "uploadsEnabled": false
     },
     {
       "id": "cat_9",
       "key": "I",
-      "name": "ENS NORMAL"
+      "name": "ENS NORMAL",
+      "starCfg": null,
+      "uploadsEnabled": true
     },
     {
       "id": "cat_10",
       "key": "J",
-      "name": "Porno"
+      "name": "Porno",
+      "starCfg": null,
+      "uploadsEnabled": true
     },
     {
       "id": "cat_11",
       "key": "K",
-      "name": "Genel"
+      "name": "Genel",
+      "starCfg": null,
+      "uploadsEnabled": true
+    },
+    {
+      "id": "cat_12",
+      "key": "L",
+      "name": "Türk Amatör",
+      "uploadsEnabled": true,
+      "starCfg": null
+    },
+    {
+      "id": "cat_13",
+      "key": "M",
+      "name": "Üniversiteli / Genç",
+      "uploadsEnabled": true,
+      "starCfg": null
+    },
+    {
+      "id": "cat_14",
+      "key": "N",
+      "name": "TikTok / Reels Özel",
+      "uploadsEnabled": true,
+      "starCfg": null
+    },
+    {
+      "id": "cat_15",
+      "key": "O",
+      "name": "VIP Özel Arşiv",
+      "uploadsEnabled": false,
+      "starCfg": {
+        "videoPrice": 5,
+        "photoPrice": 2
+      }
+    },
+    {
+      "id": "cat_16",
+      "key": "P",
+      "name": "Ayak / Fetiş",
+      "uploadsEnabled": true,
+      "starCfg": null
+    },
+    {
+      "id": "cat_17",
+      "key": "Q",
+      "name": "Milf / Olgun",
+      "uploadsEnabled": true,
+      "starCfg": null
+    },
+    {
+      "id": "cat_18",
+      "key": "R",
+      "name": "Cosplay / Anime",
+      "uploadsEnabled": true,
+      "starCfg": null
+    },
+    {
+      "id": "cat_19",
+      "key": "S",
+      "name": "Evli / Çift Takas",
+      "uploadsEnabled": true,
+      "starCfg": null
+    },
+    {
+      "id": "cat_20",
+      "key": "T",
+      "name": "Sansürsüz Premium",
+      "uploadsEnabled": false,
+      "starCfg": {
+        "videoPrice": 3,
+        "photoPrice": 1
+      }
+    },
+    {
+      "id": "cat_21",
+      "key": "U",
+      "name": "Mega Özel Koleksiyon",
+      "uploadsEnabled": false,
+      "starCfg": {
+        "videoPrice": 8,
+        "photoPrice": 3
+      }
     }
   ],
   "settings": {

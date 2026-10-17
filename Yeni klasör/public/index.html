@@ -1789,6 +1789,37 @@
                     </div>
                 </div>
 
+                <!-- 👑 SEKME & FİYAT KONTROL MERKEZİ (DİNAMİK KONTROL PANELİ) -->
+                <div style="background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 70%), linear-gradient(145deg, #0e172a 0%, #080d1a 100%); border: 1.5px solid rgba(56, 189, 248, 0.45); border-radius: 14px; padding: 14px; margin-bottom: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                        <div>
+                            <div style="font-size:14px; font-weight:800; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-sliders" style="font-size:16px;"></i>
+                                SEKME & FİYAT YÖNETİM MERKEZİ
+                            </div>
+                            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">
+                                Sekmeleri yönetin, yüklemeleri açıp kapatın ve yıldız fiyatlarını tek tıkla güncelleyin.
+                            </div>
+                        </div>
+                        <button onclick="openCreateCatModal()" style="background:linear-gradient(135deg, #10b981, #059669); color:#fff; border:none; padding:8px 12px; border-radius:8px; font-size:11.5px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 3px 10px rgba(16,185,129,0.35);">
+                            <i class="fa-solid fa-plus"></i> Yeni Sekme Oluştur
+                        </button>
+                    </div>
+
+                    <!-- Arama & Yenileme Çubuğu -->
+                    <div style="display:flex; gap:6px; margin-bottom:10px;">
+                        <input type="text" id="adm-cat-mgr-search" placeholder="🔍 Sekme adı veya harf ara..." oninput="filterAdminCatManagerList(this.value)" style="flex:1; background:#0b1120; border:1px solid rgba(255,255,255,0.12); color:#fff; padding:7px 10px; border-radius:8px; font-size:11.5px; outline:none;">
+                        <button onclick="loadAdminCategoriesManager()" style="background:#1e293b; border:1px solid rgba(255,255,255,0.15); color:#cbd5e1; padding:7px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;" title="Yenile">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Sekmeler Dinamik Listesi -->
+                    <div id="adm-cat-mgr-list" style="display:flex; flex-direction:column; gap:8px; max-height:480px; overflow-y:auto; padding-right:2px;">
+                        <div style="text-align:center; padding:20px; color:#94a3b8; font-size:12px;">Sekmeler yükleniyor...</div>
+                    </div>
+                </div>
+
                 <!-- Admin İstatistikler -->
                 <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; margin-bottom:14px;">
                     <div style="background:rgba(0,0,0,0.3); padding:8px 10px; border-radius:8px; border:1px solid var(--card-border);">
@@ -3026,12 +3057,40 @@
                     'cat_8': { color: '#fb7185', bg: 'linear-gradient(135deg, rgba(251, 113, 133, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(251, 113, 133, 0.45)', icon: '<i class="fa-solid fa-video" style="color:#fb7185;"></i>' },
                     'cat_9': { color: '#818cf8', bg: 'linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(129, 140, 248, 0.45)', icon: '<i class="fa-solid fa-mobile-screen-button" style="color:#818cf8;"></i>' },
                     'cat_10': { color: '#ec4899', bg: 'linear-gradient(135deg, rgba(236, 72, 153, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(236, 72, 153, 0.45)', icon: '<i class="fa-solid fa-lock" style="color:#ec4899;"></i>' },
-                    'cat_11': { color: '#0ea5e9', bg: 'linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(14, 165, 233, 0.45)', icon: '<i class="fa-solid fa-file-zipper" style="color:#0ea5e9;"></i>' }
+                    'cat_11': { color: '#0ea5e9', bg: 'linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(14, 165, 233, 0.45)', icon: '<i class="fa-solid fa-file-zipper" style="color:#0ea5e9;"></i>' },
+                    'cat_12': { color: '#ef4444', bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(239, 68, 68, 0.45)', icon: '<i class="fa-solid fa-heart" style="color:#ef4444;"></i>' },
+                    'cat_13': { color: '#38bdf8', bg: 'linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(56, 189, 248, 0.45)', icon: '<i class="fa-solid fa-graduation-cap" style="color:#38bdf8;"></i>' },
+                    'cat_14': { color: '#06b6d4', bg: 'linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(6, 182, 212, 0.45)', icon: '<i class="fa-brands fa-tiktok" style="color:#06b6d4;"></i>' },
+                    'cat_15': { color: '#f59e0b', bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(245, 158, 11, 0.45)', icon: '<i class="fa-solid fa-crown" style="color:#f59e0b;"></i>' },
+                    'cat_16': { color: '#ec4899', bg: 'linear-gradient(135deg, rgba(236, 72, 153, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(236, 72, 153, 0.45)', icon: '<i class="fa-solid fa-shoe-prints" style="color:#ec4899;"></i>' },
+                    'cat_17': { color: '#f97316', bg: 'linear-gradient(135deg, rgba(249, 115, 22, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(249, 115, 22, 0.45)', icon: '<i class="fa-solid fa-fire" style="color:#f97316;"></i>' },
+                    'cat_18': { color: '#a855f7', bg: 'linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(168, 85, 247, 0.45)', icon: '<i class="fa-solid fa-mask" style="color:#a855f7;"></i>' },
+                    'cat_19': { color: '#10b981', bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(16, 185, 129, 0.45)', icon: '<i class="fa-solid fa-people-arrows" style="color:#10b981;"></i>' },
+                    'cat_20': { color: '#fb7185', bg: 'linear-gradient(135deg, rgba(251, 113, 133, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(251, 113, 133, 0.45)', icon: '<i class="fa-solid fa-eye" style="color:#fb7185;"></i>' },
+                    'cat_21': { color: '#6366f1', bg: 'linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(15, 23, 42, 0.88))', border: 'rgba(99, 102, 241, 0.45)', icon: '<i class="fa-solid fa-gem" style="color:#6366f1;"></i>' }
+                };
+
+                const getCategoryTheme = (catId, index = 0) => {
+                    if (CAT_THEMES[catId]) return CAT_THEMES[catId];
+                    const palette = [
+                        { color: '#38bdf8', icon: '<i class="fa-solid fa-layer-group" style="color:#38bdf8;"></i>' },
+                        { color: '#ec4899', icon: '<i class="fa-solid fa-wand-magic-sparkles" style="color:#ec4899;"></i>' },
+                        { color: '#10b981', icon: '<i class="fa-solid fa-compass" style="color:#10b981;"></i>' },
+                        { color: '#f59e0b', icon: '<i class="fa-solid fa-gem" style="color:#f59e0b;"></i>' },
+                        { color: '#a855f7', icon: '<i class="fa-solid fa-cube" style="color:#a855f7;"></i>' }
+                    ];
+                    const p = palette[index % palette.length];
+                    return {
+                        color: p.color,
+                        bg: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.88))',
+                        border: p.color + '66',
+                        icon: p.icon
+                    };
                 };
 
                 categoriesData.forEach(c => {
                     const isStar = !isAdmin && !!c.starCfg;
-                    const theme = CAT_THEMES[c.id] || { color: '#38bdf8', bg: 'rgba(15,23,42,0.85)', border: 'var(--card-border)', icon: '<i class="fa-solid fa-folder" style="color:#38bdf8;"></i>' };
+                    const theme = getCategoryTheme(c.id, idx);
 
                     html += `
                         <div class="cat-card ${isStar ? 'star-card' : ''}" onclick="openCatModal('${c.id}')" style="background:${theme.bg}; border:1px solid ${theme.border}; position:relative; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.3);">
@@ -3841,21 +3900,31 @@
             const container = document.getElementById('upload-category-container');
             if (!container || !categoriesData || categoriesData.length === 0) return;
 
+            const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
             let html = '';
             categoriesData.forEach((c, idx) => {
                 const isSelected = uploadSelectedCatId === c.id;
+                const canUpload = isAdmin || c.uploadsEnabled !== false;
                 html += `
-                    <div class="cat-select-item ${isSelected ? 'selected' : ''}" onclick="selectUploadCategory('${c.id}', this)">
-                        <span>📁</span>
-                        <span>[${c.key}] ${c.name}</span>
+                    <div class="cat-select-item ${isSelected ? 'selected' : ''} ${!canUpload ? 'disabled-cat' : ''}" 
+                         onclick="${canUpload ? `selectUploadCategory('${c.id}', this)` : `showToast('[${escapeHtml(c.name)}] sekmesi kullanıcı yüklemelerine kapalıdır.', '🔒')`}"
+                         style="${!canUpload ? 'opacity:0.45; cursor:not-allowed; border-color:rgba(239,68,68,0.3);' : ''}">
+                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                            <span style="display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-folder${isSelected ? '-open' : ''}" style="color:${canUpload ? '#38bdf8' : '#ef4444'};"></i>
+                                <span>[${c.key}] ${escapeHtml(c.name)}</span>
+                            </span>
+                            ${!canUpload ? '<span style="font-size:9.5px; background:rgba(239,68,68,0.2); color:#fca5a5; padding:1px 5px; border-radius:4px;"><i class="fa-solid fa-lock"></i> Kapalı</span>' : ''}
+                        </div>
                     </div>
                 `;
             });
             container.innerHTML = html;
 
-            // Eğer hiç seçilmediyse varsayılan ilkini seç
-            if (!uploadSelectedCatId && categoriesData.length > 0) {
-                selectUploadCategory(categoriesData[0].id);
+            // Eğer hiç seçilmediyse veya seçilen kategori yüklemeye kapalıysa, ilk açık olanı seç
+            const availableCat = categoriesData.find(c => isAdmin || c.uploadsEnabled !== false);
+            if ((!uploadSelectedCatId || !categoriesData.some(c => c.id === uploadSelectedCatId && (isAdmin || c.uploadsEnabled !== false))) && availableCat) {
+                selectUploadCategory(availableCat.id);
             }
         }
 
@@ -4107,6 +4176,8 @@
 
             isUploading = true;
             const totalFiles = uploadFilesList.length;
+            const totalBatchBytes = uploadFilesList.reduce((acc, f) => acc + (f.size || 0), 0);
+            let uploadedBatchBytes = 0;
             let successCount = 0;
             let failCount = 0;
 
@@ -4120,51 +4191,90 @@
 
             btn.classList.add('disabled');
             if (progressBox) progressBox.style.display = 'block';
+            if (progressBar) progressBar.style.width = '0%';
+            if (progressPct) progressPct.innerText = '0%';
+            if (progressStatus) progressStatus.innerText = `Yükleme Başlatılıyor (0 / ${totalFiles})...`;
 
             if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
+            const userId = String(tgUser?.id || currentUser?.id || '8633136500');
+
             for (let i = 0; i < totalFiles; i++) {
                 const file = uploadFilesList[i];
-                const pct = Math.round((i / totalFiles) * 100);
-
-                if (progressBar) progressBar.style.width = `${pct}%`;
-                if (progressPct) progressPct.innerText = `${pct}%`;
-                if (progressStatus) progressStatus.innerText = `Yükleniyor (${i + 1} / ${totalFiles})...`;
-                if (progressFileInfo) progressFileInfo.innerText = `${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)`;
-                if (submitText) submitText.innerText = `⏳ Yükleniyor: ${i + 1} / ${totalFiles}`;
-
                 const name = file.name.toLowerCase();
                 const isZip = name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z') || name.endsWith('.tar') || name.endsWith('.gz');
                 const isVid = !isZip && (file.type.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm|flv|wmv|m4v|3gp|ts)$/i.test(name));
                 const fileType = isZip ? 'zip' : (isVid ? 'video' : 'photo');
 
                 try {
-                    const res = await fetch('/api/webapp/upload-stream', {
-                        method: 'POST',
-                        headers: {
-                            'x-user-id': String(tgUser.id),
-                            'x-category-id': uploadSelectedCatId,
-                            'x-media-type': fileType,
-                            'x-file-name': encodeURIComponent(file.name)
-                        },
-                        body: file
+                    const result = await new Promise((resolve) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('POST', '/api/webapp/upload-stream', true);
+                        xhr.setRequestHeader('x-user-id', userId);
+                        xhr.setRequestHeader('x-category-id', uploadSelectedCatId);
+                        xhr.setRequestHeader('x-media-type', fileType);
+                        xhr.setRequestHeader('x-file-name', encodeURIComponent(file.name));
+                        xhr.timeout = 180000;
+
+                        xhr.upload.onprogress = (e) => {
+                            if (e.lengthComputable) {
+                                const filePct = Math.round((e.loaded / e.total) * 100);
+                                const currentLoadedOverall = uploadedBatchBytes + e.loaded;
+                                const overallPct = totalBatchBytes > 0 ? Math.min(99, Math.round((currentLoadedOverall / totalBatchBytes) * 100)) : filePct;
+                                const loadedMb = (currentLoadedOverall / (1024 * 1024)).toFixed(1);
+                                const totalMb = (totalBatchBytes / (1024 * 1024)).toFixed(1);
+                                const fileLoadedMb = (e.loaded / (1024 * 1024)).toFixed(1);
+                                const fileTotalMb = (e.total / (1024 * 1024)).toFixed(1);
+
+                                if (progressBar) progressBar.style.width = `${overallPct}%`;
+                                if (progressPct) progressPct.innerText = `%${overallPct}`;
+                                if (progressStatus) progressStatus.innerText = `Dosya ${i + 1} / ${totalFiles} • ${loadedMb} MB / ${totalMb} MB (%${overallPct})`;
+                                if (progressFileInfo) progressFileInfo.innerText = `${file.name} (${fileLoadedMb} MB / ${fileTotalMb} MB - %${filePct})`;
+                                if (submitText) submitText.innerText = `⏳ Yükleniyor: ${i + 1} / ${totalFiles} (%${overallPct})`;
+                            }
+                        };
+
+                        xhr.onload = () => {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                try {
+                                    resolve(JSON.parse(xhr.responseText));
+                                } catch (_) {
+                                    resolve({ success: true });
+                                }
+                            } else {
+                                try {
+                                    resolve(JSON.parse(xhr.responseText));
+                                } catch (_) {
+                                    resolve({ success: false, message: `Sunucu Hatası (${xhr.status})` });
+                                }
+                            }
+                        };
+
+                        xhr.onerror = () => resolve({ success: false, message: 'Ağ bağlantı hatası oluştu' });
+                        xhr.ontimeout = () => resolve({ success: false, message: 'Yükleme zaman aşımına uğradı' });
+
+                        xhr.send(file);
                     });
 
-                    const result = await res.json();
-                    if (result.success) {
+                    if (result && result.success) {
                         successCount++;
                     } else {
                         failCount++;
-                        console.warn(`Dosya yüklenemedi: ${file.name}`, result.message);
+                        console.warn(`Dosya yüklenemedi: ${file.name}`, result?.message);
                     }
                 } catch (err) {
                     failCount++;
                     console.error(`Yükleme hatası: ${file.name}`, err);
                 }
+
+                uploadedBatchBytes += (file.size || 0);
+                const fileDonePct = totalBatchBytes > 0 ? Math.min(100, Math.round((uploadedBatchBytes / totalBatchBytes) * 100)) : 100;
+                if (progressBar) progressBar.style.width = `${fileDonePct}%`;
+                if (progressPct) progressPct.innerText = `%${fileDonePct}`;
             }
 
             if (progressBar) progressBar.style.width = '100%';
-            if (progressPct) progressPct.innerText = '100%';
+            if (progressPct) progressPct.innerText = '%100';
             if (progressStatus) progressStatus.innerText = 'Yükleme Tamamlandı!';
 
             setTimeout(() => {
@@ -5596,6 +5706,7 @@
             } else if (tabId === 'profile') {
                 loadUserData();
                 if (currentUser?.isAdmin || String(tgUser?.id) === '8633136500') {
+                    loadAdminCategoriesManager();
                     loadAdminPanel();
                     startAdminLivePolling();
                 }
@@ -7238,6 +7349,456 @@
         loadReceivedMedia();
         loadPurchasedZips();
         loadDedicatedZips();
+
+        // ==========================================
+        // 👑 SAĞLAM KONTROL PANELİ: SEKME & FİYAT YÖNETİMİ
+        // ==========================================
+        let adminManagerCatsData = [];
+        let editingCatId = null;
+
+        async function loadAdminCategoriesManager() {
+            const listEl = document.getElementById('adm-cat-mgr-list');
+            if (!listEl) return;
+
+            try {
+                listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#94a3b8; font-size:12px;"><i class="fa-solid fa-spinner fa-spin"></i> Sekmeler yükleniyor...</div>';
+                const res = await fetch(`/api/webapp/admin/categories?userId=${tgUser?.id || '8633136500'}`);
+                const data = await res.json();
+                if (!data.success) {
+                    listEl.innerHTML = `<div style="color:#ef4444; font-size:12px; padding:10px;">${data.message || 'Hata oluştu'}</div>`;
+                    return;
+                }
+                adminManagerCatsData = data.categories || [];
+                renderAdminCatManagerList(adminManagerCatsData);
+            } catch (err) {
+                listEl.innerHTML = `<div style="color:#ef4444; font-size:12px; padding:10px;">Hata: ${err.message}</div>`;
+            }
+        }
+
+        function filterAdminCatManagerList(query) {
+            const q = (query || '').trim().toLowerCase();
+            if (!q) {
+                renderAdminCatManagerList(adminManagerCatsData);
+                return;
+            }
+            const filtered = adminManagerCatsData.filter(c => 
+                c.name.toLowerCase().includes(q) || 
+                c.key.toLowerCase().includes(q) || 
+                c.id.toLowerCase().includes(q)
+            );
+            renderAdminCatManagerList(filtered);
+        }
+
+        function renderAdminCatManagerList(cats) {
+            const listEl = document.getElementById('adm-cat-mgr-list');
+            if (!listEl) return;
+
+            if (!cats || cats.length === 0) {
+                listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#94a3b8; font-size:12px;">Eşleşen sekme bulunamadı.</div>';
+                return;
+            }
+
+            let html = '';
+            cats.forEach(c => {
+                const isStar = !!c.starCfg;
+                const uploadsOn = c.uploadsEnabled !== false;
+
+                html += `
+                    <div style="background:rgba(255,255,255,0.03); border:1px solid ${isStar ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-weight:900; font-size:11px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.15); color:#38bdf8; padding:2px 7px; border-radius:6px;">[${c.key}]</span>
+                                <span style="font-weight:800; font-size:13px; color:#fff;">${escapeHtml(c.name)}</span>
+                                <span style="font-size:10px; color:#94a3b8;">(${c.id})</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:10.5px; color:#cbd5e1; background:rgba(0,0,0,0.3); padding:2px 6px; border-radius:4px;">
+                                    📸 ${c.stats?.approvedPhotos || 0} Foto | 🎥 ${c.stats?.approvedVideos || 0} Video
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Kontrol ve Butonlar Satırı -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.05);">
+                            <!-- Yükleme İzni Butonu -->
+                            <button onclick="toggleAdminCatUpload('${c.id}', ${!uploadsOn})" style="background:${uploadsOn ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}; border:1px solid ${uploadsOn ? '#10b981' : '#ef4444'}; color:${uploadsOn ? '#34d399' : '#f87171'}; font-size:10.5px; font-weight:800; padding:5px 9px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+                                <i class="fa-solid fa-${uploadsOn ? 'cloud-arrow-up' : 'lock'}"></i>
+                                <span>${uploadsOn ? 'Yükleme: AÇIK 🟢' : 'Yükleme: KAPALI 🔴'}</span>
+                            </button>
+
+                            <!-- Fiyatlandırma Rozeti & Düzenle Butonu -->
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                ${isStar 
+                                    ? `<span style="background:rgba(245,158,11,0.18); border:1px solid #f59e0b; color:#fbbf24; font-size:10px; font-weight:800; padding:4px 7px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">
+                                        <i class="fa-solid fa-star"></i> 🎥 ${c.starCfg.videoPrice}⭐ / 📸 ${c.starCfg.photoPrice}⭐
+                                       </span>`
+                                    : `<span style="background:rgba(56,189,248,0.12); border:1px solid #38bdf8; color:#38bdf8; font-size:10px; font-weight:700; padding:4px 7px; border-radius:6px;">
+                                        ⚡ Kredili / Takas
+                                       </span>`
+                                }
+                                <button onclick="openEditCatModal('${c.id}')" style="background:#1e293b; border:1px solid rgba(255,255,255,0.2); color:#fff; font-size:10.5px; font-weight:700; padding:5px 9px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+                                    <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                                </button>
+                                ${c.id !== 'cat_11' ? `
+                                    <button onclick="deleteAdminCategory('${c.id}', '${escapeHtml(c.name)}')" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.35); color:#fca5a5; font-size:10.5px; padding:5px 8px; border-radius:6px; cursor:pointer;" title="Sekmeyi Sil">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+        }
+
+        // 🔄 Yükleme Aç / Kapat
+        async function toggleAdminCatUpload(catId, enable) {
+            try {
+                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                const res = await fetch('/api/webapp/admin/category-toggle-upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: tgUser?.id || '8633136500', categoryId: catId, enabled: enable })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message, enable ? '🟢' : '🔴');
+                    await loadAdminCategoriesManager();
+                    loadCategories();
+                } else {
+                    showToast(data.message || 'İşlem başarısız', '⚠️');
+                }
+            } catch (err) {
+                showToast('Hata: ' + err.message, '⚠️');
+            }
+        }
+
+        // ➕ Yeni Sekme Oluştur Modal Aç / Kapat
+        function openCreateCatModal() {
+            document.getElementById('create-cat-name').value = '';
+            document.getElementById('create-cat-key').value = '';
+            document.getElementById('create-cat-upload-chk').checked = true;
+            document.querySelector('input[name="create-cat-price-type"][value="credit"]').checked = true;
+            document.getElementById('create-cat-star-box').style.display = 'none';
+            document.getElementById('admin-create-cat-modal').classList.add('active');
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function closeCreateCatModal() {
+            document.getElementById('admin-create-cat-modal').classList.remove('active');
+        }
+
+        function toggleCreatePriceDetails(isStar) {
+            document.getElementById('create-cat-star-box').style.display = isStar ? 'grid' : 'none';
+        }
+
+        async function submitCreateCategory() {
+            const name = document.getElementById('create-cat-name').value.trim();
+            const key = document.getElementById('create-cat-key').value.trim();
+            const uploadsEnabled = document.getElementById('create-cat-upload-chk').checked;
+            const priceType = document.querySelector('input[name="create-cat-price-type"]:checked')?.value;
+            const isStar = priceType === 'star';
+            const videoPrice = parseInt(document.getElementById('create-cat-vid-price').value, 10) || 2;
+            const photoPrice = parseInt(document.getElementById('create-cat-pho-price').value, 10) || 1;
+
+            if (!name) {
+                showToast('Lütfen sekme adı giriniz!', '⚠️');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/webapp/admin/category-create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        name,
+                        key,
+                        uploadsEnabled,
+                        isStar,
+                        videoPrice,
+                        photoPrice
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message, '🎉');
+                    closeCreateCatModal();
+                    await loadAdminCategoriesManager();
+                    loadCategories();
+                } else {
+                    showToast(data.message || 'Hata oluştu', '⚠️');
+                }
+            } catch (err) {
+                showToast('Hata: ' + err.message, '⚠️');
+            }
+        }
+
+        // ✏️ Sekme Düzenle Modal Aç / Kapat
+        function openEditCatModal(catId) {
+            const cat = adminManagerCatsData.find(c => c.id === catId);
+            if (!cat) return;
+            editingCatId = catId;
+
+            document.getElementById('edit-cat-modal-title').innerHTML = `<i class="fa-solid fa-sliders"></i> [${cat.key}] ${escapeHtml(cat.name)} Düzenle`;
+            document.getElementById('edit-cat-modal-id').innerText = `ID: ${cat.id}`;
+            document.getElementById('edit-cat-name').value = cat.name;
+            document.getElementById('edit-cat-key').value = cat.key;
+
+            const uploadsOn = cat.uploadsEnabled !== false;
+            const uploadChk = document.getElementById('edit-cat-upload-chk');
+            uploadChk.checked = uploadsOn;
+            updateEditUploadText(uploadsOn);
+
+            const isStar = !!cat.starCfg;
+            if (isStar) {
+                document.querySelector('input[name="edit-cat-price-type"][value="star"]').checked = true;
+                document.getElementById('edit-cat-vid-price').value = cat.starCfg.videoPrice || 2;
+                document.getElementById('edit-cat-pho-price').value = cat.starCfg.photoPrice || 1;
+                document.getElementById('edit-cat-star-box').style.display = 'grid';
+            } else {
+                document.querySelector('input[name="edit-cat-price-type"][value="credit"]').checked = true;
+                document.getElementById('edit-cat-star-box').style.display = 'none';
+            }
+
+            document.getElementById('admin-edit-cat-modal').classList.add('active');
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function closeEditCatModal() {
+            document.getElementById('admin-edit-cat-modal').classList.remove('active');
+            editingCatId = null;
+        }
+
+        function toggleEditPriceDetails(isStar) {
+            document.getElementById('edit-cat-star-box').style.display = isStar ? 'grid' : 'none';
+        }
+
+        function updateEditUploadText(checked) {
+            const txt = document.getElementById('edit-cat-upload-status-text');
+            const span = document.getElementById('edit-toggle-span');
+            if (txt) {
+                txt.innerText = checked ? 'Açık (Kullanıcılar yükleyebilir 🟢)' : 'Kapalı (Yalnızca Admin yükleyebilir 🔴)';
+                txt.style.color = checked ? '#10b981' : '#f87171';
+            }
+            if (span) {
+                span.style.background = checked ? '#10b981' : '#ef4444';
+            }
+        }
+
+        async function submitEditCategory() {
+            if (!editingCatId) return;
+            const name = document.getElementById('edit-cat-name').value.trim();
+            const key = document.getElementById('edit-cat-key').value.trim();
+            const uploadsEnabled = document.getElementById('edit-cat-upload-chk').checked;
+            const priceType = document.querySelector('input[name="edit-cat-price-type"]:checked')?.value;
+            const isStar = priceType === 'star';
+            const videoPrice = parseInt(document.getElementById('edit-cat-vid-price').value, 10) || 2;
+            const photoPrice = parseInt(document.getElementById('edit-cat-pho-price').value, 10) || 1;
+
+            if (!name) {
+                showToast('Lütfen sekme adı giriniz!', '⚠️');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/webapp/admin/category-update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser?.id || '8633136500',
+                        categoryId: editingCatId,
+                        name,
+                        key,
+                        uploadsEnabled,
+                        isStar,
+                        videoPrice,
+                        photoPrice
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message, '✅');
+                    closeEditCatModal();
+                    await loadAdminCategoriesManager();
+                    loadCategories();
+                } else {
+                    showToast(data.message || 'Hata oluştu', '⚠️');
+                }
+            } catch (err) {
+                showToast('Hata: ' + err.message, '⚠️');
+            }
+        }
+
+        // 🗑️ Sekme Sil
+        async function deleteAdminCategory(catId, catName) {
+            if (!confirm(`[${catName}] sekmesini tamamen silmek istediğinize emin misiniz?\n\nNot: Bu sekmedeki tüm medyalar güvenle Genel (K) sekmesine aktarılacaktır.`)) {
+                return;
+            }
+
+            try {
+                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+                const res = await fetch('/api/webapp/admin/category-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: tgUser?.id || '8633136500', categoryId: catId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message, '🗑️');
+                    await loadAdminCategoriesManager();
+                    loadCategories();
+                } else {
+                    showToast(data.message || 'Hata oluştu', '⚠️');
+                }
+            } catch (err) {
+                showToast('Hata: ' + err.message, '⚠️');
+            }
+        }
     </script>
+    <!-- ➕ YENİ SEKME OLUŞTURMA MODALI -->
+    <div class="modal-overlay" id="admin-create-cat-modal" onclick="closeModalOnOverlay(event)">
+        <div class="modal-sheet" style="padding:18px;">
+            <div class="modal-header">
+                <h3 style="display:flex; align-items:center; gap:8px; color:#38bdf8; font-size:16px;">
+                    <i class="fa-solid fa-folder-plus"></i> Yeni Sekme Oluştur
+                </h3>
+                <button class="close-btn" onclick="closeCreateCatModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="font-size:12px; color:var(--hint-color); margin-bottom:14px; line-height:1.4;">
+                Uygulama içine anında yeni bir sekme ekleyin. Fiyatlandırma ve yükleme iznini belirleyin.
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+                <div>
+                    <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px; font-weight:700;">Sekme Adı:</label>
+                    <input type="text" id="create-cat-name" placeholder="Örn: Türk Amatör, Özel Arşiv..." style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:9px 12px; border-radius:8px; font-size:12.5px; outline:none;">
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px; font-weight:700;">Kısayol Harfi (A-Z):</label>
+                    <input type="text" id="create-cat-key" placeholder="Boş bırakılırsa sıradaki harf otomatik atanır" maxlength="3" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.15); color:#38bdf8; padding:9px 12px; border-radius:8px; font-size:12.5px; font-weight:800; text-transform:uppercase; outline:none;">
+                </div>
+
+                <!-- Yükleme İzni Switch -->
+                <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:10px 12px; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-size:12px; font-weight:700; color:#fff;">Kullanıcı Yüklemesi</div>
+                        <div style="font-size:10.5px; color:#94a3b8;">Kullanıcıların bu sekmeye medya yüklemesine izin ver</div>
+                    </div>
+                    <label style="position:relative; display:inline-block; width:44px; height:24px; cursor:pointer;">
+                        <input type="checkbox" id="create-cat-upload-chk" checked style="opacity:0; width:0; height:0;">
+                        <span class="custom-toggle-slider" onclick="this.previousElementSibling.checked = !this.previousElementSibling.checked; updateToggleUI(this.previousElementSibling);" style="position:absolute; inset:0; background:#10b981; border-radius:24px; transition:0.3s; display:block;"></span>
+                    </label>
+                </div>
+
+                <!-- Fiyatlandırma Modu -->
+                <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:12px; border-radius:10px;">
+                    <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:8px; font-weight:700;">Fiyatlandırma Türü:</label>
+                    <div style="display:flex; gap:8px; margin-bottom:10px;">
+                        <label style="flex:1; display:flex; align-items:center; gap:6px; background:#0f172a; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); cursor:pointer; font-size:11px; font-weight:700;">
+                            <input type="radio" name="create-cat-price-type" value="credit" checked onchange="toggleCreatePriceDetails(false)">
+                            <span>⚡ Standart Kredili</span>
+                        </label>
+                        <label style="flex:1; display:flex; align-items:center; gap:6px; background:#0f172a; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); cursor:pointer; font-size:11px; font-weight:700;">
+                            <input type="radio" name="create-cat-price-type" value="star" onchange="toggleCreatePriceDetails(true)">
+                            <span style="color:#fbbf24;">⭐ Telegram Yıldızı</span>
+                        </label>
+                    </div>
+
+                    <!-- Yıldız Fiyat Ayarı (Gizli / Açılır) -->
+                    <div id="create-cat-star-box" style="display:none; grid-template-columns:1fr 1fr; gap:8px;">
+                        <div>
+                            <label style="font-size:10px; color:#cbd5e1; display:block; margin-bottom:2px;">Video Yıldız Fiyatı:</label>
+                            <input type="number" id="create-cat-vid-price" value="2" min="1" max="100" style="width:100%; background:#1e293b; border:1px solid rgba(245,158,11,0.4); color:#fbbf24; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:800; outline:none;">
+                        </div>
+                        <div>
+                            <label style="font-size:10px; color:#cbd5e1; display:block; margin-bottom:2px;">Fotoğraf Yıldız Fiyatı:</label>
+                            <input type="number" id="create-cat-pho-price" value="1" min="1" max="100" style="width:100%; background:#1e293b; border:1px solid rgba(245,158,11,0.4); color:#fbbf24; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:800; outline:none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="primary-action-btn" onclick="submitCreateCategory()" style="width:100%; background:linear-gradient(135deg, #10b981, #059669); font-size:13px; font-weight:800; padding:12px;">
+                <i class="fa-solid fa-check" style="margin-right:6px;"></i> Sekmeyi Oluştur & Yayınla
+            </button>
+        </div>
+    </div>
+
+    <!-- ✏️ SEKME DÜZENLEME & FİYAT DEĞİŞTİRME MODALI -->
+    <div class="modal-overlay" id="admin-edit-cat-modal" onclick="closeModalOnOverlay(event)">
+        <div class="modal-sheet" style="padding:18px;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="edit-cat-modal-title" style="display:flex; align-items:center; gap:8px; color:#fbbf24; font-size:16px;">
+                        <i class="fa-solid fa-sliders"></i> Sekmeyi Düzenle
+                    </h3>
+                    <div id="edit-cat-modal-id" style="font-size:10.5px; color:#94a3b8; margin-top:2px;">ID: -</div>
+                </div>
+                <button class="close-btn" onclick="closeEditCatModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+                <div>
+                    <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px; font-weight:700;">Sekme Adı:</label>
+                    <input type="text" id="edit-cat-name" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:9px 12px; border-radius:8px; font-size:12.5px; outline:none;">
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px; font-weight:700;">Kısayol Harfi:</label>
+                    <input type="text" id="edit-cat-key" maxlength="3" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.15); color:#38bdf8; padding:9px 12px; border-radius:8px; font-size:12.5px; font-weight:800; text-transform:uppercase; outline:none;">
+                </div>
+
+                <!-- Yükleme İzni Switch -->
+                <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:10px 12px; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-size:12px; font-weight:700; color:#fff;">Kullanıcı Yükleme İzni</div>
+                        <div id="edit-cat-upload-status-text" style="font-size:10.5px; color:#10b981;">Açık (Herkes yükleyebilir)</div>
+                    </div>
+                    <label style="position:relative; display:inline-block; width:44px; height:24px; cursor:pointer;">
+                        <input type="checkbox" id="edit-cat-upload-chk" style="opacity:0; width:0; height:0;" onchange="updateEditUploadText(this.checked)">
+                        <span id="edit-toggle-span" style="position:absolute; inset:0; background:#10b981; border-radius:24px; transition:0.3s; display:block;"></span>
+                    </label>
+                </div>
+
+                <!-- Fiyatlandırma Modu -->
+                <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:12px; border-radius:10px;">
+                    <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:8px; font-weight:700;">Fiyatlandırma Türü & Yıldız Ayarı:</label>
+                    <div style="display:flex; gap:8px; margin-bottom:10px;">
+                        <label style="flex:1; display:flex; align-items:center; gap:6px; background:#0f172a; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); cursor:pointer; font-size:11px; font-weight:700;">
+                            <input type="radio" name="edit-cat-price-type" value="credit" onchange="toggleEditPriceDetails(false)">
+                            <span>⚡ Kredili / Takas</span>
+                        </label>
+                        <label style="flex:1; display:flex; align-items:center; gap:6px; background:#0f172a; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); cursor:pointer; font-size:11px; font-weight:700;">
+                            <input type="radio" name="edit-cat-price-type" value="star" onchange="toggleEditPriceDetails(true)">
+                            <span style="color:#fbbf24;">⭐ Telegram Yıldızı</span>
+                        </label>
+                    </div>
+
+                    <!-- Yıldız Fiyat Ayarı -->
+                    <div id="edit-cat-star-box" style="display:none; grid-template-columns:1fr 1fr; gap:8px;">
+                        <div>
+                            <label style="font-size:10px; color:#cbd5e1; display:block; margin-bottom:2px;">Video Yıldız Fiyatı:</label>
+                            <input type="number" id="edit-cat-vid-price" value="2" min="1" max="100" style="width:100%; background:#1e293b; border:1px solid rgba(245,158,11,0.4); color:#fbbf24; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:800; outline:none;">
+                        </div>
+                        <div>
+                            <label style="font-size:10px; color:#cbd5e1; display:block; margin-bottom:2px;">Fotoğraf Yıldız Fiyatı:</label>
+                            <input type="number" id="edit-cat-pho-price" value="1" min="1" max="100" style="width:100%; background:#1e293b; border:1px solid rgba(245,158,11,0.4); color:#fbbf24; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:800; outline:none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 2fr; gap:8px;">
+                <button onclick="closeEditCatModal()" style="background:#1e293b; border:1px solid rgba(255,255,255,0.2); color:#cbd5e1; padding:11px; border-radius:8px; font-weight:700; font-size:12px; cursor:pointer;">
+                    İptal
+                </button>
+                <button class="primary-action-btn" onclick="submitEditCategory()" style="background:linear-gradient(135deg, #0284c7, #2563eb); font-size:13px; font-weight:800; padding:11px;">
+                    <i class="fa-solid fa-floppy-disk" style="margin-right:6px;"></i> Değişiklikleri Kaydet
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
