@@ -13,11 +13,29 @@ if (DB_DIR !== __dirname && !fs.existsSync(DB_FILE) && fs.existsSync(path.join(_
     }
 }
 
-const ADMIN_IDS = ['8633136500'];
+const SUPER_ADMIN_ID = '8633136500';
+const ADMIN_IDS = [SUPER_ADMIN_ID];
+
+function isSuperAdmin(userId) {
+    if (!userId) return false;
+    return String(userId) === SUPER_ADMIN_ID;
+}
+
+function isAssistantAdmin(userId) {
+    if (!userId) return false;
+    const db = loadDb();
+    if (!Array.isArray(db.assistantAdmins)) return false;
+    const uid = String(userId);
+    return db.assistantAdmins.some(a => String(a.userId) === uid);
+}
+
+function isAdminOrAssistant(userId) {
+    return isSuperAdmin(userId) || isAssistantAdmin(userId);
+}
 
 function isAdminUser(userId) {
     if (!userId) return false;
-    return String(userId) === '8633136500';
+    return isAdminOrAssistant(userId);
 }
 
 const defaultCategories = [
@@ -38,6 +56,7 @@ const defaultData = {
     users: {},
     media: [],
     zips: [],
+    assistantAdmins: [],
     categories: defaultCategories,
     settings: {
         starterPhotoCredits: 1,  // Yeni başlayan kullanıcıya hediye Resim Kredisi
@@ -116,6 +135,10 @@ function loadDb() {
 
             if (!Array.isArray(dbCache.zips)) {
                 dbCache.zips = [];
+            }
+
+            if (!Array.isArray(dbCache.assistantAdmins)) {
+                dbCache.assistantAdmins = [];
             }
         } else {
             dbCache = JSON.parse(JSON.stringify(defaultData));
@@ -1758,6 +1781,13 @@ module.exports = {
     dismissReportsForMedia,
     getAllUploadsWithUsers,
     ADMIN_IDS,
+    SUPER_ADMIN_ID,
+    isSuperAdmin,
+    isAssistantAdmin,
+    isAdminOrAssistant,
+    getAssistantAdmins,
+    addAssistantAdmin,
+    removeAssistantAdmin,
     isAdminUser,
     autoHealUser,
     autoHealSystem,
@@ -2189,6 +2219,8 @@ function getAllUsersDetailed() {
             isVip: vip.isVip,
             is_vip: vip.isVip,
             vipUntil: vip.until || null,
+            isSuperAdmin: isSuperAdmin(u.id),
+            isAssistantAdmin: isAssistantAdmin(u.id),
             isBanned: !!u.isBanned,
             is_banned: !!u.isBanned,
             bannedReason: u.bannedReason || null,
@@ -2777,6 +2809,73 @@ function undoLastMassReward() {
         message: `Son yapılan toplu ödül dağıtımı geri alındı! (${restoredCount} kullanıcının bakiyesi eski haline döndürüldü)`,
         restoredCount
     };
+}
+
+// ==========================================
+// 🛡️ YARDIMCI ADMİN (ASSISTANT ADMIN) SİSTEMİ
+// ==========================================
+
+function getAssistantAdmins() {
+    const db = loadDb();
+    if (!Array.isArray(db.assistantAdmins)) db.assistantAdmins = [];
+    return db.assistantAdmins;
+}
+
+function addAssistantAdmin(targetUserId, requesterId, notes = {}) {
+    const db = loadDb();
+    if (!isSuperAdmin(requesterId)) {
+        return { success: false, message: 'Yalnızca Ana Yönetici (8633136500) yardımcı admin atayabilir.' };
+    }
+    const tid = String(targetUserId || '').trim();
+    if (!tid) {
+        return { success: false, message: 'Geçersiz Kullanıcı ID.' };
+    }
+    if (isSuperAdmin(tid)) {
+        return { success: false, message: 'Ana yönetici zaten kurucudur, yardımcı admin yapılamaz.' };
+    }
+    if (!Array.isArray(db.assistantAdmins)) db.assistantAdmins = [];
+    if (db.assistantAdmins.some(a => String(a.userId) === tid)) {
+        return { success: false, message: 'Bu kullanıcı zaten Yardımcı Admin olarak kayıtlı.' };
+    }
+
+    const targetUser = db.users[tid];
+    const newAdmin = {
+        userId: tid,
+        name: (targetUser && (targetUser.firstName || targetUser.first_name)) || notes.name || `Kullanıcı #${tid}`,
+        username: (targetUser && targetUser.username) || notes.username || '',
+        addedAt: new Date().toISOString(),
+        addedBy: String(requesterId)
+    };
+
+    db.assistantAdmins.push(newAdmin);
+    if (targetUser) {
+        targetUser.isAssistantAdmin = true;
+    }
+    saveDb();
+    return { success: true, assistantAdmin: newAdmin, message: `ID: ${tid} başarıyla Yardımcı Admin olarak atandı!` };
+}
+
+function removeAssistantAdmin(targetUserId, requesterId) {
+    const db = loadDb();
+    if (!isSuperAdmin(requesterId)) {
+        return { success: false, message: 'Yalnızca Ana Yönetici (8633136500) yetki geri alabilir.' };
+    }
+    const tid = String(targetUserId || '').trim();
+    if (!tid) {
+        return { success: false, message: 'Geçersiz Kullanıcı ID.' };
+    }
+    if (!Array.isArray(db.assistantAdmins)) db.assistantAdmins = [];
+    const beforeCount = db.assistantAdmins.length;
+    db.assistantAdmins = db.assistantAdmins.filter(a => String(a.userId) !== tid);
+    if (db.assistantAdmins.length === beforeCount) {
+        return { success: false, message: 'Bu kullanıcı yardımcı admin listesinde bulunamadı.' };
+    }
+
+    if (db.users && db.users[tid]) {
+        db.users[tid].isAssistantAdmin = false;
+    }
+    saveDb();
+    return { success: true, message: `ID: ${tid} kullanıcısının Yardımcı Admin yetkisi başarıyla geri alındı!` };
 }
 
 

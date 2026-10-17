@@ -1824,6 +1824,55 @@
                     </div>
                 </div>
 
+                <!-- 🛡️ YARDIMCI ADMİN YÖNETİM MERKEZİ (Atama & Yetki Geri Alma) -->
+                <div id="admin-assistant-panel-card" style="display:none; background: radial-gradient(circle at top right, rgba(168, 85, 247, 0.2), transparent 70%), linear-gradient(145deg, #0e172a 0%, #0c0a1a 100%); border: 1.5px solid rgba(168, 85, 247, 0.5); border-radius: 14px; padding: 14px; margin-bottom: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                        <div>
+                            <div style="font-size:14px; font-weight:800; color:#c084fc; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-user-shield" style="font-size:16px;"></i>
+                                YARDIMCI ADMİN YÖNETİM MERKEZİ
+                            </div>
+                            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">
+                                Sisteme yardımcı admin atayın veya dilediğiniz zaman yetkilerini tek tıkla geri alın.
+                            </div>
+                        </div>
+                        <span style="font-size:10px; background:rgba(168, 85, 247, 0.25); border:1px solid #a855f7; color:#c084fc; font-weight:800; padding:2px 8px; border-radius:6px;">
+                            🛡️ SADECE KURUCU
+                        </span>
+                    </div>
+
+                    <!-- Hızlı Ekleme / Atama Formu -->
+                    <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px; margin-bottom:12px;">
+                        <div style="font-size:11px; font-weight:700; color:#cbd5e1; margin-bottom:6px;">
+                            ➕ Yeni Yardımcı Admin Ata
+                        </div>
+                        <div style="display:grid; grid-template-columns:1.2fr 1fr auto; gap:6px; align-items:center;">
+                            <input type="text" id="adm-asst-input-id" placeholder="Telegram ID (Örn: 123456789)" style="background:#0b1120; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:7px 9px; border-radius:8px; font-size:11px; outline:none;">
+                            <input type="text" id="adm-asst-input-name" placeholder="İsim / Not (Opsiyonel)" style="background:#0b1120; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:7px 9px; border-radius:8px; font-size:11px; outline:none;">
+                            <button onclick="submitAddAssistantAdmin()" id="btn-add-asst-admin" style="background:linear-gradient(135deg, #a855f7, #7c3aed); border:none; color:#fff; padding:7px 14px; border-radius:8px; font-size:11.5px; font-weight:800; cursor:pointer; white-space:nowrap; box-shadow:0 3px 10px rgba(168,85,247,0.35);">
+                                <i class="fa-solid fa-plus"></i> Ata
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aktif Yardımcı Adminler Listesi -->
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <div style="font-size:12px; font-weight:800; color:#e2e8f0; display:flex; align-items:center; gap:6px;">
+                                <span>Aktif Yardımcı Adminler</span>
+                                <span id="adm-asst-count-badge" style="background:#a855f7; color:#fff; font-size:10px; font-weight:800; padding:1px 7px; border-radius:10px;">0</span>
+                            </div>
+                            <button onclick="loadAssistantAdmins()" style="background:#1e293b; border:1px solid rgba(255,255,255,0.15); color:#cbd5e1; padding:4px 10px; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;">
+                                <i class="fa-solid fa-rotate-right" style="margin-right:4px;"></i> Yenile
+                            </button>
+                        </div>
+
+                        <div id="adm-asst-admins-list" style="display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; padding-right:2px;">
+                            <div style="text-align:center; padding:15px; color:#94a3b8; font-size:11px;">Yardımcı adminler yükleniyor...</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Admin İstatistikler -->
                 <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; margin-bottom:14px;">
                     <div style="background:rgba(0,0,0,0.3); padding:8px 10px; border-radius:8px; border:1px solid var(--card-border);">
@@ -3198,20 +3247,33 @@
                 const data = await res.json();
                 currentUser = data;
 
-                const isAdmin = !!(data.isAdmin || String(tgUser?.id) === '8633136500');
+                const isSuper = !!(data.isSuperAdmin || String(tgUser?.id) === '8633136500');
+                const isAssistant = !!(data.isAssistantAdmin);
+                const isAdmin = isSuper || isAssistant;
 
                 // Header & Profil Güncelle
-                if (isAdmin) {
-                    document.getElementById('header-username').innerHTML = `${tgUser.first_name || 'Admin'} <span style="font-size:10px; background:#38bdf8; color:#000; padding:1px 6px; border-radius:6px; font-weight:800;">ADMIN</span>`;
-                    document.getElementById('header-user-id').innerText = `ID: ${tgUser.id} • Tek Yönetici`;
+                if (isSuper) {
+                    document.getElementById('header-username').innerHTML = `${tgUser.first_name || 'Admin'} <span style="font-size:10px; background:#f59e0b; color:#000; padding:1px 6px; border-radius:6px; font-weight:800;">KURUCU</span>`;
+                    document.getElementById('header-user-id').innerText = `ID: ${tgUser.id} • Kurucu`;
                     document.getElementById('bal-photos').innerText = '∞';
                     document.getElementById('bal-videos').innerText = '∞';
                     document.getElementById('bal-spins').innerText = '∞';
                     document.getElementById('wheel-spins-count').innerText = '∞';
                     const pwEl = document.getElementById('prof-wheel-count');
                     if (pwEl) pwEl.innerText = '∞';
-                    document.getElementById('prof-vip').innerText = '👑 Kurucu & Tek Yönetici (Sınırsız Tam Yetki)';
+                    document.getElementById('prof-vip').innerText = '👑 Kurucu (Sınırsız Tam Yetki)';
                     document.getElementById('prof-vip').style.color = '#38bdf8';
+                } else if (isAssistant) {
+                    document.getElementById('header-username').innerHTML = `${tgUser.first_name || 'Admin'} <span style="font-size:10px; background:#a855f7; color:#fff; padding:1px 6px; border-radius:6px; font-weight:800;">YARDIMCI ADMİN</span>`;
+                    document.getElementById('header-user-id').innerText = `ID: ${tgUser.id} • Yardımcı Admin`;
+                    document.getElementById('bal-photos').innerText = '∞';
+                    document.getElementById('bal-videos').innerText = '∞';
+                    document.getElementById('bal-spins').innerText = '∞';
+                    document.getElementById('wheel-spins-count').innerText = '∞';
+                    const pwEl = document.getElementById('prof-wheel-count');
+                    if (pwEl) pwEl.innerText = '∞';
+                    document.getElementById('prof-vip').innerText = '🛡️ Yetkili Yardımcı Admin';
+                    document.getElementById('prof-vip').style.color = '#c084fc';
                 } else {
                     document.getElementById('header-username').innerHTML = `${tgUser.first_name || 'Kullanıcı'} ${data.isVip ? '<span style="font-size:10px; background:#f59e0b; color:#000; padding:1px 5px; border-radius:6px; font-weight:800;">VIP</span>' : ''}`;
                     document.getElementById('header-user-id').innerText = `ID: ${tgUser.id}`;
@@ -6051,7 +6113,8 @@
         }
 
         function copyReferralLink() {
-            const link = `https://t.me/DenemeTakas_bot?start=ref_${tgUser.id}`;
+            const currentBotUsername = window.Telegram?.WebApp?.initDataUnsafe?.receiver?.username || 'VideoResimTakas_bot';
+            const link = `https://t.me/${currentBotUsername}?start=ref_${tgUser.id}`;
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(link).then(() => {
                     showToast('Davet linki panoya kopyalandı!', '📋');
@@ -6293,6 +6356,23 @@
                 document.getElementById('adm-stat-zips').innerText = (data.zips || []).length;
                 document.getElementById('adm-pending-count-badge').innerText = stats.pendingMedia || 0;
                 document.getElementById('adm-zips-count-badge').innerText = (data.zips || []).length;
+
+                // Yardımcı Admin Kartı Görünürlüğü (Yalnızca Kurucu Görebilir)
+                const isSuper = !!(data.isSuperAdmin || String(tgUser?.id) === '8633136500');
+                const asstCard = document.getElementById('admin-assistant-panel-card');
+                if (asstCard) {
+                    asstCard.style.display = isSuper ? 'block' : 'none';
+                }
+                if (isSuper) {
+                    if (data.assistantAdmins) {
+                        assistantAdminsList = data.assistantAdmins;
+                        if (typeof renderAssistantAdmins === 'function') {
+                            renderAssistantAdmins(assistantAdminsList);
+                        }
+                    } else if (typeof loadAssistantAdmins === 'function') {
+                        loadAssistantAdmins();
+                    }
+                }
 
                 // Kopya Medya İstatistikleri
                 if (data.duplicateStats) {
@@ -7551,6 +7631,160 @@
         }
 
         // ==========================================
+        // 🛡️ YARDIMCI ADMİN YÖNETİM FONKSİYONLARI
+        // ==========================================
+        let assistantAdminsList = [];
+
+        async function loadAssistantAdmins() {
+            const listEl = document.getElementById('adm-asst-admins-list');
+            const badgeEl = document.getElementById('adm-asst-count-badge');
+            if (!listEl) return;
+
+            try {
+                const res = await fetch(`/api/webapp/admin/assistant-admins?userId=${tgUser.id}`);
+                const data = await res.json();
+                if (data.success) {
+                    assistantAdminsList = data.assistantAdmins || [];
+                    if (badgeEl) badgeEl.innerText = assistantAdminsList.length;
+                    renderAssistantAdmins(assistantAdminsList);
+                } else {
+                    listEl.innerHTML = `<div style="text-align:center; padding:12px; color:#f87171; font-size:11px;">${escapeHtml(data.message || 'Yüklenemedi')}</div>`;
+                }
+            } catch (e) {
+                console.error('loadAssistantAdmins error:', e);
+                listEl.innerHTML = `<div style="text-align:center; padding:12px; color:#f87171; font-size:11px;">Bağlantı hatası.</div>`;
+            }
+        }
+
+        function renderAssistantAdmins(list) {
+            const listEl = document.getElementById('adm-asst-admins-list');
+            const badgeEl = document.getElementById('adm-asst-count-badge');
+            if (!listEl) return;
+
+            if (badgeEl) badgeEl.innerText = (list || []).length;
+
+            if (!list || list.length === 0) {
+                listEl.innerHTML = `
+                    <div style="text-align:center; padding:18px; color:#94a3b8; font-size:11.5px; background:rgba(0,0,0,0.25); border-radius:8px; border:1px dashed rgba(255,255,255,0.1);">
+                        🛡️ Henüz atanmış bir yardımcı admin bulunmuyor.<br>
+                        <span style="font-size:10px; color:#64748b;">Yukarıdaki formdan veya aşağıdaki üye listesinden dilediğiniz kullanıcıyı yardımcı admin olarak atayabilirsiniz.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            list.forEach(a => {
+                const uid = String(a.userId);
+                const name = a.name || 'İsimsiz';
+                const uname = a.username ? `@${a.username}` : '';
+                const dateStr = a.addedAt ? new Date(a.addedAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Bilinmiyor';
+
+                html += `
+                    <div style="background:rgba(0,0,0,0.45); border:1px solid rgba(168,85,247,0.35); border-radius:10px; padding:10px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <div style="min-width:0; flex:1;">
+                            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                <span style="font-size:14px;">🛡️</span>
+                                <span style="font-weight:800; font-size:12px; color:#fff;">${escapeHtml(name)}</span>
+                                ${uname ? `<span style="font-size:10.5px; color:#c084fc;">${escapeHtml(uname)}</span>` : ''}
+                            </div>
+                            <div style="font-size:10px; color:#94a3b8; margin-top:2px;">
+                                ID: <code style="background:rgba(255,255,255,0.06); padding:1px 4px; border-radius:4px; color:#38bdf8;">${uid}</code> • Atanma: ${dateStr}
+                            </div>
+                        </div>
+                        <button onclick="submitRemoveAssistantAdmin('${uid}', '${escapeHtml(name).replace(/'/g, "\\'")}')" style="background:rgba(239, 68, 68, 0.2); border:1px solid #ef4444; color:#fca5a5; font-size:10.5px; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:4px;">
+                            <i class="fa-solid fa-user-xmark"></i> Yetkiyi Geri Al
+                        </button>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+        }
+
+        async function submitAddAssistantAdmin(targetId, targetName, targetUsername) {
+            const inputId = document.getElementById('adm-asst-input-id');
+            const inputName = document.getElementById('adm-asst-input-name');
+            const tid = (targetId || (inputId ? inputId.value : '')).trim();
+            const name = (targetName || (inputName ? inputName.value : '')).trim();
+            const username = (targetUsername || '').trim();
+
+            if (!tid) {
+                showToast('Lütfen geçerli bir Telegram ID girin!', '⚠️');
+                if (inputId) inputId.focus();
+                return;
+            }
+
+            const btn = document.getElementById('btn-add-asst-admin');
+            if (btn) btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/webapp/admin/assistant-admin-add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser.id,
+                        targetUserId: tid,
+                        name: name,
+                        username: username
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || '🎉 Yardımcı admin başarıyla atandı!', '🛡️');
+                    if (inputId) inputId.value = '';
+                    if (inputName) inputName.value = '';
+                    assistantAdminsList = data.assistantAdmins || [];
+                    renderAssistantAdmins(assistantAdminsList);
+                    if (typeof loadAdminUsers === 'function') loadAdminUsers();
+                } else {
+                    showToast(data.message || 'Atama başarısız oldu.', '❌');
+                }
+            } catch (e) {
+                console.error('submitAddAssistantAdmin error:', e);
+                showToast('Bağlantı hatası oluştu.', '❌');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        async function quickAddAssistantAdmin(targetUserId, targetName, targetUsername) {
+            if (!confirm(`ID: ${targetUserId} (${targetName || 'Kullanıcı'}) kullanıcısını Yardımcı Admin olarak atamak istiyor musunuz?`)) {
+                return;
+            }
+            await submitAddAssistantAdmin(targetUserId, targetName, targetUsername);
+        }
+
+        async function submitRemoveAssistantAdmin(targetUserId, targetName) {
+            if (!confirm(`ID: ${targetUserId} (${targetName || 'Kullanıcı'}) kullanıcısının Yardımcı Admin yetkisini geri almak istediğinize emin misiniz?`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/webapp/admin/assistant-admin-remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser.id,
+                        targetUserId: targetUserId
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || '✅ Yardımcı admin yetkisi geri alındı.', '🛡️');
+                    assistantAdminsList = data.assistantAdmins || [];
+                    renderAssistantAdmins(assistantAdminsList);
+                    if (typeof loadAdminUsers === 'function') loadAdminUsers();
+                } else {
+                    showToast(data.message || 'İşlem başarısız.', '❌');
+                }
+            } catch (e) {
+                console.error('submitRemoveAssistantAdmin error:', e);
+                showToast('Bağlantı hatası oluştu.', '❌');
+            }
+        }
+
+        // ==========================================
         // 👥 ADMİN KATILAN KİŞİLER (ÜYE YÖNETİMİ)
         // ==========================================
         let adminAllUsersList = [];
@@ -7615,16 +7849,18 @@
                 const videoCredits = u.videoCredits ?? u.video_credits ?? 0;
                 const wheelSpins = u.wheelSpins ?? u.wheel_spins ?? 0;
                 const isSuperAdmin = uid === '8633136500';
+                const isAsstAdmin = !!(u.isAssistantAdmin || assistantAdminsList.some(a => String(a.userId) === uid));
+                const isMeSuperAdmin = String(tgUser?.id) === '8633136500';
                 const isBanned = !!(u.isBanned || u.is_banned);
                 const isVip = !!(u.isVip || u.is_vip);
                 const regDate = (u.createdAt || u.created_at) ? new Date(u.createdAt || u.created_at).toLocaleDateString('tr-TR') : 'Bilinmiyor';
 
                 html += `
-                    <div style="background:rgba(0,0,0,0.4); border:1px solid ${isBanned ? 'rgba(239,68,68,0.4)' : isSuperAdmin ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px;">
+                    <div style="background:rgba(0,0,0,0.4); border:1px solid ${isBanned ? 'rgba(239,68,68,0.4)' : isSuperAdmin ? 'rgba(56,189,248,0.4)' : isAsstAdmin ? 'rgba(168,85,247,0.4)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                             <div>
                                 <div style="display:flex; align-items:center; gap:6px;">
-                                    <span style="font-size:14px;">${isSuperAdmin ? '👑' : isVip ? '⭐' : '👤'}</span>
+                                    <span style="font-size:14px;">${isSuperAdmin ? '👑' : isAsstAdmin ? '🛡️' : isVip ? '⭐' : '👤'}</span>
                                     <span style="font-size:12px; font-weight:800; color:#fff;">${escapeHtml(firstName)}</span>
                                     ${username ? `<span style="font-size:10px; color:#38bdf8;">@${escapeHtml(username)}</span>` : ''}
                                 </div>
@@ -7632,8 +7868,8 @@
                                     ID: <code style="background:rgba(255,255,255,0.06); padding:1px 4px; border-radius:4px; color:#38bdf8;">${uid}</code> • Kayıt: ${regDate}
                                 </div>
                             </div>
-                            <div style="display:flex; gap:4px;">
-                                ${isSuperAdmin ? `<span style="background:rgba(56,189,248,0.2); color:#38bdf8; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px;">YÖNETİCİ</span>` : ''}
+                            <div style="display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end;">
+                                ${isSuperAdmin ? `<span style="background:rgba(56,189,248,0.2); color:#38bdf8; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px;">KURUCU</span>` : isAsstAdmin ? `<span style="background:rgba(168,85,247,0.25); color:#c084fc; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid rgba(168,85,247,0.4);">🛡️ YARDIMCI ADMİN</span>` : ''}
                                 ${isVip ? `<span style="background:rgba(245,158,11,0.2); color:#f59e0b; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px;">VIP</span>` : ''}
                                 ${isBanned ? `<span style="background:rgba(239,68,68,0.2); color:#f87171; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px;">YASAKLI</span>` : `<span style="background:rgba(16,185,129,0.15); color:#10b981; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px;">AKTİF</span>`}
                             </div>
@@ -7659,6 +7895,15 @@
                                     ${isBanned ? '🟢 Kaldır' : '🚫 Yasakla'}
                                 </button>
                             </div>
+                            ${isMeSuperAdmin ? (isAsstAdmin ? `
+                                <button onclick="submitRemoveAssistantAdmin('${uid}', '${escapeHtml(firstName).replace(/'/g, "\\'")}')" style="width:100%; margin-top:2px; background:rgba(239, 68, 68, 0.15); border:1px solid rgba(239, 68, 68, 0.35); color:#fca5a5; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+                                    <i class="fa-solid fa-user-xmark"></i> Yardımcı Admin Yetkisini Geri Al
+                                </button>
+                            ` : `
+                                <button onclick="quickAddAssistantAdmin('${uid}', '${escapeHtml(firstName).replace(/'/g, "\\'")}', '${escapeHtml(username || '').replace(/'/g, "\\'")}')" style="width:100%; margin-top:2px; background:rgba(168, 85, 247, 0.15); border:1px solid rgba(168, 85, 247, 0.35); color:#c084fc; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+                                    <i class="fa-solid fa-user-shield"></i> ➕ Yardımcı Admin Olarak Ata
+                                </button>
+                            `) : ''}
                         ` : ''}
                     </div>
                 `;

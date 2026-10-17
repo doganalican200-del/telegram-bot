@@ -198,14 +198,24 @@ const MARKET_PACKAGES = [
 
 // 🔗 Telegram Dosya Linki Önbelleği & Güçlü Çoklu Token Çözücü
 const fileLinkCache = new Map();
-let fallbackTelegrafInstance = null;
-function getFallbackBot() {
-    if (!fallbackTelegrafInstance) {
-        try {
-            fallbackTelegrafInstance = new Telegraf('8151413936:AAFbhwQNpaGkW1CdShixrq2PJMNzC7jamjM');
-        } catch (_) {}
+const PRIMARY_BOT_TOKEN = process.env.BOT_TOKEN || '8151413936:AAFbhwQNpaGkW1CdShixrq2PJMNzC7jamjM';
+const BACKUP_BOT_TOKEN = process.env.BACKUP_BOT_TOKEN || '8655898447:AAHAcIEkhke2SE2qgcP3mVj0_hy48Sahm1c';
+
+let primaryTelegrafInstance = null;
+let backupTelegrafInstance = null;
+
+function getPrimaryBot() {
+    if (!primaryTelegrafInstance && PRIMARY_BOT_TOKEN) {
+        try { primaryTelegrafInstance = new Telegraf(PRIMARY_BOT_TOKEN); } catch (_) {}
     }
-    return fallbackTelegrafInstance;
+    return primaryTelegrafInstance;
+}
+
+function getBackupBot() {
+    if (!backupTelegrafInstance && BACKUP_BOT_TOKEN) {
+        try { backupTelegrafInstance = new Telegraf(BACKUP_BOT_TOKEN); } catch (_) {}
+    }
+    return backupTelegrafInstance;
 }
 
 async function resolveTelegramFileLink(fileId, activeBot) {
@@ -217,22 +227,11 @@ async function resolveTelegramFileLink(fileId, activeBot) {
     }
 
     let link = null;
-    // 1. Önce aktif bot örneği
-    if (activeBot) {
-        try { link = await activeBot.telegram.getFileLink(fileId); } catch (_) {}
-    }
-    // 2. Fallback Telegraf örneği (8151413936)
-    if (!link) {
+    const botsToCheck = [activeBot, getPrimaryBot(), getBackupBot()].filter(Boolean);
+    for (const b of botsToCheck) {
         try {
-            const fb = getFallbackBot();
-            if (fb) link = await fb.telegram.getFileLink(fileId);
-        } catch (_) {}
-    }
-    // 3. process.env.BOT_TOKEN
-    if (!link && process.env.BOT_TOKEN) {
-        try {
-            const envBot = new Telegraf(process.env.BOT_TOKEN);
-            link = await envBot.telegram.getFileLink(fileId);
+            link = await b.telegram.getFileLink(fileId);
+            if (link) break;
         } catch (_) {}
     }
 
@@ -244,21 +243,24 @@ async function resolveTelegramFileLink(fileId, activeBot) {
     return null;
 }
 
-// 🚀 Evrensel Cross-Bot Güvenli Medya Gönderici (Hem aktif bot hem fallback bot garantili)
-async function sendTelegramMediaUniversal(targetBot, recipientId, media, options = {}) {
+// 🚀 Çift Bot Destekli Evrensel Medya Gönderici (Ana bot ve Yedek bot garantili)
+async function sendTelegramMediaUniversal(targetBot, recipientId, media, options = {}, backupBot = null) {
     if (!media) throw new Error('Medya bulunamadı');
     const isVideo = media.type === 'video';
     const fileId = media.fileId;
-    const localFile = media.localPath && fs.existsSync(media.localPath) ? media.localPath :
+    const localFile = media.localPath && fs.existsSync(media.localPath) ? media.localPath : 
                       (fs.existsSync(path.join(__dirname, 'media_store', `${media.id}${isVideo ? '.mp4' : '.jpg'}`)) ? path.join(__dirname, 'media_store', `${media.id}${isVideo ? '.mp4' : '.jpg'}`) : null);
 
-    // 0. Öncelik: Eğer medya yerel diskte varsa doğrudan disk kaynağından gönder (2GB'a kadar limitsiz!)
-    if (localFile && targetBot) {
+    const primary = targetBot || getPrimaryBot();
+    const secondary = backupBot || getBackupBot();
+
+    // 0. Öncelik: Eğer medya yerel diskte varsa doğrudan disk kaynağından gönder
+    if (localFile && primary) {
         try {
             if (isVideo) {
-                return await targetBot.telegram.sendVideo(recipientId, { source: localFile }, options);
+                return await primary.telegram.sendVideo(recipientId, { source: localFile }, options);
             } else {
-                return await targetBot.telegram.sendPhoto(recipientId, { source: localFile }, options);
+                return await primary.telegram.sendPhoto(recipientId, { source: localFile }, options);
             }
         } catch (localSendErr) {
             console.warn('Yerel dosyadan gönderim başarısız oldu, fileId ile devam ediliyor:', localSendErr.message);
@@ -267,47 +269,52 @@ async function sendTelegramMediaUniversal(targetBot, recipientId, media, options
 
     if (!fileId) throw new Error('Medya fileId bulunamadı');
 
-    // 1. Önce doğrudan hedef bot ile fileId gönderimi dene
-    if (targetBot) {
+    // 1. Önce hedef bot ile fileId gönderimi dene
+    if (primary) {
         try {
             if (isVideo) {
-                return await targetBot.telegram.sendVideo(recipientId, fileId, options);
+                return await primary.telegram.sendVideo(recipientId, fileId, options);
             } else {
-                return await targetBot.telegram.sendPhoto(recipientId, fileId, options);
+                return await primary.telegram.sendPhoto(recipientId, fileId, options);
             }
         } catch (err) {
-            // Cross-bot (wrong file_id) durumunda Telegram CDN linkiyle hedef bot üzerinden gönder
+            // Cross-bot durumunda diğer bot üzerinden getFileLink alıp CDN linkiyle gönder
             if (err.message && (err.message.includes('wrong file_id') || err.message.includes('file is temporarily unavailable') || err.message.includes('400'))) {
                 try {
-                    const fb = getFallbackBot();
-                    if (fb) {
-                        const link = await fb.telegram.getFileLink(fileId);
-                        const linkUrl = typeof link === 'object' && link.href ? link.href : String(link);
+                    const linkUrl = await resolveTelegramFileLink(fileId, secondary);
+                    if (linkUrl) {
                         if (isVideo) {
-                            return await targetBot.telegram.sendVideo(recipientId, { url: linkUrl }, options);
+                            return await primary.telegram.sendVideo(recipientId, { url: linkUrl }, options);
                         } else {
-                            return await targetBot.telegram.sendPhoto(recipientId, { url: linkUrl }, options);
+                            return await primary.telegram.sendPhoto(recipientId, { url: linkUrl }, options);
                         }
                     }
                 } catch (urlErr) {
                     console.warn('URL ile hedef bot gönderimi başarısız:', urlErr.message);
                 }
             }
-        }
-    }
 
-    // 2. Fallback bot (8151413936) ile doğrudan dene
-    const fb = getFallbackBot();
-    if (fb && fb !== targetBot) {
-        try {
-            if (isVideo) {
-                return await fb.telegram.sendVideo(recipientId, fileId, options);
-            } else {
-                return await fb.telegram.sendPhoto(recipientId, fileId, options);
+            // 2. Eğer kullanıcı diğer bot ile sohbetteyse ikincil bot ile doğrudan dene
+            if (secondary && secondary !== primary) {
+                try {
+                    if (isVideo) {
+                        return await secondary.telegram.sendVideo(recipientId, fileId, options);
+                    } else {
+                        return await secondary.telegram.sendPhoto(recipientId, fileId, options);
+                    }
+                } catch (secErr) {
+                    // İkincil bot CDN linkiyle dene
+                    const linkUrl2 = await resolveTelegramFileLink(fileId, primary);
+                    if (linkUrl2) {
+                        if (isVideo) {
+                            return await secondary.telegram.sendVideo(recipientId, { url: linkUrl2 }, options);
+                        } else {
+                            return await secondary.telegram.sendPhoto(recipientId, { url: linkUrl2 }, options);
+                        }
+                    }
+                }
             }
-        } catch (fbErr) {
-            console.error('Fallback bot gönderim hatası:', fbErr.message);
-            throw fbErr;
+            throw err;
         }
     }
 }
@@ -324,8 +331,10 @@ function escapeHtml(str) {
 
 function createWebAppServer(options = {}) {
     const ADMIN_IDS = ['8633136500'];
-    const isAdminUser = options.isAdminUser || ((id) => String(id) === '8633136500');
-    const botInstance = options.bot || (process.env.BOT_TOKEN ? new Telegraf(process.env.BOT_TOKEN) : null);
+    const isSuperAdmin = (id) => db.isSuperAdmin ? db.isSuperAdmin(id) : String(id) === '8633136500';
+    const isAdminUser = options.isAdminUser || ((id) => db.isAdminUser ? db.isAdminUser(id) : String(id) === '8633136500');
+    const botInstance = options.bot || getPrimaryBot();
+    const backupBotInstance = options.backupBot || getBackupBot();
 
     const server = http.createServer(async (req, res) => {
         const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -363,7 +372,9 @@ function createWebAppServer(options = {}) {
             }
 
             const vip = db.isUserVip(userId);
-            const isAdmin = isAdminUser(userId);
+            const isSuper = db.isSuperAdmin ? db.isSuperAdmin(userId) : String(userId) === '8633136500';
+            const isAssistant = db.isAssistantAdmin ? db.isAssistantAdmin(userId) : false;
+            const isAdmin = isSuper || isAssistant;
             const dailyStatus = db.getDailyRewardStatus ? db.getDailyRewardStatus(userId) : { available: true };
 
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -378,6 +389,8 @@ function createWebAppServer(options = {}) {
                 receivedCount: user.receivedCount || 0,
                 isVip: vip.isVip,
                 isAdmin: isAdmin,
+                isSuperAdmin: isSuper,
+                isAssistantAdmin: isAssistant,
                 dailyReward: dailyStatus
             }));
         }
@@ -642,7 +655,7 @@ function createWebAppServer(options = {}) {
                                 caption,
                                 parse_mode: 'HTML',
                                 protect_content: true
-                            });
+                            }, backupBotInstance);
                         } catch (e) {
                             console.error('Mini App medya gönderim hatası:', e.message);
                             // Gönderim başarısız olursa kullanıcının kredisini iade et
@@ -2274,22 +2287,101 @@ function createWebAppServer(options = {}) {
             const userId = parsedUrl.searchParams.get('userId');
             if (!isAdminUser(userId)) {
                 res.writeHead(403, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Tek yönetici: 8633136500' }));
+                return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Sadece yöneticiler erişebilir.' }));
             }
 
             const stats = db.getAdminStats ? db.getAdminStats() : {};
             const duplicateStats = db.getDuplicateStats ? db.getDuplicateStats() : { duplicateCount: 0 };
             const pendingMedia = db.getPendingMedia ? db.getPendingMedia() : [];
             const zips = db.getAllZips ? db.getAllZips() : [];
+            const assistantAdmins = db.getAssistantAdmins ? db.getAssistantAdmins() : [];
+            const isSuper = isSuperAdmin(userId);
+            const isAssistant = db.isAssistantAdmin ? db.isAssistantAdmin(userId) : false;
 
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             return res.end(JSON.stringify({
                 success: true,
+                isSuperAdmin: isSuper,
+                isAssistantAdmin: isAssistant,
                 stats,
                 duplicateStats,
                 pendingMedia,
-                zips
+                zips,
+                assistantAdmins
             }));
+        }
+
+        // ==========================================
+        // 🛡️ API: YARDIMCI ADMİNLER LİSTESİ
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/assistant-admins' && req.method === 'GET') {
+            const userId = parsedUrl.searchParams.get('userId');
+            if (!isSuperAdmin(userId)) {
+                res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+                return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Yalnızca Ana Yönetici (8633136500) bu listeyi görebilir.' }));
+            }
+
+            const list = db.getAssistantAdmins ? db.getAssistantAdmins() : [];
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({ success: true, assistantAdmins: list }));
+        }
+
+        // ==========================================
+        // 🛡️ API: YARDIMCI ADMİN ATA (EKLE)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/assistant-admin-add' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const userId = data.userId;
+                    const targetUserId = data.targetUserId;
+                    const name = data.name || '';
+                    const username = data.username || '';
+
+                    if (!isSuperAdmin(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Yalnızca Ana Yönetici (8633136500) yardımcı admin atayabilir.' }));
+                    }
+
+                    const result = db.addAssistantAdmin(targetUserId, userId, { name, username });
+                    res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ ...result, assistantAdmins: db.getAssistantAdmins() }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 🛡️ API: YARDIMCI ADMİN YETKİSİNİ GERİ AL (SİL)
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/assistant-admin-remove' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const userId = data.userId;
+                    const targetUserId = data.targetUserId;
+
+                    if (!isSuperAdmin(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Yalnızca Ana Yönetici (8633136500) yardımcı admin yetkisini geri alabilir.' }));
+                    }
+
+                    const result = db.removeAssistantAdmin(targetUserId, userId);
+                    res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ ...result, assistantAdmins: db.getAssistantAdmins() }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
         }
 
         // ==========================================

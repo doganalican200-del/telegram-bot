@@ -15,14 +15,22 @@ const db = require('./db');
 const recovery = require('./recovery');
 
 const BANNER_PATH = path.join(__dirname, 'bot_banner.jpg');
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const ADMIN_IDS = ['8633136500'];
-const ADMIN_ID = '8633136500';
+const BOT_TOKEN = process.env.BOT_TOKEN || '8151413936:AAFbhwQNpaGkW1CdShixrq2PJMNzC7jamjM';
+const BACKUP_BOT_TOKEN = process.env.BACKUP_BOT_TOKEN || '8655898447:AAHAcIEkhke2SE2qgcP3mVj0_hy48Sahm1c';
+const SUPER_ADMIN_ID = '8633136500';
+const ADMIN_IDS = [SUPER_ADMIN_ID];
+const ADMIN_ID = SUPER_ADMIN_ID;
 
-// 🔐 Tek Yönetici Güvenlik Kontrolü
+// 🔐 Ana Yönetici Kontrolü
+function isSuperAdmin(userId) {
+    if (!userId) return false;
+    return String(userId) === SUPER_ADMIN_ID;
+}
+
+// 🔐 Yönetici (Ana Yönetici veya Yetkili Yardımcı Admin) Kontrolü
 function isAdminUser(userId) {
     if (!userId) return false;
-    return String(userId) === '8633136500';
+    return db.isAdminOrAssistant ? db.isAdminOrAssistant(userId) : String(userId) === SUPER_ADMIN_ID;
 }
 
 if (!BOT_TOKEN) {
@@ -30,9 +38,23 @@ if (!BOT_TOKEN) {
     process.exit(1);
 }
 
+// 🤖 1. Ana Bot (@VideoResimTakas_bot)
 const bot = new Telegraf(BOT_TOKEN);
-recovery.init({ bot, db, ADMIN_IDS, isAdminUser });
-const BOT_USERNAME = 'VideoResimTakas_bot';
+
+// 🛡️ 2. İkiz Yedek Bot (@DenemeTakas_bot)
+let backupBot = null;
+if (BACKUP_BOT_TOKEN) {
+    try {
+        backupBot = new Telegraf(BACKUP_BOT_TOKEN);
+        console.log('🛡️ İkiz Yedek Bot (@DenemeTakas_bot) Telegraf nesnesi hazırlandı!');
+    } catch (e) {
+        console.error('Yedek bot Telegraf başlatılamadı:', e.message);
+    }
+}
+
+recovery.init({ bot, backupBot, db, ADMIN_IDS, isAdminUser });
+const BOT_USERNAME = process.env.BOT_USERNAME || 'VideoResimTakas_bot';
+const BACKUP_BOT_USERNAME = process.env.BACKUP_BOT_USERNAME || 'DenemeTakas_bot';
 
 // 📱 Telegram Mini App (Web App) Sunucusu & Otomatik Tünel
 const { createWebAppServer } = require('./webapp_server');
@@ -41,7 +63,7 @@ let activeWebAppUrl = process.env.WEBAPP_URL || null;
 
 let webAppServer = null;
 try {
-    webAppServer = createWebAppServer({ ADMIN_IDS, isAdminUser, bot });
+    webAppServer = createWebAppServer({ ADMIN_IDS, isAdminUser, bot, backupBot });
     webAppServer.listen(WEBAPP_PORT, () => {
         console.log(`📱 Telegram Mini App sunucusu port ${WEBAPP_PORT} üzerinde aktif!`);
         if (activeWebAppUrl) {
@@ -54,90 +76,78 @@ try {
     console.error('WebApp sunucusu başlatılamadı:', err.message);
 }
 
-// Telegram Sol Alt Butonu [Başlat] olarak ayarla
+// Telegram Sol Alt Butonu [Başlat] olarak ayarla (Her iki bot için eşzamanlı)
 async function updateTelegramMenuButton(url, chatId = null) {
     if (!url) return;
     activeWebAppUrl = url;
-    try {
-        if (chatId) {
-            await bot.telegram.setChatMenuButton({
-                chatId: chatId,
-                menuButton: {
-                    type: 'web_app',
-                    text: 'Başlat',
-                    web_app: { url: url }
-                }
-            });
-        } else {
-            await bot.telegram.setChatMenuButton({
-                menuButton: {
-                    type: 'web_app',
-                    text: 'Başlat',
-                    web_app: { url: url }
-                }
-            });
-            console.log(`📱 Telegram Chat Menu Button [Başlat] (${url}) aktif edildi!`);
-        }
-    } catch (e) {
-        console.warn('Chat menu button ayarlanamadı:', e.message);
-    }
-}
-
-// 🛡️ Evrensel Cross-Bot Güvenli Medya Gönderici
-const FALLBACK_BOT_TOKEN = '8151413936:AAFbhwQNpaGkW1CdShixrq2PJMNzC7jamjM';
-let fallbackBotClient = null;
-
-function getFallbackBotClient() {
-    if (!fallbackBotClient) {
+    const botsToUpdate = [bot, backupBot].filter(Boolean);
+    for (const b of botsToUpdate) {
         try {
-            fallbackBotClient = new Telegraf(FALLBACK_BOT_TOKEN);
-        } catch (_) {}
+            if (chatId) {
+                await b.telegram.setChatMenuButton({
+                    chatId: chatId,
+                    menuButton: {
+                        type: 'web_app',
+                        text: 'Başlat',
+                        web_app: { url: url }
+                    }
+                }).catch(() => {});
+            } else {
+                await b.telegram.setChatMenuButton({
+                    menuButton: {
+                        type: 'web_app',
+                        text: 'Başlat',
+                        web_app: { url: url }
+                    }
+                }).catch(() => {});
+            }
+        } catch (e) {
+            console.warn('Chat menu button ayarlanamadı:', e.message);
+        }
     }
-    return fallbackBotClient;
 }
 
+// 🛡️ Çift Bot Destekli Evrensel Medya Gönderici
 async function sendBotMediaSafe(botObj, targetChatId, media, options = {}) {
     if (!media || !media.fileId) throw new Error('Medya veya fileId bulunamadı');
     const isVideo = media.type === 'video';
     const fileId = media.fileId;
+    const currentBot = botObj || bot;
 
     // 1. Doğrudan aktif bot ile fileId gönderimi dene
     try {
         if (isVideo) {
-            return await botObj.telegram.sendVideo(targetChatId, fileId, options);
+            return await currentBot.telegram.sendVideo(targetChatId, fileId, options);
         } else {
-            return await botObj.telegram.sendPhoto(targetChatId, fileId, options);
+            return await currentBot.telegram.sendPhoto(targetChatId, fileId, options);
         }
     } catch (err) {
-        // Cross-bot (wrong file_id) durumunda Telegram CDN url linki üzerinden gönder
-        if (err.message && (err.message.includes('wrong file_id') || err.message.includes('file is temporarily unavailable') || err.message.includes('400'))) {
+        // Cross-bot (wrong file_id) durumunda diğer bot üzerinden getFileLink alıp CDN linkiyle gönder
+        const otherBot = (currentBot === bot) ? backupBot : bot;
+        if (otherBot && err.message && (err.message.includes('wrong file_id') || err.message.includes('file is temporarily unavailable') || err.message.includes('400'))) {
             try {
-                const fb = getFallbackBotClient();
-                if (fb) {
-                    const link = await fb.telegram.getFileLink(fileId);
-                    const linkUrl = typeof link === 'object' && link.href ? link.href : String(link);
-                    if (isVideo) {
-                        return await botObj.telegram.sendVideo(targetChatId, { url: linkUrl }, options);
-                    } else {
-                        return await botObj.telegram.sendPhoto(targetChatId, { url: linkUrl }, options);
-                    }
+                const link = await otherBot.telegram.getFileLink(fileId);
+                const linkUrl = typeof link === 'object' && link.href ? link.href : String(link);
+                if (isVideo) {
+                    return await currentBot.telegram.sendVideo(targetChatId, { url: linkUrl }, options);
+                } else {
+                    return await currentBot.telegram.sendPhoto(targetChatId, { url: linkUrl }, options);
                 }
             } catch (fallbackErr) {
                 console.warn('sendBotMediaSafe CDN url fallback başarısız:', fallbackErr.message);
             }
         }
 
-        // 2. Fallback bot ile doğrudan kullanıcıya gönder
-        const fb = getFallbackBotClient();
-        if (fb) {
+        // 2. Diğer bot ile doğrudan dene (eğer kullanıcı diğer botla sohbetteyse)
+        if (otherBot) {
             try {
                 if (isVideo) {
-                    return await fb.telegram.sendVideo(targetChatId, fileId, options);
+                    return await otherBot.telegram.sendVideo(targetChatId, fileId, options);
                 } else {
-                    return await fb.telegram.sendPhoto(targetChatId, fileId, options);
+                    return await otherBot.telegram.sendPhoto(targetChatId, fileId, options);
                 }
             } catch (e2) {
-                console.error('Fallback bot doğrudan gönderim hatası:', e2.message);
+                // Diğer bot da gönderemezse orijinal hatayı fırlat
             }
         }
         throw err;
@@ -6248,7 +6258,7 @@ async function main() {
         console.log(`✅ @${botInfo.username} (${botInfo.first_name}) olarak Telegram'a bağlanıldı!`);
         console.log(`👑 Yönetici Admin ID: ${ADMIN_ID}`);
 
-        await bot.telegram.setMyCommands([
+        const botCommandList = [
             { command: 'start', description: 'Botu Başlat / Ana Menü' },
             { command: 'admin', description: 'Yönetici Paneli (Sadece Admin)' },
             { command: 'kullanicilar', description: 'Kullanıcılar & İçerikler (Admin)' },
@@ -6262,7 +6272,9 @@ async function main() {
             { command: 'banlist', description: 'Banlı Kullanıcılar' },
             { command: 'stats', description: 'Havuz İstatistikleri' },
             { command: 'yildizsync', description: 'Yıldız Ödemelerini Tara & Eşitle (Admin)' }
-        ]).catch((e) => console.warn('Komutlar ayarlanamadı:', e.message));
+        ];
+
+        await bot.telegram.setMyCommands(botCommandList).catch((e) => console.warn('Ana bot komutları ayarlanamadı:', e.message));
 
         // 📱 Telegram Sol Alt Açılır Mini App Menü Butonu (Menü yerine Başlat)
         const initialUrl = activeWebAppUrl || process.env.WEBAPP_URL;
@@ -6273,25 +6285,46 @@ async function main() {
             }
         }
 
-        console.log('🚀 Bot başarıyla aktif ve mesajları dinliyor!');
-
         // Başlangıçta ve her 30 saniyede bir Telegram Yıldız ödemelerini senkronize et
         await syncStarTransactions();
         setInterval(syncStarTransactions, 30000);
 
-        // Otomatik saatlik promosyon spamı kullanıcı isteğiyle tamamen durduruldu
-        // (Sadece Admin panelinden manuel tetiklendiğinde çalışır)
+        const allowedUpdates = [
+            'message',
+            'edited_message',
+            'callback_query',
+            'inline_query',
+            'pre_checkout_query',
+            'shipping_query'
+        ];
 
-        await bot.launch({
-            allowedUpdates: [
-                'message',
-                'edited_message',
-                'callback_query',
-                'inline_query',
-                'pre_checkout_query',
-                'shipping_query'
-            ]
+        // 🚀 1. Ana Botu Başlat (@VideoResimTakas_bot)
+        bot.launch({ allowedUpdates }).then(() => {
+            console.log('🚀 Ana Bot (@VideoResimTakas_bot) başarıyla dinlemeye başladı!');
+        }).catch((err) => {
+            console.error('❌ Ana Bot başlatılamadı:', err.message);
         });
+
+        // 🚀 2. Yedek Botu Başlat (@DenemeTakas_bot) - Tam Eşitlenmiş Çift Bot Motoru
+        if (backupBot) {
+            try {
+                // Ana botun tüm komut, buton, yükleme ve admin middleware zincirini yedek bota birebir aktar
+                backupBot.use(bot.middleware());
+
+                const backupInfo = await backupBot.telegram.getMe();
+                console.log(`🛡️ Yedek Bot: @${backupInfo.username} (${backupInfo.first_name}) başarıyla eşitlendi!`);
+
+                await backupBot.telegram.setMyCommands(botCommandList).catch((e) => console.warn('Yedek bot komutları ayarlanamadı:', e.message));
+
+                backupBot.launch({ allowedUpdates }).then(() => {
+                    console.log(`🚀 Yedek Bot (@${backupInfo.username}) başarıyla dinlemeye başladı!`);
+                }).catch((errBackup) => {
+                    console.error('❌ Yedek Bot başlatılamadı:', errBackup.message);
+                });
+            } catch (errBackup) {
+                console.error('Yedek bot yapılandırma hatası:', errBackup.message);
+            }
+        }
     } catch (err) {
         console.error('❌ Bot başlatılamadı:', err);
     }
@@ -6806,7 +6839,13 @@ if (process.env.SIMULATOR_MODE !== 'true') {
     main();
 }
 
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+process.once('SIGINT', () => {
+    bot.stop('SIGINT');
+    if (backupBot) backupBot.stop('SIGINT');
+});
+process.once('SIGTERM', () => {
+    bot.stop('SIGTERM');
+    if (backupBot) backupBot.stop('SIGTERM');
+});
 
-module.exports = { bot, db, ADMIN_IDS, ADMIN_ID, isAdminUser, authenticatedAdmins, ADMIN_PASSWORD };
+module.exports = { bot, backupBot, db, ADMIN_IDS, ADMIN_ID, isAdminUser, authenticatedAdmins, ADMIN_PASSWORD };
