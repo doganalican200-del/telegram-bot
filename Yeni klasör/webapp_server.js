@@ -2734,6 +2734,65 @@ function createWebAppServer(options = {}) {
         }
 
         // ==========================================
+        // 19.1 API: ADMİN VIP KULLANICI LİSTESİ
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/vip-users' && req.method === 'GET') {
+            const userId = parsedUrl.searchParams.get('userId');
+            if (!isAdminUser(userId)) {
+                res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+                return res.end(JSON.stringify({ success: false, message: 'Yetkisiz erişim. Yalnızca yöneticiler VIP üyeleri görebilir.' }));
+            }
+            const vipUsers = db.getAllVipUsers ? db.getAllVipUsers() : [];
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({ success: true, users: vipUsers }));
+        }
+
+        // ==========================================
+        // 19.2 API: ADMİN VIP UZATMA / KISALTMA / BİTİRME
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/admin/vip/modify' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const { userId, targetUserId, action, value } = data;
+                    if (!isAdminUser(userId)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem. Yalnızca yöneticiler VIP düzenleyebilir.' }));
+                    }
+
+                    if (!targetUserId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({ success: false, message: 'Hedef kullanıcı ID gerekli.' }));
+                    }
+
+                    const result = db.modifyUserVip ? db.modifyUserVip(targetUserId, action, value) : { success: false, message: 'İşlem desteklenmiyor.' };
+
+                    if (result.success && botInstance) {
+                        const notifyMsg = 
+`👑 <b>HESAP BİLDİRİMİ: VIP DURUMUNUZ GÜNCELLENDİ</b>\n` +
+`━━━━━━━━━━━━━━━━━━━━\n` +
+`Yöneticimiz hesabınızdaki VIP üyeliğini düzenledi:\n\n` +
+`📋 <b>Yapılan İşlem:</b> <b>${escapeHtml(result.desc)}</b>\n` +
+`⏰ <b>VIP Bitiş Süresi:</b> <b>${result.user.vipUntil || 'Sonlandırıldı'}</b>\n` +
+`━━━━━━━━━━━━━━━━━━━━\n` +
+`<i>Profil sekmenizden kalan sürenizi canlı takip edebilirsiniz.</i> ✨`;
+
+                        botInstance.telegram.sendMessage(targetUserId, notifyMsg, { parse_mode: 'HTML' }).catch(() => {});
+                    }
+
+                    res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
         // 20. API: ADMİN TOPLU DUYURU (BROADCAST)
         // ==========================================
         if (parsedUrl.pathname === '/api/webapp/admin/broadcast' && req.method === 'POST') {

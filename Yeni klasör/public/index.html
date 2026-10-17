@@ -1879,6 +1879,37 @@
                     </div>
                 </div>
 
+                <!-- 👑 VIP ÜYELİK TAKİP & KONTROL MERKEZİ (CANLI GERİ SAYIMLAR & UZAT / KISALT) -->
+                <div id="admin-vip-control-center" style="background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.22), transparent 70%), linear-gradient(145deg, #182032 0%, #0c1222 100%); border: 1.5px solid rgba(245, 158, 11, 0.5); border-radius: 14px; padding: 14px; margin-bottom: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                        <div>
+                            <div style="font-size:14px; font-weight:800; color:#fbbf24; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-crown" style="font-size:16px;"></i>
+                                VIP ÜYELİK TAKİP & KONTROL MERKEZİ
+                            </div>
+                            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">
+                                Üyelerin aldığı VIP sürelerini canlı takip edin, anında +saat/gün uzatın veya -saat/gün kısaltın.
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span id="adm-vip-count" style="background:#f59e0b; color:#000; font-size:10px; font-weight:800; padding:2px 8px; border-radius:10px;">0 VIP</span>
+                            <button onclick="loadAdminVipUsers()" style="background:#1e293b; border:1px solid rgba(255,255,255,0.15); color:#cbd5e1; padding:6px 10px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;" title="Yenile">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- VIP Arama -->
+                    <div style="display:flex; gap:6px; margin-bottom:10px;">
+                        <input type="text" id="adm-vip-search" placeholder="🔍 VIP üye ara (ID, İsim veya @kullanıcı)..." oninput="filterAdminVipUsers(this.value)" style="flex:1; background:#0b1120; border:1px solid rgba(255,255,255,0.12); color:#fff; padding:7px 10px; border-radius:8px; font-size:11.5px; outline:none;">
+                    </div>
+
+                    <!-- VIP Üyeler Dinamik Listesi -->
+                    <div id="adm-vip-users-list" style="display:flex; flex-direction:column; gap:8px; max-height:480px; overflow-y:auto; padding-right:2px;">
+                        <div style="text-align:center; padding:18px; color:#94a3b8; font-size:11px;">VIP üyeler yükleniyor...</div>
+                    </div>
+                </div>
+
                 <!-- 👑 SEKME & FİYAT KONTROL MERKEZİ (DİNAMİK KONTROL PANELİ) -->
                 <div style="background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 70%), linear-gradient(145deg, #0e172a 0%, #080d1a 100%); border: 1.5px solid rgba(56, 189, 248, 0.45); border-radius: 14px; padding: 14px; margin-bottom: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
@@ -3110,11 +3141,30 @@
                         <button onclick="adminQuickAdjust({ wheelSpins: 3 }, '+3 Çark Hakkı')" style="flex:1; background:#d97706; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">+3</button>
                         <button onclick="adminQuickAdjust({ wheelSpins: 5 }, '+5 Çark Hakkı')" style="flex:1; background:#d97706; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px; border-radius:6px; cursor:pointer;">+5</button>
                     </div>
-                    <!-- VIP -->
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <span style="font-size:10.5px; color:#cbd5e1; width:70px;">👑 VIP:</span>
-                        <button onclick="adminQuickAdjust({ vipDays: 7 }, '+7 Gün VIP')" style="flex:1; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:10px; font-weight:800; padding:6px; border-radius:6px; cursor:pointer;">+7 Gün</button>
-                        <button onclick="adminQuickAdjust({ vipDays: 30 }, '+30 Gün VIP')" style="flex:1; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:10px; font-weight:800; padding:6px; border-radius:6px; cursor:pointer;">+30 Gün</button>
+                    <!-- VIP Üyelik Kontrolü (Uzat / Kısalt / Bitir) -->
+                    <div style="margin-top:10px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.1);">
+                        <div style="font-size:11px; font-weight:800; color:#fbbf24; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
+                            <span>👑 VIP Üyelik Süresi Kontrolü</span>
+                            <span id="aur-vip-status-badge" style="font-size:9.5px; padding:1px 6px; border-radius:4px; background:rgba(245,158,11,0.2); color:#fbbf24;"></span>
+                        </div>
+                        <!-- Uzat (+) -->
+                        <div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+                            <span style="font-size:10px; color:#10b981; font-weight:700; width:55px;">➕ Uzat:</span>
+                            <button onclick="adminRewardModifyVip('extend_hours', 1)" style="flex:1; background:#0284c7; border:none; color:#fff; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer;">+1 Saat</button>
+                            <button onclick="adminRewardModifyVip('extend_days', 1)" style="flex:1; background:#0284c7; border:none; color:#fff; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer;">+1 Gün</button>
+                            <button onclick="adminRewardModifyVip('extend_days', 7)" style="flex:1; background:#0284c7; border:none; color:#fff; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer;">+7 Gün</button>
+                        </div>
+                        <!-- Kısalt (-) -->
+                        <div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+                            <span style="font-size:10px; color:#f87171; font-weight:700; width:55px;">➖ Kısalt:</span>
+                            <button onclick="adminRewardModifyVip('shorten_hours', 1)" style="flex:1; background:rgba(239,68,68,0.25); border:1px solid #f87171; color:#fca5a5; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer;">-1 Saat</button>
+                            <button onclick="adminRewardModifyVip('shorten_days', 1)" style="flex:1; background:rgba(239,68,68,0.25); border:1px solid #f87171; color:#fca5a5; font-size:10px; font-weight:700; padding:5px; border-radius:6px; cursor:pointer;">-1 Gün</button>
+                            <button onclick="adminRewardModifyVip('cancel')" style="flex:1; background:#dc2626; border:none; color:#fff; font-size:10px; font-weight:800; padding:5px; border-radius:6px; cursor:pointer;">❌ Bitir</button>
+                        </div>
+                        <!-- Sınırsız Yap / Kaldır -->
+                        <button onclick="adminRewardModifyVip('set_unlimited')" style="width:100%; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:10.5px; font-weight:800; padding:6px; border-radius:6px; cursor:pointer;">
+                            👑 Sınırsız / Ömür Boyu VIP Durumunu Değiştir
+                        </button>
                     </div>
                 </div>
 
@@ -6941,7 +6991,8 @@
                     zipsBox.innerHTML = zHtml;
                 }
 
-                // 3. Katılan Kişileri, Raporları, Yüklemeleri ve Kurtarma Durumunu Getir
+                // 3. Katılan Kişileri, VIP Üyeleri, Raporları, Yüklemeleri ve Kurtarma Durumunu Getir
+                loadAdminVipUsers();
                 loadAdminUsers();
                 loadAdminReports();
                 loadAdminAllUploads();
@@ -8383,6 +8434,216 @@
         }
 
         // ==========================================
+        // 👑 ADMİN VIP ÜYELİK TAKİP & CANLI KONTROL MERKEZİ
+        // ==========================================
+        let adminVipUsersList = [];
+        let _adminVipTimerInterval = null;
+
+        async function loadAdminVipUsers() {
+            const container = document.getElementById('adm-vip-users-list');
+            if (!container) return;
+
+            try {
+                const res = await fetch(`/api/webapp/admin/vip-users?userId=${tgUser.id}`);
+                const data = await res.json();
+                if (data.success) {
+                    adminVipUsersList = data.vipUsers || [];
+                    const countEl = document.getElementById('adm-vip-count');
+                    if (countEl) countEl.innerText = `${adminVipUsersList.length} VIP`;
+                    renderAdminVipUsers(adminVipUsersList);
+                } else {
+                    container.innerHTML = `<div style="text-align:center; padding:15px; color:#f87171; font-size:11px;">VIP üyeler yüklenemedi: ${data.message || 'Hata'}</div>`;
+                }
+            } catch (err) {
+                console.error('loadAdminVipUsers error:', err);
+                container.innerHTML = `<div style="text-align:center; padding:15px; color:#f87171; font-size:11px;">Sunucu bağlantı hatası.</div>`;
+            }
+        }
+
+        function filterAdminVipUsers(query) {
+            const q = (query || '').toLowerCase().trim();
+            if (!q) {
+                renderAdminVipUsers(adminVipUsersList);
+                return;
+            }
+            const filtered = adminVipUsersList.filter(u => {
+                const uid = String(u.id || u.user_id || '');
+                const fn = (u.firstName || u.first_name || '').toLowerCase();
+                const un = (u.username || '').toLowerCase();
+                return uid.includes(q) || fn.includes(q) || un.includes(q);
+            });
+            renderAdminVipUsers(filtered);
+        }
+
+        function renderAdminVipUsers(users) {
+            const container = document.getElementById('adm-vip-users-list');
+            if (!container) return;
+
+            if (_adminVipTimerInterval) {
+                clearInterval(_adminVipTimerInterval);
+                _adminVipTimerInterval = null;
+            }
+
+            if (!users || users.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:18px; color:#94a3b8; font-size:11.5px; background:rgba(0,0,0,0.2); border-radius:10px;">Henüz aktif veya geçmiş VIP üye kaydı bulunamadı.</div>`;
+                return;
+            }
+
+            const now = Date.now();
+            let html = '';
+
+            users.forEach(u => {
+                const uid = String(u.id || u.user_id || '');
+                const firstName = u.firstName || u.first_name || 'Kullanıcı';
+                const username = u.username ? `@${u.username}` : '';
+                const isUnlimited = !!(u.isUnlimitedVip || u.is_unlimited_vip || u.vipUnlimited);
+                let untilTs = 0;
+                if (u.vipUntilTimestamp) untilTs = Number(u.vipUntilTimestamp);
+                else if (u.vipUntil) untilTs = typeof u.vipUntil === 'number' ? u.vipUntil : new Date(u.vipUntil).getTime();
+
+                const isActive = isUnlimited || (untilTs > now);
+                const endDateStr = untilTs > 0 ? new Date(untilTs).toLocaleString('tr-TR') : '-';
+
+                html += `
+                    <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid ${isActive ? 'rgba(245, 158, 11, 0.4)' : 'rgba(255,255,255,0.08)'}; border-radius: 12px; padding: 12px; display:flex; flex-direction:column; gap:8px;">
+                        <!-- Üst Başlık & Kullanıcı Bilgisi -->
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div style="width:36px; height:36px; border-radius:10px; background:${isActive ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(255,255,255,0.1)'}; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:14px; box-shadow: ${isActive ? '0 0 10px rgba(245, 158, 11, 0.35)' : 'none'};">
+                                    ${isActive ? '👑' : '👤'}
+                                </div>
+                                <div>
+                                    <div style="font-size:12.5px; font-weight:800; color:#fff; display:flex; align-items:center; gap:5px;">
+                                        ${firstName}
+                                        ${username ? `<span style="font-size:11px; color:#38bdf8; font-weight:600;">${username}</span>` : ''}
+                                    </div>
+                                    <div style="font-size:10px; color:#94a3b8; font-family:monospace; margin-top:1px;">
+                                        ID: <span style="color:#cbd5e1;">${uid}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Durum Rozeti -->
+                            <div style="text-align:right;">
+                                <span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; background:${isUnlimited ? 'linear-gradient(135deg, #f59e0b, #d97706)' : (isActive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)')}; color:${isUnlimited ? '#000' : (isActive ? '#10b981' : '#f87171')}; border:1px solid ${isActive ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'};">
+                                    ${isUnlimited ? '👑 SINIRSIZ' : (isActive ? '🟢 AKTİF' : '🔴 BİTTİ')}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Canlı Geri Sayım & Bitiş Zamanı Kutusu -->
+                        <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:7px 10px; display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-size:9.5px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Kalan Süre (Canlı)</div>
+                                <div id="vip-timer-user-${uid}" class="admin-vip-live-countdown" data-until="${untilTs}" data-unlimited="${isUnlimited ? '1' : '0'}" style="font-size:13px; font-weight:900; color:${isActive ? '#fbbf24' : '#94a3b8'}; font-family:monospace; margin-top:1px;">
+                                    ${isUnlimited ? '👑 ÖMÜR BOYU SINIRSIZ' : (isActive ? 'Hesaplanıyor...' : 'SÜRESİ DOLDU')}
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:9.5px; color:#94a3b8;">Bitiş Tarihi:</div>
+                                <div style="font-size:10.5px; color:#cbd5e1; font-weight:600;">${isUnlimited ? 'Sonsuz' : endDateStr}</div>
+                            </div>
+                        </div>
+
+                        <!-- Hızlı Yönetim Butonları -->
+                        <div style="display:flex; flex-direction:column; gap:5px;">
+                            <!-- ➕ Uzatma Satırı -->
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <span style="font-size:10px; font-weight:800; color:#10b981; width:52px; flex-shrink:0;">➕ UZAT:</span>
+                                <button onclick="adminModifyVip('${uid}', 'extend_hours', 1)" style="flex:1; background:#0284c7; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px 2px; border-radius:6px; cursor:pointer;" title="1 Saat Ekle">+1 Saat</button>
+                                <button onclick="adminModifyVip('${uid}', 'extend_days', 1)" style="flex:1; background:#0284c7; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px 2px; border-radius:6px; cursor:pointer;" title="1 Gün Ekle">+1 Gün</button>
+                                <button onclick="adminModifyVip('${uid}', 'extend_days', 7)" style="flex:1; background:#0284c7; border:none; color:#fff; font-size:10px; font-weight:700; padding:6px 2px; border-radius:6px; cursor:pointer;" title="7 Gün Ekle">+7 Gün</button>
+                            </div>
+                            <!-- ➖ Kısaltma & Bitirme Satırı -->
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <span style="font-size:10px; font-weight:800; color:#f87171; width:52px; flex-shrink:0;">➖ KISALT:</span>
+                                <button onclick="adminModifyVip('${uid}', 'shorten_hours', 1)" style="flex:1; background:rgba(239,68,68,0.2); border:1px solid #f87171; color:#fca5a5; font-size:10px; font-weight:700; padding:5px 2px; border-radius:6px; cursor:pointer;" title="1 Saat Kısalt">-1 Saat</button>
+                                <button onclick="adminModifyVip('${uid}', 'shorten_days', 1)" style="flex:1; background:rgba(239,68,68,0.2); border:1px solid #f87171; color:#fca5a5; font-size:10px; font-weight:700; padding:5px 2px; border-radius:6px; cursor:pointer;" title="1 Gün Kısalt">-1 Gün</button>
+                                <button onclick="adminModifyVip('${uid}', 'cancel')" style="flex:1; background:#dc2626; border:none; color:#fff; font-size:10px; font-weight:800; padding:6px 2px; border-radius:6px; cursor:pointer;" title="VIP Sıfırla / İptal Et">❌ Bitir</button>
+                            </div>
+                            <!-- Ekstra İşlemler (Sınırsız & Detay) -->
+                            <div style="display:flex; gap:5px; margin-top:2px;">
+                                <button onclick="adminModifyVip('${uid}', 'set_unlimited')" style="flex:1; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:10px; font-weight:800; padding:6px; border-radius:6px; cursor:pointer;">
+                                    👑 ${isUnlimited ? 'Sınırsızlığı Kaldır' : 'Sınırsız VIP Yap'}
+                                </button>
+                                <button onclick="openAdminUserRewardModal('${uid}')" style="background:#1e293b; border:1px solid rgba(255,255,255,0.15); color:#cbd5e1; font-size:10px; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer;">
+                                    🎁 Diğer Bakiyeler
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            function tickTimers() {
+                const currentNow = Date.now();
+                const timerNodes = document.querySelectorAll('.admin-vip-live-countdown');
+                timerNodes.forEach(node => {
+                    const isUnl = node.getAttribute('data-unlimited') === '1';
+                    if (isUnl) {
+                        node.innerText = '👑 ÖMÜR BOYU SINIRSIZ';
+                        return;
+                    }
+                    const until = Number(node.getAttribute('data-until')) || 0;
+                    if (until <= currentNow) {
+                        node.innerText = 'SÜRESİ DOLDU';
+                        node.style.color = '#f87171';
+                        return;
+                    }
+                    const diff = Math.max(0, until - currentNow);
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+                    const pad = n => String(n).padStart(2, '0');
+                    node.innerText = `${pad(days)}G ${pad(hours)}:${pad(mins)}:${pad(secs)}`;
+                });
+            }
+
+            tickTimers();
+            _adminVipTimerInterval = setInterval(tickTimers, 1000);
+        }
+
+        async function adminModifyVip(targetUserId, action, value = 1) {
+            if (!tgUser || !tgUser.id) return;
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            try {
+                const res = await fetch('/api/webapp/admin/vip/modify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: tgUser.id,
+                        targetUserId,
+                        action,
+                        value
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || 'VIP güncellendi!', '👑');
+                    await loadAdminVipUsers();
+                    if (typeof loadAdminUsers === 'function') loadAdminUsers();
+                    if (String(targetUserId) === String(tgUser.id)) loadUserData();
+
+                    if (currentRewardTargetUser && String(currentRewardTargetUser.id || currentRewardTargetUser.user_id) === String(targetUserId)) {
+                        if (data.user) {
+                            currentRewardTargetUser = { ...currentRewardTargetUser, ...data.user };
+                        }
+                        openAdminUserRewardModal(targetUserId);
+                    }
+                } else {
+                    showToast(data.message || 'VIP işlem hatası!', '❌');
+                }
+            } catch (err) {
+                console.error('adminModifyVip error:', err);
+                showToast('Bağlantı hatası oluştu.', '❌');
+            }
+        }
+
+        // ==========================================
         // 👥 ADMİN KATILAN KİŞİLER (ÜYE YÖNETİMİ)
         // ==========================================
         let adminAllUsersList = [];
@@ -8516,7 +8777,10 @@
         let currentRewardTargetUser = null;
 
         function openAdminUserRewardModal(targetUserId) {
-            const user = adminAllUsersList.find(u => String(u.id || u.user_id) === String(targetUserId));
+            let user = adminAllUsersList.find(u => String(u.id || u.user_id) === String(targetUserId));
+            if (!user && window.adminVipUsersList) {
+                user = adminVipUsersList.find(u => String(u.id || u.user_id) === String(targetUserId));
+            }
             if (!user) return;
             currentRewardTargetUser = user;
 
@@ -8526,6 +8790,7 @@
             const videoEl = document.getElementById('aur-cur-video');
             const wheelEl = document.getElementById('aur-cur-wheel');
             const vipEl = document.getElementById('aur-cur-vip');
+            const vipBadgeEl = document.getElementById('aur-vip-status-badge');
             const customVid = document.getElementById('aur-custom-video');
             const customPho = document.getElementById('aur-custom-photo');
 
@@ -8535,18 +8800,51 @@
             const videoCredits = user.videoCredits ?? user.video_credits ?? 0;
             const wheelSpins = user.wheelSpins ?? user.wheel_spins ?? 0;
             const isVip = !!(user.isVip || user.is_vip);
+            const isUnlimited = !!(user.isUnlimitedVip || user.is_unlimited_vip || user.vipUnlimited);
+
+            let untilTs = 0;
+            if (user.vipUntilTimestamp) {
+                untilTs = Number(user.vipUntilTimestamp);
+            } else if (user.vipUntil) {
+                untilTs = typeof user.vipUntil === 'number' ? user.vipUntil : new Date(user.vipUntil).getTime();
+            }
+
+            const now = Date.now();
+            let vipText = 'Yok';
+            let badgeText = 'VIP Yok';
+
+            if (isUnlimited) {
+                vipText = '👑 Sınırsız VIP';
+                badgeText = '👑 Sınırsız VIP';
+            } else if (isVip && untilTs > now) {
+                const diffMs = untilTs - now;
+                const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+                const hours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+                vipText = `Aktif (${days}g ${hours}s)`;
+                badgeText = `🟢 ${days}G ${hours}S Kaldı`;
+            } else if (isVip) {
+                vipText = 'Süresi Dolmuş';
+                badgeText = '🔴 Süresi Doldu';
+            }
 
             if (nameEl) nameEl.innerText = firstName;
             if (idEl) idEl.innerText = `ID: ${uid} ${user.username ? '(@' + user.username + ')' : ''}`;
             if (photoEl) photoEl.innerText = photoCredits;
             if (videoEl) videoEl.innerText = videoCredits;
             if (wheelEl) wheelEl.innerText = wheelSpins;
-            if (vipEl) vipEl.innerText = isVip ? 'Aktif ⭐' : 'Yok';
+            if (vipEl) vipEl.innerText = vipText;
+            if (vipBadgeEl) vipBadgeEl.innerText = badgeText;
             if (customVid) customVid.value = videoCredits;
             if (customPho) customPho.value = photoCredits;
 
             const modal = document.getElementById('admin-user-reward-modal');
             if (modal) modal.classList.add('active');
+        }
+
+        async function adminRewardModifyVip(action, value = 1) {
+            if (!currentRewardTargetUser) return;
+            const uid = String(currentRewardTargetUser.id || currentRewardTargetUser.user_id);
+            await adminModifyVip(uid, action, value);
         }
 
         function closeAdminUserRewardModal() {

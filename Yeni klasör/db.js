@@ -362,6 +362,147 @@ function extendUserVipHour(userId, hours = 1) {
     };
 }
 
+// ==========================================
+// 👑 YÖNETİCİ VIP UZATMA / KISALTMA / YÖNETİM FONKSİYONLARI
+// ==========================================
+
+function modifyUserVip(targetUserId, action, value = 1) {
+    const db = loadDb();
+    const uid = String(targetUserId);
+    const user = db.users[uid];
+    if (!user) return { success: false, message: 'Kullanıcı bulunamadı.' };
+
+    const now = Date.now();
+    let currentVip = user.vipUntil ? (typeof user.vipUntil === 'string' ? new Date(user.vipUntil).getTime() : Number(user.vipUntil)) : 0;
+    let baseTime = currentVip > now ? currentVip : now;
+    let newVipTime = currentVip;
+    let desc = '';
+
+    if (action === 'extend_hours') {
+        const addedMs = Number(value || 1) * 60 * 60 * 1000;
+        newVipTime = baseTime + addedMs;
+        user.vipUntil = new Date(newVipTime).toISOString();
+        user.isUnlimitedVip = false;
+        desc = `+${value} Saat Uzatıldı`;
+    } else if (action === 'shorten_hours') {
+        const subMs = Number(value || 1) * 60 * 60 * 1000;
+        if (currentVip > now) {
+            newVipTime = currentVip - subMs;
+            if (newVipTime <= now) {
+                user.vipUntil = null;
+                desc = `-${value} Saat Kısaltıldı (Süre Doldu)`;
+            } else {
+                user.vipUntil = new Date(newVipTime).toISOString();
+                desc = `-${value} Saat Kısaltıldı`;
+            }
+        } else {
+            user.vipUntil = null;
+            desc = `Aktif süresi yoktu, sıfırlandı`;
+        }
+    } else if (action === 'extend_days') {
+        const addedMs = Number(value || 1) * 24 * 60 * 60 * 1000;
+        newVipTime = baseTime + addedMs;
+        user.vipUntil = new Date(newVipTime).toISOString();
+        user.isUnlimitedVip = false;
+        desc = `+${value} Gün Uzatıldı`;
+    } else if (action === 'shorten_days') {
+        const subMs = Number(value || 1) * 24 * 60 * 60 * 1000;
+        if (currentVip > now) {
+            newVipTime = currentVip - subMs;
+            if (newVipTime <= now) {
+                user.vipUntil = null;
+                desc = `-${value} Gün Kısaltıldı (Süre Doldu)`;
+            } else {
+                user.vipUntil = new Date(newVipTime).toISOString();
+                desc = `-${value} Gün Kısaltıldı`;
+            }
+        } else {
+            user.vipUntil = null;
+            desc = `Aktif süresi yoktu, sıfırlandı`;
+        }
+    } else if (action === 'cancel') {
+        user.vipUntil = null;
+        user.isUnlimitedVip = false;
+        desc = 'VIP Üyeliği Sonlandırıldı / Sıfırlandı';
+    } else if (action === 'set_unlimited') {
+        user.isUnlimitedVip = !user.isUnlimitedVip;
+        if (user.isUnlimitedVip) {
+            desc = 'Ömür Boyu Sınırsız VIP Yapıldı';
+        } else {
+            user.vipUntil = null;
+            desc = 'Sınırsız VIP Kaldırıldı';
+        }
+    } else {
+        return { success: false, message: 'Geçersiz eylem: ' + action };
+    }
+
+    saveDb();
+
+    // Güncel VIP durumunu hesapla
+    const updatedVip = isUserVip(uid);
+
+    return {
+        success: true,
+        message: `${user.firstName || 'Kullanıcı'} (${uid}) için VIP ${desc}!`,
+        desc,
+        user: {
+            id: uid,
+            firstName: user.firstName || user.first_name || 'Kullanıcı',
+            username: user.username || '',
+            vipUntil: updatedVip.until,
+            vipUntilTimestamp: updatedVip.untilTimestamp,
+            isVip: updatedVip.isVip,
+            isUnlimited: updatedVip.isUnlimited || false,
+            remainingHours: updatedVip.remainingHours || 0
+        }
+    };
+}
+
+function getAllVipUsers() {
+    const db = loadDb();
+    const users = db.users || {};
+    const vipList = [];
+    const now = Date.now();
+
+    for (const [uid, user] of Object.entries(users)) {
+        if (!user) continue;
+        const vipInfo = isUserVip(uid);
+        const hasVipRecord = !!(user.vipUntil || user.isUnlimitedVip || vipInfo.isVip);
+
+        if (hasVipRecord) {
+            let untilTs = 0;
+            if (user.vipUntil) {
+                untilTs = typeof user.vipUntil === 'string' ? new Date(user.vipUntil).getTime() : Number(user.vipUntil);
+            }
+            const isActive = vipInfo.isVip && (untilTs > now || vipInfo.isUnlimited);
+            vipList.push({
+                id: uid,
+                firstName: user.firstName || user.first_name || 'Kullanıcı',
+                username: user.username || '',
+                isVip: isActive,
+                isUnlimited: !!(user.isUnlimitedVip || vipInfo.isUnlimited),
+                remainingHours: vipInfo.remainingHours || 0,
+                vipUntil: vipInfo.until,
+                vipUntilTimestamp: untilTs,
+                photoCredits: user.photoCredits || 0,
+                videoCredits: user.videoCredits || 0,
+                wheelSpins: user.wheelSpins || 0,
+                createdAt: user.createdAt || null
+            });
+        }
+    }
+
+    vipList.sort((a, b) => {
+        if (a.isUnlimited && !b.isUnlimited) return -1;
+        if (!a.isUnlimited && b.isUnlimited) return 1;
+        if (a.isVip && !b.isVip) return -1;
+        if (!a.isVip && b.isVip) return 1;
+        return (b.vipUntilTimestamp || 0) - (a.vipUntilTimestamp || 0);
+    });
+
+    return vipList;
+}
+
 // VIP Tanımla
 function addVipDays(userId, days) {
     const db = loadDb();
@@ -1929,6 +2070,8 @@ module.exports = {
     buyVipWithCredits,
     cancelUserVip,
     extendUserVipHour,
+    modifyUserVip,
+    getAllVipUsers,
     addApprovedMedia,
     findDuplicateMedia,
     findDuplicateMediaList,

@@ -3881,7 +3881,7 @@ bot.command(['kopyatemizle', 'aynilarisil', 'benzersil', 'benzervideolarisil', '
 // ADMİN MANUEL VIP VERME: /vipver <id> <gun>
 bot.command('vipver', (ctx) => {
     if (!isAdminUser(ctx.from?.id)) return;
-    const parts = ctx.message.text.split(' ');
+    const parts = ctx.message.text.trim().split(/\s+/);
     if (parts.length < 3) {
         return ctx.reply('Kullanım: /vipver <kullanici_id> <gün_sayısı>');
     }
@@ -3889,11 +3889,127 @@ bot.command('vipver', (ctx) => {
     const days = parseInt(parts[2], 10);
     if (isNaN(days) || days <= 0) return ctx.reply('Geçerli bir gün sayısı girin.');
 
-    const res = db.addVipDays(targetId, days);
-    if (!res) return ctx.reply('Kullanıcı bulunamadı.');
+    const res = db.modifyUserVip ? db.modifyUserVip(targetId, 'extend_days', days) : { success: !!db.addVipDays(targetId, days) };
+    if (!res || !res.success) return ctx.reply('Kullanıcı bulunamadı veya işlem başarısız.');
 
-    ctx.reply(`✅ Kullanıcıya (${targetId}) ${days} gün VIP tanımlandı.`);
+    ctx.reply(`✅ Kullanıcıya (${targetId}) ${days} gün VIP tanımlandı.\n👑 Bitiş: ${res.vip?.until || '-'}`);
     bot.telegram.sendMessage(targetId, `🎉 <b>Tebrikler!</b> Hesabınıza yönetici tarafından <b>${days} Günlük VIP Üyelik</b> tanımlandı!`, { parse_mode: 'HTML' }).catch(() => {});
+});
+
+// ADMİN VIP UZATMA: /vipuzat <id> <miktar> [saat/gun]
+bot.command(['vipuzat', 'vip_uzat'], (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    const parts = ctx.message.text.trim().split(/\s+/);
+    if (parts.length < 3) {
+        return ctx.reply('Kullanım:\n/vipuzat <kullanici_id> <miktar> [saat|gun]\n\nÖrnekler:\n• /vipuzat 12345678 5 saat\n• /vipuzat 12345678 3 gun');
+    }
+    const targetId = parts[1];
+    const val = parseInt(parts[2], 10);
+    const unit = (parts[3] || 'gun').toLowerCase();
+
+    if (isNaN(val) || val <= 0) return ctx.reply('⚠️ Geçerli bir miktar giriniz.');
+
+    const action = unit.startsWith('s') || unit === 'hour' || unit === 'hours' ? 'extend_hours' : 'extend_days';
+    const res = db.modifyUserVip(targetId, action, val);
+    if (!res || !res.success) return ctx.reply(`❌ İşlem başarısız: ${res?.message || 'Kullanıcı bulunamadı'}`);
+
+    const unitLabel = action === 'extend_hours' ? 'Saat' : 'Gün';
+    ctx.reply(`👑 <b>VIP Süresi Uzatıldı!</b>\n👤 <b>Kullanıcı:</b> <code>${targetId}</code>\n➕ <b>Eklenen:</b> +${val} ${unitLabel}\n⏳ <b>Yeni Bitiş:</b> ${res.vip?.until || 'Sınırsız'}`, { parse_mode: 'HTML' });
+    bot.telegram.sendMessage(targetId, `👑 <b>VIP Süreniz Uzatıldı!</b>\nYönetici tarafından üyeliğinize <b>+${val} ${unitLabel}</b> eklendi.\n⏳ Yeni Bitiş: <b>${res.vip?.until || 'Sınırsız'}</b>`, { parse_mode: 'HTML' }).catch(() => {});
+});
+
+// ADMİN VIP KISALTMA: /vipkisalt <id> <miktar> [saat/gun]
+bot.command(['vipkisalt', 'vip_kisalt'], (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    const parts = ctx.message.text.trim().split(/\s+/);
+    if (parts.length < 3) {
+        return ctx.reply('Kullanım:\n/vipkisalt <kullanici_id> <miktar> [saat|gun]\n\nÖrnekler:\n• /vipkisalt 12345678 2 saat\n• /vipkisalt 12345678 1 gun');
+    }
+    const targetId = parts[1];
+    const val = parseInt(parts[2], 10);
+    const unit = (parts[3] || 'gun').toLowerCase();
+
+    if (isNaN(val) || val <= 0) return ctx.reply('⚠️ Geçerli bir miktar giriniz.');
+
+    const action = unit.startsWith('s') || unit === 'hour' || unit === 'hours' ? 'shorten_hours' : 'shorten_days';
+    const res = db.modifyUserVip(targetId, action, val);
+    if (!res || !res.success) return ctx.reply(`❌ İşlem başarısız: ${res?.message || 'Kullanıcı bulunamadı'}`);
+
+    const unitLabel = action === 'shorten_hours' ? 'Saat' : 'Gün';
+    ctx.reply(`➖ <b>VIP Süresi Kısaltıldı!</b>\n👤 <b>Kullanıcı:</b> <code>${targetId}</code>\n➖ <b>Kısaltılan:</b> -${val} ${unitLabel}\n⏳ <b>Yeni Bitiş:</b> ${res.vip?.until || 'Yok'}`, { parse_mode: 'HTML' });
+    bot.telegram.sendMessage(targetId, `⚠️ <b>VIP Süreniz Güncellendi</b>\nYönetici tarafından üyeliğinizden <b>-${val} ${unitLabel}</b> düşürüldü.\n⏳ Yeni Bitiş: <b>${res.vip?.until || 'Sona Erdi'}</b>`, { parse_mode: 'HTML' }).catch(() => {});
+});
+
+// ADMİN VIP BİTİR: /vipbitir <id>
+bot.command(['vipbitir', 'vipsil', 'vipiptal'], (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    const parts = ctx.message.text.trim().split(/\s+/);
+    if (parts.length < 2) return ctx.reply('Kullanım: /vipbitir <kullanici_id>');
+    const targetId = parts[1];
+
+    const res = db.modifyUserVip(targetId, 'cancel');
+    if (!res || !res.success) return ctx.reply(`❌ İşlem başarısız: ${res?.message || 'Kullanıcı bulunamadı'}`);
+
+    ctx.reply(`🛑 <b>VIP Üyeliği Sonlandırıldı!</b>\n👤 <b>Kullanıcı:</b> <code>${targetId}</code>\nVIP durumu sıfırlandı.`, { parse_mode: 'HTML' });
+    bot.telegram.sendMessage(targetId, `ℹ️ <b>VIP Üyeliğiniz Yönetici Tarafından Sonlandırılmıştır.</b>`, { parse_mode: 'HTML' }).catch(() => {});
+});
+
+// ADMİN SINIRSIZ VIP: /vipsinirsiz <id>
+bot.command(['vipsinirsiz', 'vipomurboyu'], (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    const parts = ctx.message.text.trim().split(/\s+/);
+    if (parts.length < 2) return ctx.reply('Kullanım: /vipsinirsiz <kullanici_id>');
+    const targetId = parts[1];
+
+    const res = db.modifyUserVip(targetId, 'set_unlimited');
+    if (!res || !res.success) return ctx.reply(`❌ İşlem başarısız: ${res?.message || 'Kullanıcı bulunamadı'}`);
+
+    const statusStr = res.vip?.isUnlimited ? '👑 ÖMÜR BOYU SINIRSIZ VIP YAPILDI' : 'Sınırsızlık Kaldırıldı (Standart/Süreli)';
+    ctx.reply(`👑 <b>${statusStr}</b>\n👤 <b>Kullanıcı:</b> <code>${targetId}</code>`, { parse_mode: 'HTML' });
+});
+
+// ADMİN TÜM VİPLERİ LİSTELE: /vipler
+bot.command(['vipler', 'viplistesi', 'viptakip'], (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    const vipUsers = db.getAllVipUsers ? db.getAllVipUsers() : [];
+
+    if (!vipUsers || vipUsers.length === 0) {
+        return ctx.reply('👑 Kayıtlı aktif veya geçmiş VIP üye bulunamadı.');
+    }
+
+    let msg = `👑 <b>KAYITLI VIP ÜYELER (${vipUsers.length})</b>\n━━━━━━━━━━━━━━━━━━━━\n\n`;
+    const now = Date.now();
+
+    vipUsers.slice(0, 25).forEach((u, i) => {
+        const uid = u.id || u.user_id;
+        const name = escapeHtml(u.firstName || u.first_name || 'Kullanıcı');
+        const uname = u.username ? `@${escapeHtml(u.username)}` : 'yok';
+        const isUnl = !!(u.isUnlimitedVip || u.is_unlimited_vip || u.vipUnlimited);
+        let untilTs = 0;
+        if (u.vipUntilTimestamp) untilTs = Number(u.vipUntilTimestamp);
+        else if (u.vipUntil) untilTs = typeof u.vipUntil === 'number' ? u.vipUntil : new Date(u.vipUntil).getTime();
+
+        const isActive = isUnl || (untilTs > now);
+        let timeStr = 'Süresi Doldu';
+        if (isUnl) {
+            timeStr = '👑 SINIRSIZ';
+        } else if (isActive) {
+            const diffMs = untilTs - now;
+            const d = Math.floor(diffMs / (24 * 3600 * 1000));
+            const h = Math.floor((diffMs % (24 * 3600 * 1000)) / (3600 * 1000));
+            timeStr = `${d}g ${h}s kaldı (${new Date(untilTs).toLocaleDateString('tr-TR')})`;
+        }
+
+        msg += `<b>${i + 1}.</b> ${isActive ? '👑' : '⚪'} <b>${name}</b> (${uname})\n`;
+        msg += `   🆔 ID: <code>${uid}</code>\n`;
+        msg += `   ⏳ <b>Durum:</b> ${timeStr}\n\n`;
+    });
+
+    if (vipUsers.length > 25) {
+        msg += `<i>...ve ${vipUsers.length - 25} VIP üye daha. WebApp Admin Panelinden tamamını canlı izleyebilirsiniz.</i>`;
+    }
+
+    ctx.reply(msg, { parse_mode: 'HTML' });
 });
 
 // ADMİN MANUEL KREDİ VERME: /krediver <id> <resim/video> <adet>
