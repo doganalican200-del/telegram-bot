@@ -388,11 +388,162 @@ function createWebAppServer(options = {}) {
                 uploadedCount: user.uploadedCount || 0,
                 receivedCount: user.receivedCount || 0,
                 isVip: vip.isVip,
+                isUnlimitedVip: vip.isUnlimited || false,
+                vipUntil: vip.until || null,
+                vipUntilTimestamp: vip.untilTimestamp || null,
+                remainingHours: vip.remainingHours || 0,
                 isAdmin: isAdmin,
                 isSuperAdmin: isSuper,
                 isAssistantAdmin: isAssistant,
                 dailyReward: dailyStatus
             }));
+        }
+
+        // ==========================================
+        // 1.1 API: VIP ÜYELİĞİ BİTİR / İPTAL ET
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/vip/cancel' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const userId = String(data.userId || '');
+                    if (!userId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({ success: false, message: 'Kullanıcı ID gerekli' }));
+                    }
+
+                    const result = db.cancelUserVip ? db.cancelUserVip(userId) : { success: false, message: 'İşlem desteklenmiyor' };
+                    res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 1.2 API: VIP ÜYELİĞİ +1 SAAT UZAT
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/vip/extend-hour' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const userId = String(data.userId || '');
+                    const hours = Number(data.hours || 1);
+                    if (!userId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({ success: false, message: 'Kullanıcı ID gerekli' }));
+                    }
+
+                    const result = db.extendUserVipHour ? db.extendUserVipHour(userId, hours) : { success: false, message: 'İşlem desteklenmiyor' };
+                    res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
+        }
+
+        // ==========================================
+        // 1.3 API: KULLANICI GÖRÜŞ VE DESTEK BİLDİRİMİ
+        // ==========================================
+        if (parsedUrl.pathname === '/api/webapp/feedback' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body || '{}');
+                    const userId = String(data.userId || '');
+                    const message = String(data.message || '').trim();
+                    const category = String(data.category || 'Genel Görüş');
+                    const userName = data.userName || 'Kullanıcı';
+                    const userUsername = data.userUsername || '';
+
+                    if (!userId || !message) {
+                        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({ success: false, message: 'Kullanıcı ID ve görüş metni gereklidir.' }));
+                    }
+
+                    // 1. Veritabanına kaydet
+                    let savedFb = null;
+                    if (db.addFeedback) {
+                        savedFb = db.addFeedback({
+                            userId,
+                            userName,
+                            userUsername,
+                            category,
+                            message,
+                            source: 'webapp_profile'
+                        });
+                    }
+
+                    // 2. VIP Durumu
+                    const vip = db.isUserVip ? db.isUserVip(userId) : { isVip: false };
+
+                    // 3. Yöneticiye anlık Telegram bildirimi ilet
+                    if (botInstance) {
+                        const targetAdminIds = ['8633136500'];
+                        if (db.getAssistantAdmins) {
+                            const assistants = db.getAssistantAdmins();
+                            assistants.forEach(a => { if (!targetAdminIds.includes(String(a))) targetAdminIds.push(String(a)); });
+                        }
+
+                        const cleanUserName = escapeHtml(userName);
+                        const cleanUserHandle = userUsername ? `@${userUsername.replace('@', '')}` : 'Yok';
+                        const adminAlertText = 
+`💬 <b>YENİ KULLANICI GÖRÜŞÜ / DESTEK MESAJI!</b>\n` +
+`━━━━━━━━━━━━━━━━━━━━\n` +
+`👤 <b>Gönderen:</b> ${cleanUserName} (${cleanUserHandle})\n` +
+`🆔 <b>Telegram ID:</b> <code>${userId}</code>\n` +
+`🏷️ <b>Kategori:</b> <code>${escapeHtml(category)}</code>\n` +
+`👑 <b>VIP Durumu:</b> ${vip.isVip ? '👑 Aktif VIP' : '⚪ Standart Üye'}\n` +
+`⏰ <b>Zaman:</b> <code>${new Date().toLocaleString('tr-TR')}</code>\n\n` +
+`📝 <b>Kullanıcı Görüşü:</b>\n` +
+`<i>"${escapeHtml(message)}"</i>\n` +
+`━━━━━━━━━━━━━━━━━━━━\n` +
+`<i>Aşağıdaki butonla kullanıcıya doğrudan anında yanıt verebilirsiniz:</i>`;
+
+                        for (const adminId of targetAdminIds) {
+                            try {
+                                await botInstance.telegram.sendMessage(adminId, adminAlertText, {
+                                    parse_mode: 'HTML',
+                                    reply_markup: {
+                                        inline_keyboard: [
+                                            [
+                                                { text: '✉️ Anında Cevap Yaz', callback_data: `admin_reply_user_${userId}` },
+                                                { text: '💬 Telegram DM', url: `tg://user?id=${userId}` }
+                                            ],
+                                            [
+                                                { text: '👤 Kullanıcı Profilini Aç', callback_data: `admin_user_detail_${userId}` }
+                                            ]
+                                        ]
+                                    }
+                                });
+                            } catch (err) {
+                                console.error(`Admin ${adminId} bildirim iletim hatası:`, err.message);
+                            }
+                        }
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ 
+                        success: true, 
+                        message: 'Görüşünüz doğrudan sistem yöneticimize iletildi! Yöneticimiz yanıt verdiğinde Telegram üzerinden bildirim alacaksınız. 🙏' 
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+                    return res.end(JSON.stringify({ success: false, message: e.message }));
+                }
+            });
+            return;
         }
 
         // ==========================================
@@ -2591,33 +2742,56 @@ function createWebAppServer(options = {}) {
             req.on('end', async () => {
                 try {
                     const data = JSON.parse(body || '{}');
-                    const { userId, message } = data;
+                    const { userId, title, message } = data;
                     if (!isAdminUser(userId)) {
-                        res.writeHead(403, { 'Content-Type': 'application/json' });
-                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem.' }));
+                        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+                        return res.end(JSON.stringify({ success: false, message: 'Yetkisiz işlem. Yalnızca yöneticiler duyuru yapabilir.' }));
                     }
                     if (!message || !message.trim()) {
-                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
                         return res.end(JSON.stringify({ success: false, message: 'Duyuru metni boş olamaz.' }));
+                    }
+
+                    // 1. Duyuru Panosu'na kaydet
+                    const broadcastTitle = (title && title.trim()) ? title.trim() : '📢 SİSTEM DUYURUSU';
+                    if (db.addAnnouncement) {
+                        try {
+                            db.addAnnouncement(broadcastTitle, message.trim(), 'Yönetici');
+                        } catch (annErr) {
+                            console.error('Duyuru panosu kayıt hatası:', annErr);
+                        }
                     }
 
                     const dbData = db.loadDb();
                     const userIds = Object.keys(dbData.users || {});
                     let sentCount = 0;
+                    let failCount = 0;
+
+                    const formattedMsg = `📢 <b>${escapeHtml(broadcastTitle)}</b>\n\n${message.trim()}`;
 
                     for (const uid of userIds) {
                         try {
                             if (botInstance) {
-                                await botInstance.telegram.sendMessage(uid, `📢 <b>SİSTEM DUYURUSU</b>\n\n${message}`, { parse_mode: 'HTML' });
+                                await botInstance.telegram.sendMessage(uid, formattedMsg, { parse_mode: 'HTML' });
                                 sentCount++;
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            failCount++;
+                        }
+                        // Telegram flood limit koruması
+                        await new Promise(r => setTimeout(r, 40));
                     }
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-                    return res.end(JSON.stringify({ success: true, message: `Duyuru ${sentCount} kullanıcıya başarıyla iletildi.` }));
+                    return res.end(JSON.stringify({ 
+                        success: true, 
+                        total: userIds.length,
+                        sent: sentCount,
+                        failed: failCount,
+                        message: `Toplu duyuru ${sentCount} kullanıcıya başarıyla iletildi (${failCount} iletilemeyen/engelli).` 
+                    }));
                 } catch (e) {
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
                     return res.end(JSON.stringify({ success: false, message: e.message }));
                 }
             });

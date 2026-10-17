@@ -307,18 +307,59 @@ function getUser(userId) {
 // VIP Kontrolü (Yönetici Her Zaman Sınırsız VIP'dir)
 function isUserVip(userId) {
     if (isAdminUser(userId)) {
-        return { isVip: true, isUnlimited: true, remainingHours: 999999, until: 'Sınırsız (Admin/Yönetici)' };
+        return { isVip: true, isUnlimited: true, remainingHours: 999999, until: 'Sınırsız (Admin/Yönetici)', untilTimestamp: null };
     }
     const db = loadDb();
     const user = db.users[String(userId)];
-    if (!user || !user.vipUntil) return { isVip: false, isUnlimited: false, remainingHours: 0 };
+    if (!user || !user.vipUntil) return { isVip: false, isUnlimited: false, remainingHours: 0, untilTimestamp: null };
+    
+    const vipTime = typeof user.vipUntil === 'string' ? new Date(user.vipUntil).getTime() : Number(user.vipUntil);
+    const now = Date.now();
+    if (vipTime > now) {
+        const remainingHours = Math.ceil((vipTime - now) / (1000 * 60 * 60));
+        return { 
+            isVip: true, 
+            isUnlimited: false, 
+            remainingHours, 
+            until: new Date(vipTime).toLocaleString('tr-TR'),
+            untilTimestamp: vipTime 
+        };
+    }
+    return { isVip: false, isUnlimited: false, remainingHours: 0, untilTimestamp: null };
+}
+
+// VIP Üyeliği Sonlandır / Bitir
+function cancelUserVip(userId) {
+    const db = loadDb();
+    const uid = String(userId);
+    const user = db.users[uid];
+    if (!user) return { success: false, message: 'Kullanıcı bulunamadı.' };
+    user.vipUntil = null;
+    saveDb();
+    return { success: true, message: 'VIP üyeliğiniz başarıyla sonlandırıldı.' };
+}
+
+// VIP Üyeliği Ekstra Saat Uzat (+1 Saat)
+function extendUserVipHour(userId, hours = 1) {
+    const db = loadDb();
+    const uid = String(userId);
+    const user = db.users[uid];
+    if (!user) return { success: false, message: 'Kullanıcı bulunamadı.' };
     
     const now = Date.now();
-    if (user.vipUntil > now) {
-        const remainingHours = Math.ceil((user.vipUntil - now) / (1000 * 60 * 60));
-        return { isVip: true, isUnlimited: false, remainingHours, until: new Date(user.vipUntil).toLocaleString('tr-TR') };
-    }
-    return { isVip: false, isUnlimited: false, remainingHours: 0 };
+    const currentVip = user.vipUntil ? (typeof user.vipUntil === 'string' ? new Date(user.vipUntil).getTime() : Number(user.vipUntil)) : now;
+    const base = currentVip > now ? currentVip : now;
+    const durationMs = hours * 60 * 60 * 1000;
+    const newVipTime = base + durationMs;
+    
+    user.vipUntil = new Date(newVipTime).toISOString();
+    saveDb();
+    return {
+        success: true,
+        message: `VIP üyeliğiniz başarıyla +${hours} saat uzatıldı!`,
+        vipUntil: new Date(newVipTime).toLocaleString('tr-TR'),
+        vipUntilTimestamp: newVipTime
+    };
 }
 
 // VIP Tanımla
@@ -1886,6 +1927,8 @@ module.exports = {
     moveAllMediaToCategory,
     autoDistributeMedia,
     buyVipWithCredits,
+    cancelUserVip,
+    extendUserVipHour,
     addApprovedMedia,
     findDuplicateMedia,
     findDuplicateMediaList,
@@ -1905,6 +1948,10 @@ module.exports = {
     addAnnouncement,
     getAnnouncements,
     deleteAnnouncement,
+    // Görüş ve Destek Sistemi
+    addFeedback,
+    getFeedbacks,
+    markFeedbackReplied,
     // Günlük Giriş Ödülü
     getDailyRewardStatus,
     claimDailyReward,
@@ -1986,6 +2033,53 @@ function deleteAnnouncement(annId) {
     const idx = db.announcements.findIndex(a => a.id === annId);
     if (idx === -1) return false;
     db.announcements.splice(idx, 1);
+    saveDb();
+    return true;
+}
+
+// ==========================================
+// 💬 GÖRÜŞ VE DESTEK / BİLDİRİM SİSTEMİ
+// ==========================================
+
+function addFeedback(feedbackData) {
+    const db = loadDb();
+    if (!Array.isArray(db.feedbacks)) db.feedbacks = [];
+    const fb = {
+        id: 'fb_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        userId: String(feedbackData.userId || ''),
+        userName: feedbackData.userName || 'Kullanıcı',
+        userUsername: feedbackData.userUsername || '',
+        category: feedbackData.category || 'Genel',
+        message: String(feedbackData.message || '').trim(),
+        source: feedbackData.source || 'webapp',
+        createdAt: new Date().toISOString(),
+        replied: false,
+        replyMessage: null,
+        repliedAt: null
+    };
+    db.feedbacks.unshift(fb);
+    // Maksimum 150 geri bildirim sakla
+    if (db.feedbacks.length > 150) {
+        db.feedbacks = db.feedbacks.slice(0, 150);
+    }
+    saveDb();
+    return fb;
+}
+
+function getFeedbacks(limit = 50) {
+    const db = loadDb();
+    if (!Array.isArray(db.feedbacks)) db.feedbacks = [];
+    return db.feedbacks.slice(0, limit);
+}
+
+function markFeedbackReplied(feedbackId, replyMessage) {
+    const db = loadDb();
+    if (!Array.isArray(db.feedbacks)) return false;
+    const fb = db.feedbacks.find(f => f.id === feedbackId);
+    if (!fb) return false;
+    fb.replied = true;
+    fb.replyMessage = replyMessage;
+    fb.repliedAt = new Date().toISOString();
     saveDb();
     return true;
 }

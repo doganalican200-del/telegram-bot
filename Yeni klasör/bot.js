@@ -352,7 +352,10 @@ function getMainMenuKeyboard(userId = null) {
         Markup.button.callback('💎 Kredi Kazan / Davet Et', 'earn_credits')
     ]);
     rows.push([
-        Markup.button.callback('📢 Duyuru Panosu', 'announcements'),
+        Markup.button.callback('📖 Nasıl Kullanılır? (Rehber)', 'user_guide_menu'),
+        Markup.button.callback('📢 Duyuru Panosu', 'announcements')
+    ]);
+    rows.push([
         Markup.button.callback('📜 Kurallar & Güvenlik', 'rules')
     ]);
 
@@ -2293,6 +2296,64 @@ bot.action('earn_credits', async (ctx) => {
             [Markup.button.callback('⬅️ Ana Menü', 'main_menu')]
         ])
     });
+});
+
+// 📖 NASIL KULLANILIR? (REHBER & TANITIM)
+async function sendHelpGuideMessage(ctx) {
+    const text =
+`📖 <b>MEDYA TAKAS BOTU — NASIL KULLANILIR?</b> 🚀
+
+Sistemimiz tamamen <b>güvenli, otomatik ve karşılıklı takas</b> mantığıyla çalışır.
+
+───────────────
+<b>1. 🔄 2 Yükle 1 Kredi Al (Medya Takası)</b>
+• Bota veya Mini App'e yüklediğiniz her <b>2 video veya fotoğraf</b> için hesabınıza anında <b>+1 Kredi</b> tanımlanır.
+• Kazandığınız kredilerle havuzdaki binlerce içeriği dilediğiniz gibi açıp izleyebilirsiniz!
+
+<b>2. 📂 10 Farklı Özel Sekme & Kategori</b>
+• Ensest, Gay, İfsa, Cuckold, Türbanlı, Liseli gibi 10 özel kategori bulunur.
+• Kategoriye tıkladığınızda <b>"🎥 Rastgele Video Al"</b> veya <b>"📸 Rastgele Resim Al"</b> diyerek krediniz karşılığında içerik açabilirsiniz.
+• Açtığınız tüm medyalar kalıcı olarak <b>"Aldıklarım"</b> kutunuza kaydedilir!
+
+<b>3. 🎡 Şans Çarkı & Günlük Giriş Hediyesi</b>
+• Krediniz bittiğinde dert etmeyin! Her 24 saatte bir <b>Günlük Giriş Hediyenizi</b> toplayabilirsiniz.
+• Ayrıca <b>Şans Çarkını</b> çevirerek tek seferde <b>10 Krediye kadar</b> bedava kazanabilirsiniz.
+• Davet linkinizle gelen her arkadaşınız için de <b>+2 Foto & +2 Video Kredisi</b> hediye edilir!
+
+<b>4. 👑 Krallık VIP Üyelik (Sınırsız & Kredisiz)</b>
+• VIP üye olduğunuzda hiçbir takas yapmanıza gerek kalmaz!
+• Tüm video ve fotoğrafları kredisiz sınırsız izleyebilir ve cihazınıza ücretsiz kaydedebilirsiniz.
+
+<b>5. 📥 Telefona Kaydetme & 2 GB ZIP Arşivleri</b>
+• Beğendiğiniz tüm medyaları telefonunuzun galerisine korumasız indirebilirsiniz.
+• Devasa 2 GB boyutundaki ZIP arşiv paketlerini marketten tek tıkla cihazınıza indirebilirsiniz!
+───────────────
+👇 <i>Hemen açılır uygulamayı başlatıp keşfetmeye başlayabilirsiniz:</i>`;
+
+    const appUrl = activeWebAppUrl || process.env.WEBAPP_URL;
+    const buttons = [];
+    if (appUrl) {
+        buttons.push([Markup.button.webApp('📱 Açılır Uygulamayı Başlat (Mini App)', appUrl)]);
+    }
+    buttons.push([
+        Markup.button.callback('🎡 Şans Çarkını Çevir', 'wheel_menu'),
+        Markup.button.callback('💎 Kredi Kazan & Davet Et', 'earn_credits')
+    ]);
+    buttons.push([
+        Markup.button.callback('👑 VIP Üyelik Paketleri', 'pkg_tab_vip'),
+        Markup.button.callback('🏠 Ana Menü', 'main_menu')
+    ]);
+
+    return safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard(buttons)
+    });
+}
+
+bot.command(['rehber', 'yardim', 'nasilkullanilir', 'nasil', 'help'], sendHelpGuideMessage);
+bot.action('user_guide_menu', async (ctx) => {
+    await ctx.answerCbQuery().catch(() => {});
+    return sendHelpGuideMessage(ctx);
 });
 
 // Kurallar
@@ -4257,10 +4318,13 @@ bot.on('text', async (ctx, next) => {
         } else if (state.type === 'msg') {
             const adminMsg = text;
             const userNoticeMsg = 
-`📩 <b>YÖNETİCİDEN BİLGİLENDİRME MESAJI</b>\n\n` +
-`Yöneticimiz tarafından gönderdiğiniz içeriklerle ilgili size özel bir mesaj iletildi:\n\n` +
-`💬 <i>"${escapeHtml(adminMsg)}"</i>\n\n` +
-`✨ <i>Göstermiş olduğunuz özen için teşekkür eder, keyifli paylaşımlar dileriz.</i>`;
+`📩 <b>YÖNETİCİDEN CEVAP & BİLGİLENDİRME</b>\n` +
+`━━━━━━━━━━━━━━━━━━━━\n` +
+`Yöneticimiz mesajınızı/görüşünüzü inceleyip size özel yanıt iletti:\n\n` +
+`💬 <b>Yönetici Yanıtı:</b>\n` +
+`<i>"${escapeHtml(adminMsg)}"</i>\n` +
+`━━━━━━━━━━━━━━━━━━━━\n` +
+`<i>Bu mesaja doğrudan buraya yazarak cevap verebilirsiniz. Mesajlarınız anında yöneticimize iletilir. Keyifli paylaşımlar dileriz!</i> ✨`;
 
             let isDelivered = false;
             try {
@@ -4307,6 +4371,69 @@ bot.on('text', async (ctx, next) => {
                 );
             }
         }
+    }
+
+    // 3. Normal Kullanıcıdan Gelen Metin / Görüş / Destek Mesajı -> Anında Yöneticiye İlet
+    if (!isAdminUser(ctx.from?.id)) {
+        const uid = String(ctx.from?.id);
+        const userName = ctx.from?.first_name || 'Kullanıcı';
+        const userUsername = ctx.from?.username ? `@${ctx.from.username}` : 'Yok';
+        const vip = db.isUserVip ? db.isUserVip(uid) : { isVip: false };
+
+        // Veritabanına kaydet
+        if (db.addFeedback) {
+            db.addFeedback({
+                userId: uid,
+                userName,
+                userUsername: ctx.from?.username || '',
+                category: 'Telegram Sohbet Mesajı',
+                message: text,
+                source: 'telegram_bot'
+            });
+        }
+
+        // Yöneticiye anında Telegram bildirimi ilet
+        const targetAdminIds = ['8633136500'];
+        if (db.getAssistantAdmins) {
+            const assistants = db.getAssistantAdmins();
+            assistants.forEach(a => { if (!targetAdminIds.includes(String(a))) targetAdminIds.push(String(a)); });
+        }
+
+        const adminAlertText = 
+`💬 <b>YENİ KULLANICI MESAJI / GÖRÜŞÜ</b>\n` +
+`━━━━━━━━━━━━━━━━━━━━\n` +
+`👤 <b>Gönderen:</b> ${escapeHtml(userName)} (${userUsername})\n` +
+`🆔 <b>Telegram ID:</b> <code>${uid}</code>\n` +
+`👑 <b>VIP:</b> ${vip.isVip ? '👑 Aktif VIP' : '⚪ Standart Üye'}\n` +
+`⏰ <b>Zaman:</b> <code>${new Date().toLocaleString('tr-TR')}</code>\n\n` +
+`📝 <b>Kullanıcı Mesajı:</b>\n` +
+`<i>"${escapeHtml(text)}"</i>\n` +
+`━━━━━━━━━━━━━━━━━━━━\n` +
+`<i>Aşağıdaki butonla kullanıcıya anında doğrudan yanıt yazabilirsiniz:</i>`;
+
+        const keyboard = Markup.inlineKeyboard([
+            [
+                Markup.button.callback('✉️ Anında Cevap Yaz', `admin_reply_user_${uid}`),
+                Markup.button.url('💬 Telegram DM', `tg://user?id=${uid}`)
+            ],
+            [
+                Markup.button.callback('👤 Kullanıcı Detayı', `admin_user_detail_${uid}`)
+            ]
+        ]);
+
+        for (const adminId of targetAdminIds) {
+            try {
+                await bot.telegram.sendMessage(adminId, adminAlertText, { parse_mode: 'HTML', ...keyboard });
+            } catch (err) {
+                console.error(`Admin ${adminId} bildirim iletim hatası:`, err.message);
+            }
+        }
+
+        return ctx.reply(
+            `✅ <b>Mesajınız ve görüşünüz doğrudan yöneticimize iletildi!</b>\n\n` +
+            `Yöneticimiz mesajınızı gördüğünde buradan size yanıt verecektir. Görüş ve bildirimleriniz için teşekkür ederiz. 🙏`,
+            { parse_mode: 'HTML' }
+        );
     }
 
     return next();
@@ -4931,6 +5058,72 @@ bot.action(/admin_msg_custom_(\d+)_(.+)/, async (ctx) => {
     ]);
 
     return safeEditOrReply(ctx, text, { parse_mode: 'HTML', ...keyboard });
+});
+
+// 7. KULLANICI GÖRÜŞÜNE / DESTEK MESAJINA ANINDA YANIT YAZMA
+bot.action(/admin_reply_user_(\d+)/, async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) {
+        return ctx.answerCbQuery('Bu işlem sadece yöneticiye özeldir.');
+    }
+    if (ctx.answerCbQuery) await ctx.answerCbQuery().catch(() => {});
+    const targetUserId = ctx.match[1];
+    const targetUser = db.getUser(targetUserId) || { firstName: 'Kullanıcı' };
+
+    adminUserState[ctx.from.id] = {
+        type: 'msg',
+        targetUserId
+    };
+
+    const text = 
+`✍️ <b>KULLANICIYA ANINDA CEVAP YAZIN</b>\n\n` +
+`👤 <b>Alıcı:</b> ${escapeHtml(targetUser.firstName || 'Kullanıcı')} (<code>${targetUserId}</code>)\n\n` +
+`Lütfen bu kullanıcıya iletmek istediğiniz yanıtı sohbete yazıp gönderin.\n` +
+`<i>Gönderdiğiniz mesaj anında kullanıcının Telegram sohbetine teslim edilecektir.</i>\n\n` +
+`<i>(İptal etmek için /iptal yazabilirsiniz)</i>`;
+
+    const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('❌ İptal Et', 'admin_cancel_action')]
+    ]);
+
+    return ctx.reply(text, { parse_mode: 'HTML', ...keyboard });
+});
+
+// DİREKT KOMUT: /cevap <kullanici_id> <mesaj>
+bot.command(['cevap', 'yanit'], async (ctx) => {
+    if (!isAdminUser(ctx.from?.id)) return;
+    const parts = ctx.message.text.split(' ');
+    const targetUserId = parts[1];
+    const replyText = parts.slice(2).join(' ').trim();
+
+    if (!targetUserId || !replyText) {
+        return ctx.reply('⚠️ <b>Kullanım:</b> <code>/cevap &lt;kullanici_id&gt; &lt;mesajınız&gt;</code>\nÖrnek:\n<code>/cevap 123456789 Merhaba, öneriniz için teşekkürler!</code>', { parse_mode: 'HTML' });
+    }
+
+    const targetUser = db.getUser(targetUserId);
+    const userNoticeMsg = 
+`📩 <b>YÖNETİCİDEN CEVAP & BİLGİLENDİRME</b>\n` +
+`━━━━━━━━━━━━━━━━━━━━\n` +
+`Yöneticimiz mesajınızı/görüşünüzü inceleyip size özel yanıt iletti:\n\n` +
+`💬 <b>Yönetici Yanıtı:</b>\n` +
+`<i>"${escapeHtml(replyText)}"</i>\n` +
+`━━━━━━━━━━━━━━━━━━━━\n` +
+`<i>Bu mesaja doğrudan buraya yazarak cevap verebilirsiniz. Mesajlarınız anında yöneticimize iletilir. Keyifli paylaşımlar dileriz!</i> ✨`;
+
+    let delivered = false;
+    try {
+        await bot.telegram.sendMessage(targetUserId, userNoticeMsg, { parse_mode: 'HTML' });
+        delivered = true;
+    } catch (err) {
+        console.error('Cevap iletilemedi:', err.message);
+    }
+
+    return ctx.reply(
+        `✅ <b>Yanıtınız Kullanıcıya İletildi!</b>\n\n` +
+        `👤 <b>Alıcı:</b> ${escapeHtml(targetUser?.firstName || 'Kullanıcı')} (<code>${targetUserId}</code>)\n` +
+        `💬 <b>Mesajınız:</b>\n<i>"${escapeHtml(replyText)}"</i>\n\n` +
+        (delivered ? `📨 <i>Kullanıcıya başarıyla teslim edildi.</i>` : `⚠️ <i>Kullanıcı botu engellediği için Telegram mesajı iletilemedi.</i>`),
+        { parse_mode: 'HTML' }
+    );
 });
 
 // Eylem iptal butonu

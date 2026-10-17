@@ -1367,6 +1367,10 @@
                 <i class="fa-solid fa-envelope" style="color:#a78bfa; font-size:13px;"></i>
                 <span id="header-inbox-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ef4444; color:#fff; font-size:9px; font-weight:800; border-radius:10px; padding:1px 4px; line-height:1;">0</span>
             </div>
+            <div class="bal-pill guide-pill" id="header-guide-btn" title="Nasıl Kullanılır? (Rehber)" onclick="openGuideModal(0)" style="cursor:pointer; background:rgba(56, 189, 248, 0.15); border:1px solid rgba(56, 189, 248, 0.35); padding:3px 7px; border-radius:12px; display:flex; align-items:center; gap:4px;">
+                <i class="fa-solid fa-circle-question" style="color:#38bdf8; font-size:12px;"></i>
+                <span style="color:#38bdf8; font-size:9.5px; font-weight:800;">Rehber</span>
+            </div>
         </div>
     </div>
 
@@ -1795,6 +1799,68 @@
             <button class="primary-action-btn" style="width:100%;" onclick="copyReferralLink()">
                 <i class="fa-solid fa-copy" style="margin-right:6px;"></i> Davet Linkini Kopyala
             </button>
+        </div>
+
+        <!-- 📖 NASIL KULLANILIR & TANITIM REHBERİ KARTI -->
+        <div class="profile-card" onclick="openGuideModal(0)" style="cursor:pointer; background:linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(99, 102, 241, 0.12)); border:1.5px solid rgba(56, 189, 248, 0.4); display:flex; align-items:center; justify-content:space-between; padding:14px; border-radius:14px; margin-bottom:14px; box-shadow:0 6px 20px rgba(0,0,0,0.3);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg, #0284c7, #38bdf8); display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff; box-shadow:0 4px 12px rgba(56, 189, 248, 0.35); flex-shrink:0;">
+                    <i class="fa-solid fa-book-open"></i>
+                </div>
+                <div>
+                    <div style="font-size:13.5px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+                        📖 Nasıl Kullanılır? (Rehber)
+                        <span style="font-size:9px; font-weight:800; background:#38bdf8; color:#0b1120; padding:1px 5px; border-radius:4px;">YENİ</span>
+                    </div>
+                    <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Takas, krediler, sekmeler ve çark nasıl çalışır?</div>
+                </div>
+            </div>
+            <div style="background:rgba(56, 189, 248, 0.2); border:1px solid rgba(56, 189, 248, 0.5); color:#38bdf8; font-weight:800; font-size:11px; padding:6px 12px; border-radius:8px; white-space:nowrap;">
+                İncele &rarr;
+            </div>
+        </div>
+
+        <!-- 💬 GÖRÜŞ BİLDİR & ÖNERİ / DESTEK KARTI (TÜM KULLANICILAR) -->
+        <div class="profile-card" style="background: radial-gradient(circle at top right, rgba(168, 85, 247, 0.15), transparent 70%), linear-gradient(145deg, #131b2e 0%, #0a0f1d 100%); border: 1.5px solid rgba(168, 85, 247, 0.4); border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.35);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:38px; height:38px; border-radius:12px; background:linear-gradient(135deg, #a855f7, #6366f1); display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff; box-shadow:0 0 14px rgba(168, 85, 247, 0.4); flex-shrink:0;">
+                        <i class="fa-solid fa-comment-dots"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:14px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+                            Görüş & Destek Bildir
+                        </div>
+                        <div style="font-size:11px; color:#94a3b8; margin-top:2px;">
+                            Yöneticimize anlık görüş & istek gönderin
+                        </div>
+                    </div>
+                </div>
+                <span style="font-size:10px; font-weight:800; background:rgba(168, 85, 247, 0.18); border:1px solid rgba(168, 85, 247, 0.4); color:#c084fc; padding:3px 8px; border-radius:6px;">
+                    ANLIK İLETİM ⚡
+                </span>
+            </div>
+
+            <!-- Kategori Seçim Butonları -->
+            <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:10px;" id="feedback-cat-chips">
+                <button type="button" class="fb-chip" onclick="selectFeedbackCategory(this, '💡 Öneri')" style="background:#a855f7; color:#fff; border:none; font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:14px; cursor:pointer; white-space:nowrap;">💡 Öneri</button>
+                <button type="button" class="fb-chip" onclick="selectFeedbackCategory(this, '🐞 Hata Bildirimi')" style="background:rgba(255,255,255,0.06); color:#cbd5e1; border:1px solid rgba(255,255,255,0.12); font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:14px; cursor:pointer; white-space:nowrap;">🐞 Hata Bildirimi</button>
+                <button type="button" class="fb-chip" onclick="selectFeedbackCategory(this, '📁 Sekme İsteği')" style="background:rgba(255,255,255,0.06); color:#cbd5e1; border:1px solid rgba(255,255,255,0.12); font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:14px; cursor:pointer; white-space:nowrap;">📁 Sekme İsteği</button>
+                <button type="button" class="fb-chip" onclick="selectFeedbackCategory(this, '⭐ Teşekkür')" style="background:rgba(255,255,255,0.06); color:#cbd5e1; border:1px solid rgba(255,255,255,0.12); font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:14px; cursor:pointer; white-space:nowrap;">⭐ Teşekkür</button>
+            </div>
+
+            <!-- Metin Alanı -->
+            <textarea id="user-feedback-msg" placeholder="Görüşünüzü, istediğiniz özellikleri veya iletmek istediğiniz mesajı buraya yazın..." style="width:100%; height:75px; background:rgba(0,0,0,0.35); border:1px solid rgba(168, 85, 247, 0.3); border-radius:10px; color:#fff; font-size:11.5px; padding:10px; resize:none; box-sizing:border-box; outline:none; line-height:1.45;"></textarea>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                <div style="font-size:10.5px; color:#94a3b8; display:flex; align-items:center; gap:4px;">
+                    <i class="fa-solid fa-paper-plane" style="color:#a855f7;"></i>
+                    <span>Cevap doğrudan Telegram'dan iletilir.</span>
+                </div>
+                <button onclick="submitUserFeedback()" id="btn-submit-feedback" style="background:linear-gradient(135deg, #a855f7, #7c3aed); border:none; color:#fff; font-size:11.5px; font-weight:800; padding:8px 16px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 3px 12px rgba(168, 85, 247, 0.35);">
+                    <span>Gönder</span> &rarr;
+                </button>
+            </div>
         </div>
 
         <!-- 👑 TEK YÖNETİCİ ADMIN PANELİ (8633136500) -->
@@ -2362,13 +2428,36 @@
                     </button>
                 </div>
 
-                <!-- 4. TOPLU DUYURU -->
-                <div style="margin-top:10px; background:rgba(0,0,0,0.25); padding:10px; border-radius:10px; border:1px solid var(--card-border);">
-                    <div style="font-size:12px; font-weight:800; margin-bottom:6px; color:#f8fafc;">📢 Toplu Duyuru Gönder</div>
-                    <textarea id="adm-broadcast-msg" placeholder="Duyuru metnini yazın (HTML etiketleri desteklenir)..." style="width:100%; height:55px; background:#0b1120; border:1px solid var(--card-border); color:#fff; padding:6px 8px; border-radius:6px; font-size:11px; resize:none; margin-bottom:6px; box-sizing:border-box;"></textarea>
-                    <button onclick="adminBroadcast()" style="width:100%; background:linear-gradient(135deg, #a855f7, #7c3aed); border:none; color:#fff; font-size:11px; font-weight:700; padding:7px; border-radius:6px; cursor:pointer;">
-                        📢 Tüm Kullanıcılara Gönder
+                <!-- 4. TOPLU BİLDİRİM & DUYURU GÖNDERME MERKEZİ -->
+                <div style="margin-top:14px; background: radial-gradient(circle at top right, rgba(168, 85, 247, 0.15), transparent 70%), #0b1120; padding:14px; border-radius:14px; border:1.5px solid rgba(168, 85, 247, 0.45); box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div style="font-size:13px; font-weight:800; color:#c084fc; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-bullhorn"></i> TOPLU BİLDİRİM GÖNDER (TELEGRAM PUSH)
+                        </div>
+                        <span style="font-size:10px; font-weight:800; background:rgba(168, 85, 247, 0.2); color:#c084fc; border:1px solid rgba(168, 85, 247, 0.4); padding:2px 7px; border-radius:6px;">
+                            TÜM KULLANICILAR
+                        </span>
+                    </div>
+                    <div style="font-size:11px; color:#94a3b8; margin-bottom:10px; line-height:1.4;">
+                        Tüm kayıtlı bot kullanıcılarına doğrudan Telegram mesajı olarak iletilir ve Duyuru Panosuna işlenir.
+                    </div>
+
+                    <!-- Şablon Butonları -->
+                    <div style="display:flex; gap:6px; margin-bottom:10px; overflow-x:auto; padding-bottom:4px;">
+                        <button type="button" onclick="fillBroadcastTemplate('🚀 YENİ İÇERİKLER & GÜNCELLEME', 'Koleksiyona yeni videolar ve fotoğraflar eklendi! Hemen keşfedip takas yapabilirsiniz.')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; font-size:10px; font-weight:700; padding:4px 8px; border-radius:6px; cursor:pointer; white-space:nowrap;">🚀 Yeni İçerikler</button>
+                        <button type="button" onclick="fillBroadcastTemplate('🎁 HAFTASONU KREDİ HEDİYESİ', 'Haftasonuna özel hesabınıza ücretsiz çark hakkı tanımlandı! Profil sekmenizden çarkı çevirmeyi unutmayın.')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; font-size:10px; font-weight:700; padding:4px 8px; border-radius:6px; cursor:pointer; white-space:nowrap;">🎁 Kredi Hediyesi</button>
+                        <button type="button" onclick="fillBroadcastTemplate('👑 VIP KRALLIK İNDİRİMİ', 'Yıldız marketinde sınırlı süre için indirim başladı! VIP üyelikle sınırsız indirme ve avantajları kaçırmayın.')" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; font-size:10px; font-weight:700; padding:4px 8px; border-radius:6px; cursor:pointer; white-space:nowrap;">👑 VIP İndirimi</button>
+                    </div>
+
+                    <input type="text" id="adm-broadcast-title" placeholder="📢 Duyuru Başlığı (Örn: 🚀 Yeni Güncelleme)" style="width:100%; background:#070d19; border:1px solid rgba(255,255,255,0.12); color:#fff; padding:8px 10px; border-radius:8px; font-size:11.5px; margin-bottom:8px; box-sizing:border-box; outline:none;">
+                    
+                    <textarea id="adm-broadcast-msg" placeholder="Duyuru metnini yazın (HTML etiketleri <b>, <i>, <code> desteklenir)..." style="width:100%; height:75px; background:#070d19; border:1px solid rgba(255,255,255,0.12); color:#fff; padding:8px 10px; border-radius:8px; font-size:11.5px; resize:none; margin-bottom:8px; box-sizing:border-box; outline:none; line-height:1.45;"></textarea>
+
+                    <button onclick="adminBroadcast()" id="adm-btn-broadcast" style="width:100%; background:linear-gradient(135deg, #a855f7, #7c3aed); border:none; color:#fff; font-size:12px; font-weight:800; padding:10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 12px rgba(168, 85, 247, 0.4);">
+                        <i class="fa-solid fa-paper-plane"></i> <span>Tüm Kullanıcılara Gönder (Push)</span>
                     </button>
+
+                    <div id="adm-broadcast-result" style="display:none; margin-top:8px; padding:8px 10px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); border-radius:8px; font-size:11px; color:#10b981; line-height:1.4;"></div>
                 </div>
             </div>
         </div>
@@ -4891,23 +4980,138 @@
             }
         }
 
+        // 👑 CANLI VIP GERİ SAYIM SAYACI DÖNGÜSÜ
+        function startVipCountdown(targetTimestamp) {
+            if (window._vipCountdownInterval) {
+                clearInterval(window._vipCountdownInterval);
+                window._vipCountdownInterval = null;
+            }
+
+            function updateDisplay() {
+                const diff = Number(targetTimestamp) - Date.now();
+                if (diff <= 0) {
+                    if (window._vipCountdownInterval) {
+                        clearInterval(window._vipCountdownInterval);
+                        window._vipCountdownInterval = null;
+                    }
+                    const dEl = document.getElementById('vip-cd-days');
+                    const hEl = document.getElementById('vip-cd-hours');
+                    const mEl = document.getElementById('vip-cd-mins');
+                    const sEl = document.getElementById('vip-cd-secs');
+                    if (dEl) dEl.innerText = '00';
+                    if (hEl) hEl.innerText = '00';
+                    if (mEl) mEl.innerText = '00';
+                    if (sEl) sEl.innerText = '00';
+                    if (currentUser && currentUser.isVip) {
+                        loadUserData();
+                    }
+                    return;
+                }
+
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+                const dEl = document.getElementById('vip-cd-days');
+                const hEl = document.getElementById('vip-cd-hours');
+                const mEl = document.getElementById('vip-cd-mins');
+                const sEl = document.getElementById('vip-cd-secs');
+
+                if (dEl) dEl.innerText = String(d).padStart(2, '0');
+                if (hEl) hEl.innerText = String(h).padStart(2, '0');
+                if (mEl) mEl.innerText = String(m).padStart(2, '0');
+                if (sEl) sEl.innerText = String(s).padStart(2, '0');
+            }
+
+            updateDisplay();
+            window._vipCountdownInterval = setInterval(updateDisplay, 1000);
+        }
+
+        // 👑 VIP +1 SAAT EKSTRA UZATMA
+        async function vipExtendOneHour() {
+            const uid = tgUser?.id || currentUser?.id;
+            if (!uid) {
+                showToast('Kullanıcı bilgisi bulunamadı', '⚠️');
+                return;
+            }
+            showAppLoading('VIP Güncelleniyor...', 'VIP sürenize +1 saat ekleniyor');
+            try {
+                const res = await fetch('/api/webapp/vip/extend-hour', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: String(uid), hours: 1 })
+                });
+                const data = await res.json();
+                hideAppLoading();
+                if (data.success) {
+                    showToast(data.message || '⏳ VIP sürenize +1 saat eklendi!', '👑');
+                    await loadUserData();
+                } else {
+                    showToast(data.message || 'İşlem başarısız.', '⚠️');
+                }
+            } catch (err) {
+                hideAppLoading();
+                showToast('Hata: ' + err.message, '⚠️');
+            }
+        }
+
+        // ❌ VIP ÜYELİĞİ BİTİR / İPTAL ET
+        async function vipCancelMembership() {
+            const uid = tgUser?.id || currentUser?.id;
+            if (!uid) {
+                showToast('Kullanıcı bilgisi bulunamadı', '⚠️');
+                return;
+            }
+            if (!confirm('VIP üyeliğinizi sonlandırmak istediğinize emin misiniz?\nTüm VIP krallık ayrıcalıklarınız kapatılacaktır.')) {
+                return;
+            }
+            showAppLoading('VIP İptal Ediliyor...', 'Üyelik sonlandırılıyor');
+            try {
+                const res = await fetch('/api/webapp/vip/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: String(uid) })
+                });
+                const data = await res.json();
+                hideAppLoading();
+                if (data.success) {
+                    showToast(data.message || 'VIP üyeliğiniz sonlandırıldı.', 'ℹ️');
+                    await loadUserData();
+                } else {
+                    showToast(data.message || 'İşlem başarısız.', '⚠️');
+                }
+            } catch (err) {
+                hideAppLoading();
+                showToast('Hata: ' + err.message, '⚠️');
+            }
+        }
+
         // 👑 GEÇİCİ KRALLIK (VIP) KARTINI VE PROFİL BİLGİSİNİ RENDER ET
         function renderVipKingdomCard() {
             const mktContainer = document.getElementById('market-vip-kingdom-card');
             const profContainer = document.getElementById('prof-vip-kingdom-widget');
 
             const isVip = !!(currentUser?.isVip);
-            const isAdmin = !!(currentUser?.isAdmin || String(tgUser?.id) === '8633136500');
+            const isSuper = !!(currentUser?.isSuperAdmin || String(tgUser?.id) === '8633136500');
+            const isAssistant = !!(currentUser?.isAssistantAdmin);
+            const isAdmin = isSuper || isAssistant || !!(currentUser?.isAdmin);
+            const isUnlimitedVip = !!(currentUser?.isUnlimitedVip || (isVip && !currentUser?.vipUntilTimestamp && !currentUser?.vipUntil));
 
-            let vipDateStr = '';
-            let daysLeft = 0;
-            if (currentUser?.vipUntil) {
-                const diff = new Date(currentUser.vipUntil).getTime() - Date.now();
-                daysLeft = Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
-                vipDateStr = new Date(currentUser.vipUntil).toLocaleDateString('tr-TR');
+            let untilTs = 0;
+            if (currentUser?.vipUntilTimestamp) {
+                untilTs = Number(currentUser.vipUntilTimestamp);
+            } else if (currentUser?.vipUntil) {
+                untilTs = typeof currentUser.vipUntil === 'number' ? currentUser.vipUntil : new Date(currentUser.vipUntil).getTime();
             }
 
-            const html = `
+            const now = Date.now();
+            const hasActiveCountdown = isVip && untilTs > now && !isUnlimitedVip;
+            const daysLeft = hasActiveCountdown ? Math.max(0, Math.ceil((untilTs - now) / (24 * 60 * 60 * 1000))) : 0;
+            const vipDateStr = untilTs > 0 ? new Date(untilTs).toLocaleDateString('tr-TR') : '';
+
+            // Market VIP Kartı HTML
+            const mktHtml = `
                 <div style="background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.25), transparent 70%), linear-gradient(145deg, #182032 0%, #0c1222 100%); border: 1.5px solid rgba(245, 158, 11, 0.45); border-radius: 16px; padding: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 14px;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 10px;">
                         <div style="display:flex; align-items:center; gap:10px;">
@@ -4917,7 +5121,7 @@
                             <div>
                                 <div style="font-size:15px; font-weight:800; color:#fbbf24; text-shadow:0 1px 4px rgba(0,0,0,0.8);">Geçici Krallık (VIP)</div>
                                 <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">
-                                    ${isAdmin ? '👑 Sınırsız Yönetici Krallığı' : (isVip ? `👑 <b>Krallık Aktif:</b> ${daysLeft} Gün Kaldı (${vipDateStr})` : 'Kredilerinizle veya Yıldızla Geçici Hükümdar Olun')}
+                                    ${isAdmin ? '👑 Sınırsız Yönetici Krallığı' : (isVip ? (isUnlimitedVip ? '👑 Ömür Boyu Sınırsız VIP' : `👑 <b>Krallık Aktif:</b> ${daysLeft} Gün Kaldı (${vipDateStr})`) : 'Kredilerinizle veya Yıldızla Geçici Hükümdar Olun')}
                                 </div>
                             </div>
                         </div>
@@ -4975,23 +5179,145 @@
                 </div>
             `;
 
-            if (mktContainer) mktContainer.innerHTML = html;
+            if (mktContainer) mktContainer.innerHTML = mktHtml;
+
+            // Profil Sekmesi VIP Kartı & Canlı Geri Sayım
             if (profContainer) {
-                profContainer.innerHTML = `
-                    <div style="background:rgba(245, 158, 11, 0.1); border:1px solid rgba(245, 158, 11, 0.35); border-radius:12px; padding:12px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                        <div>
-                            <div style="font-size:13px; font-weight:800; color:#fbbf24; display:flex; align-items:center; gap:6px;">
-                                <span>👑</span> ${isAdmin ? 'Yönetici Krallığı (Sınırsız)' : (isVip ? `Geçici Krallık: ${daysLeft} Gün Kaldı` : 'Geçici Krallık (VIP)')}
+                if (window._vipCountdownInterval) {
+                    clearInterval(window._vipCountdownInterval);
+                    window._vipCountdownInterval = null;
+                }
+
+                if (isAdmin || isUnlimitedVip) {
+                    // Sınırsız / Yönetici VIP Kartı
+                    profContainer.innerHTML = `
+                        <div style="background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 70%), linear-gradient(145deg, #0f172a 0%, #1e1b4b 100%); border: 1.5px solid rgba(56, 189, 248, 0.45); border-radius: 16px; padding: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 14px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <div style="width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg, #38bdf8, #818cf8); display:flex; align-items:center; justify-content:center; box-shadow:0 0 12px rgba(56, 189, 248, 0.4); font-size:20px; color:#fff;">
+                                        👑
+                                    </div>
+                                    <div>
+                                        <div style="font-size:14px; font-weight:800; color:#38bdf8;">Sınırsız VIP Krallığı</div>
+                                        <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Ömür Boyu Sınırsız Yetki & İndirme</div>
+                                    </div>
+                                </div>
+                                <span style="font-size:10px; font-weight:800; background:rgba(56, 189, 248, 0.2); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.4); padding:3px 8px; border-radius:6px;">
+                                    SINIRSIZ 👑
+                                </span>
                             </div>
-                            <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">
-                                ${isVip ? `Bitiş: ${vipDateStr}` : 'Kredileriniz veya Yıldız ile krallığını başlat'}
+                            <div style="font-size:11.5px; color:#cbd5e1; line-height:1.45; background:rgba(0,0,0,0.3); padding:9px 12px; border-radius:10px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.06);">
+                                👑 Hesabınızda sınırsız VIP ayrıcalığı mevcuttur. Dilediğiniz an +1 saat uzatmayı test edebilir veya market paketlerine göz atabilirsiniz.
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button onclick="vipExtendOneHour()" style="flex:1; background:linear-gradient(135deg, #0284c7, #2563eb); border:none; color:#fff; font-size:11.5px; font-weight:800; padding:9px 10px; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 10px rgba(2, 132, 199, 0.3);">
+                                    <span>⏳</span> +1 Saat Ekle
+                                </button>
+                                <button onclick="switchNav('packages')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#fff; font-size:11.5px; font-weight:700; padding:9px 12px; border-radius:9px; cursor:pointer;">
+                                    Paketler 👑
+                                </button>
                             </div>
                         </div>
-                        <button onclick="switchNav('packages')" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#000; border:none; font-size:11px; font-weight:800; padding:6px 12px; border-radius:8px; cursor:pointer; flex-shrink:0;">
-                            ${isVip ? 'Uzat 👑' : 'Başlat 👑'}
-                        </button>
-                    </div>
-                `;
+                    `;
+                } else if (hasActiveCountdown) {
+                    // Canlı Geri Sayımlı Aktif VIP Kartı
+                    profContainer.innerHTML = `
+                        <div style="background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.22), transparent 70%), linear-gradient(145deg, #182032 0%, #0c1222 100%); border: 1.5px solid rgba(245, 158, 11, 0.5); border-radius: 16px; padding: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 14px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <div style="width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg, #f59e0b, #d97706); display:flex; align-items:center; justify-content:center; box-shadow:0 0 15px rgba(245, 158, 11, 0.4); font-size:20px; color:#fff;">
+                                        👑
+                                    </div>
+                                    <div>
+                                        <div style="font-size:14px; font-weight:800; color:#fbbf24;">Aktif VIP Krallığı</div>
+                                        <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Kalan Süre Canlı Takip</div>
+                                    </div>
+                                </div>
+                                <span style="display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:800; background:rgba(16, 185, 129, 0.2); color:#10b981; border:1px solid rgba(16, 185, 129, 0.4); padding:3px 8px; border-radius:6px;">
+                                    <span style="display:inline-block; width:6px; height:6px; background:#10b981; border-radius:50%; box-shadow:0 0 6px #10b981;"></span>
+                                    CANLI GERİ SAYIM
+                                </span>
+                            </div>
+
+                            <!-- Canlı Geri Sayım Sayacı -->
+                            <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(245, 158, 11, 0.25); border-radius:12px; padding:12px 8px; margin-bottom:12px;">
+                                <div style="text-align:center; font-size:11px; color:#94a3b8; margin-bottom:8px; font-weight:600;">
+                                    ⏳ VIP Bitişine Kalan Süre:
+                                </div>
+                                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
+                                    <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:8px 2px; text-align:center;">
+                                        <div id="vip-cd-days" style="font-size:20px; font-weight:900; color:#fbbf24; font-family:monospace; line-height:1;">00</div>
+                                        <div style="font-size:9px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-top:4px;">Gün</div>
+                                    </div>
+                                    <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:8px 2px; text-align:center;">
+                                        <div id="vip-cd-hours" style="font-size:20px; font-weight:900; color:#fbbf24; font-family:monospace; line-height:1;">00</div>
+                                        <div style="font-size:9px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-top:4px;">Saat</div>
+                                    </div>
+                                    <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:8px 2px; text-align:center;">
+                                        <div id="vip-cd-mins" style="font-size:20px; font-weight:900; color:#fbbf24; font-family:monospace; line-height:1;">00</div>
+                                        <div style="font-size:9px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-top:4px;">Dakika</div>
+                                    </div>
+                                    <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:8px 2px; text-align:center;">
+                                        <div id="vip-cd-secs" style="font-size:20px; font-weight:900; color:#38bdf8; font-family:monospace; line-height:1;">00</div>
+                                        <div style="font-size:9px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-top:4px;">Saniye</div>
+                                    </div>
+                                </div>
+                                <div style="text-align:center; font-size:10.5px; color:#cbd5e1; margin-top:8px;">
+                                    🗓️ Bitiş Tarihi: <b>${new Date(untilTs).toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}</b>
+                                </div>
+                            </div>
+
+                            <!-- Aksiyon Butonları: +1 Saat Uzat, Paketle Uzat, Üyeliği Bitir -->
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                <div style="display:flex; gap:8px;">
+                                    <button onclick="vipExtendOneHour()" style="flex:1; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:12px; font-weight:800; padding:10px 12px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 12px rgba(245, 158, 11, 0.35);">
+                                        <span>⏳</span> +1 Saat Ekstra Uzat
+                                    </button>
+                                    <button onclick="switchNav('packages')" style="background:linear-gradient(135deg, #8b5cf6, #6366f1); border:none; color:#fff; font-size:12px; font-weight:800; padding:10px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 12px rgba(139, 92, 246, 0.3);">
+                                        <span>👑</span> Paket Al
+                                    </button>
+                                </div>
+                                <button onclick="vipCancelMembership()" style="width:100%; background:rgba(239, 68, 68, 0.12); border:1px solid rgba(239, 68, 68, 0.35); color:#f87171; font-size:11.5px; font-weight:700; padding:8px 12px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                                    <span>❌</span> Üyeliği Sonlandır / Bitir
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Geri sayımı canlı olarak başlat
+                    startVipCountdown(untilTs);
+                } else {
+                    // Standart / Pasif VIP Kartı
+                    profContainer.innerHTML = `
+                        <div style="background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 70%), linear-gradient(145deg, #182032 0%, #0c1222 100%); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 14px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; font-size:20px; color:#94a3b8;">
+                                        👑
+                                    </div>
+                                    <div>
+                                        <div style="font-size:14px; font-weight:800; color:#fff;">Geçici Krallık (VIP)</div>
+                                        <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Sınırsız Ayrıcalıklar & Beklemesiz İndirme</div>
+                                    </div>
+                                </div>
+                                <span style="font-size:10px; font-weight:800; background:rgba(148, 163, 184, 0.15); color:#94a3b8; border:1px solid rgba(148, 163, 184, 0.3); padding:3px 8px; border-radius:6px;">
+                                    STANDART
+                                </span>
+                            </div>
+                            <div style="font-size:11.5px; color:#94a3b8; line-height:1.45; background:rgba(0,0,0,0.25); padding:9px 12px; border-radius:10px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.05);">
+                                ✨ VIP olarak tüm sekmelerden beklemesiz sınırsız indirme yapabilir ve paket alımlarında <b>Şans Çarkı Hediyesi</b> 🎡 kazanırsınız!
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button onclick="vipExtendOneHour()" style="flex:1; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; color:#000; font-size:11.5px; font-weight:800; padding:10px 10px; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 3px 10px rgba(245, 158, 11, 0.3);">
+                                    <span>⏳</span> +1 Saat Başlat / Uzat
+                                </button>
+                                <button onclick="switchNav('packages')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); color:#fff; font-size:11.5px; font-weight:700; padding:10px 14px; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;">
+                                    <span>👑</span> VIP Ol
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -7337,30 +7663,140 @@
             }
         }
 
-        async function adminBroadcast() {
-            const msg = document.getElementById('adm-broadcast-msg')?.value?.trim();
+        // ==========================================
+        // 💬 KULLANICI GÖRÜŞ VE DESTEK BİLDİRİMİ
+        // ==========================================
+        let activeFeedbackCategory = '💡 Öneri';
+        function selectFeedbackCategory(btn, cat) {
+            activeFeedbackCategory = cat;
+            document.querySelectorAll('#feedback-cat-chips .fb-chip').forEach(c => {
+                c.style.background = 'rgba(255,255,255,0.06)';
+                c.style.color = '#cbd5e1';
+                c.style.border = '1px solid rgba(255,255,255,0.12)';
+            });
+            if (btn) {
+                btn.style.background = '#a855f7';
+                btn.style.color = '#fff';
+                btn.style.border = 'none';
+            }
+        }
+
+        async function submitUserFeedback() {
+            const textarea = document.getElementById('user-feedback-msg');
+            const msg = textarea?.value?.trim();
             if (!msg) {
-                showToast('Lütfen duyuru metni girin.', '⚠️');
+                showToast('Lütfen iletmek istediğiniz görüşü yazın.', '⚠️');
+                if (textarea) textarea.focus();
                 return;
             }
-            if (!confirm('Bu duyuruyu TÜM bot kullanıcılarına göndermek istediğinize emin misiniz?')) return;
 
-            showToast('Duyuru gönderiliyor...', '⏳');
+            const uid = tgUser?.id || currentUser?.id;
+            if (!uid) {
+                showToast('Kullanıcı bilgisi alınamadı.', '⚠️');
+                return;
+            }
+
+            const sendBtn = document.getElementById('btn-submit-feedback');
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> İletiliyor...';
+            }
+
+            try {
+                const res = await fetch('/api/webapp/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: String(uid),
+                        userName: tgUser?.first_name || currentUser?.firstName || 'Kullanıcı',
+                        userUsername: tgUser?.username || currentUser?.username || '',
+                        category: activeFeedbackCategory,
+                        message: msg
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || 'Görüşünüz yöneticimize iletildi!', '✅');
+                    if (textarea) textarea.value = '';
+                } else {
+                    showToast(data.message || 'Görüş iletilemedi.', '❌');
+                }
+            } catch (err) {
+                showToast('Bağlantı hatası: ' + err.message, '❌');
+            } finally {
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = '<span>Gönder</span> &rarr;';
+                }
+            }
+        }
+
+        // ==========================================
+        // 📢 ADMİN TOPLU BİLDİRİM / DUYURU GÖNDERME
+        // ==========================================
+        function fillBroadcastTemplate(title, msg) {
+            const tEl = document.getElementById('adm-broadcast-title');
+            const mEl = document.getElementById('adm-broadcast-msg');
+            if (tEl) tEl.value = title;
+            if (mEl) mEl.value = msg;
+            if (mEl) mEl.focus();
+        }
+
+        async function adminBroadcast() {
+            const titleEl = document.getElementById('adm-broadcast-title');
+            const msgEl = document.getElementById('adm-broadcast-msg');
+            const title = titleEl ? titleEl.value.trim() : '';
+            const msg = msgEl ? msgEl.value.trim() : '';
+
+            if (!msg) {
+                showToast('Lütfen duyuru metni girin.', '⚠️');
+                if (msgEl) msgEl.focus();
+                return;
+            }
+
+            if (!confirm(`Bu duyuruyu TÜM bot kullanıcılarına doğrudan Telegram mesajı olarak göndermek istediğinize emin misiniz?\n\nBaşlık: ${title || 'Sistem Duyurusu'}`)) {
+                return;
+            }
+
+            showAppLoading('Toplu Bildirim Gönderiliyor...', 'Kullanıcılara iletiliyor');
+            const btn = document.getElementById('adm-btn-broadcast');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gönderiliyor...';
+            }
+
             try {
                 const res = await fetch('/api/webapp/admin/broadcast', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: tgUser.id, message: msg })
+                    body: JSON.stringify({
+                        userId: tgUser.id,
+                        title: title || '📢 SİSTEM DUYURUSU',
+                        message: msg
+                    })
                 });
                 const data = await res.json();
+                hideAppLoading();
                 if (data.success) {
-                    showToast(data.message || 'Duyuru gönderildi!', '📢');
-                    document.getElementById('adm-broadcast-msg').value = '';
+                    showToast(data.message || 'Toplu duyuru iletildi!', '📢');
+                    if (titleEl) titleEl.value = '';
+                    if (msgEl) msgEl.value = '';
+                    const resBox = document.getElementById('adm-broadcast-result');
+                    if (resBox) {
+                        resBox.style.display = 'block';
+                        resBox.innerHTML = `✅ <b>Gönderim Tamamlandı!</b><br>İletilen: <b>${data.sent}</b> kişi | Hata/Engelli: <b>${data.failed || 0}</b> kişi`;
+                    }
                 } else {
                     showToast(data.message || 'Duyuru iletilemedi.', '❌');
                 }
             } catch (e) {
-                showToast('Hata oluştu.', '❌');
+                hideAppLoading();
+                showToast('Hata oluştu: ' + e.message, '❌');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>Tüm Kullanıcılara Gönder (Push)</span>';
+                }
             }
         }
 
@@ -8526,6 +8962,7 @@
         // Sayfa Açıldığında Verileri Getir (Ultra Hızlı Başlangıç - Yalnızca Ana Ekran)
         loadUserData();
         loadCategories();
+        checkStartupGuide();
 
         // ==========================================
         // 👑 SAĞLAM KONTROL PANELİ: SEKME & FİYAT YÖNETİMİ
@@ -8854,6 +9291,236 @@
                 showToast('Hata: ' + err.message, '⚠️');
             }
         }
+
+        // ==========================================
+        // 📖 İNTERAKTİF UYGULAMA REHBERİ (NASIL KULLANILIR?)
+        // ==========================================
+        const GUIDE_SLIDES = [
+            {
+                stepNumber: 1,
+                tag: 'TEMEL KURAL',
+                tagColor: '#38bdf8',
+                tagBg: 'rgba(56, 189, 248, 0.15)',
+                icon: 'fa-right-left',
+                iconColor: '#38bdf8',
+                title: '2 Yükle 1 Kredi Al (Medya Takası)',
+                subtitle: 'Sistem Tamamen Karşılıklı Takasla Çalışır!',
+                flowSteps: [
+                    { icon: 'fa-cloud-arrow-up', color: '#38bdf8', title: '1. Medya Yükle', desc: 'Galeri veya cihazınızdan 2 adet video veya fotoğraf yükleyin.' },
+                    { icon: 'fa-shield-halved', color: '#10b981', title: '2. Havuza Eklenir', desc: 'Yüklenen içerik güvenle sistem havuzuna dahil edilir.' },
+                    { icon: 'fa-gift', color: '#fbbf24', title: '3. Kredini Kazan', desc: 'Her 2 yüklemede hesabınıza anında +1 Kredi tanımlanır!' }
+                ],
+                explanation: 'Sistemimizde hiç para harcamadan fotoğraf ve video takaslayabilirsiniz. Kazandığınız kredilerle havuzdaki binlerce içeriğe anında erişebilirsiniz.',
+                actionBtnText: '📤 Hemen Medya Yükle',
+                actionBtnAction: () => { closeGuideModal(); switchNav('tab-upload'); }
+            },
+            {
+                stepNumber: 2,
+                tag: 'İÇERİK HAVUZU',
+                tagColor: '#a855f7',
+                tagBg: 'rgba(168, 85, 247, 0.15)',
+                icon: 'fa-folder-open',
+                iconColor: '#c084fc',
+                title: '10 Özel Sekme & Kategori',
+                subtitle: 'Kategoriye Tıklayınca Ne Olur?',
+                flowSteps: [
+                    { icon: 'fa-layer-group', color: '#a855f7', title: '1. Sekmeni Seç', desc: 'Ensest, Gay, İfsa, Cuckold, Türbanlı gibi 10 sekmeden birine tıkla.' },
+                    { icon: 'fa-dice', color: '#38bdf8', title: '2. Rastgele Medya İste', desc: '"🎥 Rastgele Video Al" veya "📸 Resim Al" butonuna dokun.' },
+                    { icon: 'fa-box-archive', color: '#10b981', title: '3. Aldıklarımda Kalıcı', desc: 'Açtığın tüm medyalar "Aldıklarım" kutuna kalıcı kaydedilir!' }
+                ],
+                explanation: 'Her sekmede yüzlerce video ve fotoğraf havuzu bulunur. Beğendiğiniz bir kategoriye girerek krediniz karşılığında hemen yeni içerik açabilirsiniz.',
+                actionBtnText: '📂 Sekmeleri İncele',
+                actionBtnAction: () => { closeGuideModal(); switchNav('tab-categories'); }
+            },
+            {
+                stepNumber: 3,
+                tag: 'BEDAVA KREDİ',
+                tagColor: '#f59e0b',
+                tagBg: 'rgba(245, 158, 11, 0.15)',
+                icon: 'fa-dharmachakra',
+                iconColor: '#fbbf24',
+                title: 'Şans Çarkı & Günlük Giriş',
+                subtitle: 'Kredisiz Kaldığında Ne Yapmalısın?',
+                flowSteps: [
+                    { icon: 'fa-gift', color: '#f59e0b', title: '1. Günlük Giriş Hediyesi', desc: 'Her 24 saatte 1 kez uygulamaya girip bedava kredini al.' },
+                    { icon: 'fa-dharmachakra', color: '#818cf8', title: '2. Şans Çarkını Çevir', desc: 'Çarkı döndürerek tek seferde 10 krediye kadar ödül kazan!' },
+                    { icon: 'fa-user-group', color: '#34d399', title: '3. Arkadaşını Davet Et', desc: 'Davet linkinle gelen her arkadaşın için +2 Foto & +2 Video kazan.' }
+                ],
+                explanation: 'Medya yüklemek istemiyorsanız günlük hediyenizi toplayabilir, şans çarkını çevirebilir veya arkadaşlarınızı davet ederek sınırsız kredi biriktirebilirsiniz.',
+                actionBtnText: '🎡 Şans Çarkını Aç',
+                actionBtnAction: () => { closeGuideModal(); openWheel(); }
+            },
+            {
+                stepNumber: 4,
+                tag: 'TAM ÖZGÜRLÜK',
+                tagColor: '#10b981',
+                tagBg: 'rgba(16, 185, 129, 0.15)',
+                icon: 'fa-crown',
+                iconColor: '#34d399',
+                title: 'VIP Üyelik (Krallık Modu)',
+                subtitle: 'VIP Olursan Ne Değişir?',
+                flowSteps: [
+                    { icon: 'fa-infinity', color: '#10b981', title: '1. Sınırsız Kredisiz Erişim', desc: 'Kredileriniz bitse bile tüm video ve fotoğrafları sınırsız izleyin.' },
+                    { icon: 'fa-download', color: '#38bdf8', title: '2. Ücretsiz Galeriye Kaydet', desc: 'Tüm videoları ve fotoğrafları cihazınıza ücretsiz indirin.' },
+                    { icon: 'fa-bolt', color: '#f59e0b', title: '3. Sıfır Bekleme & Öncelik', desc: 'Hiçbir bekleme süresi olmadan doğrudan havuzdan çekin.' }
+                ],
+                explanation: 'VIP üye olduğunuzda sistemin tüm kapıları size ardına kadar açılır. Kredi biriktirme derdi olmadan tüm arşive dilediğiniz gibi ulaşabilirsiniz.',
+                actionBtnText: '👑 VIP Seçeneklerini Gör',
+                actionBtnAction: () => { closeGuideModal(); switchNav('tab-vip'); }
+            },
+            {
+                stepNumber: 5,
+                tag: 'KALICI ARŞİV',
+                tagColor: '#38bdf8',
+                tagBg: 'rgba(56, 189, 248, 0.15)',
+                icon: 'fa-floppy-disk',
+                iconColor: '#38bdf8',
+                title: 'Galeriye Kaydet & 2 GB ZIP Arşivleri',
+                subtitle: 'Cihazına Nasıl İndirirsin?',
+                flowSteps: [
+                    { icon: 'fa-download', color: '#38bdf8', title: '1. Telefona Kaydet', desc: 'Her videonun altındaki "Telefona Kaydet" butonuyla galeriye indir.' },
+                    { icon: 'fa-file-zipper', color: '#fbbf24', title: '2. 2 GB ZIP Market', desc: 'Devasa arşiv paketlerini tek tıkla cihazınıza indirebilirsiniz.' },
+                    { icon: 'fa-circle-check', color: '#10b981', title: '3. Kalıcı Sahiplik', desc: 'Aldığınız tüm içerikler hesabınıza kalıcı olarak işlenir.' }
+                ],
+                explanation: 'Rehberimizi tamamladınız! Artık istediğiniz sekmeyi seçebilir, medyanızı takaslayabilir ve dilediğiniz içeriğin keyfini çıkarabilirsiniz.',
+                actionBtnText: '🚀 Harika, Hemen Başla!',
+                actionBtnAction: () => { finishGuide(); }
+            }
+        ];
+
+        let currentGuideStep = 0;
+
+        function openGuideModal(step = 0) {
+            currentGuideStep = Math.max(0, Math.min(step, GUIDE_SLIDES.length - 1));
+            renderGuideStep(currentGuideStep);
+            const modal = document.getElementById('app-guide-modal');
+            if (modal) modal.classList.add('active');
+        }
+
+        function closeGuideModal() {
+            const modal = document.getElementById('app-guide-modal');
+            if (modal) modal.classList.remove('active');
+            const chk = document.getElementById('guide-dont-show-again');
+            if (chk && chk.checked) {
+                try { localStorage.setItem('app_guide_seen', 'true'); } catch (_) {}
+            }
+        }
+
+        function closeGuideModalOnOverlay(e) {
+            if (e.target.id === 'app-guide-modal') closeGuideModal();
+        }
+
+        function skipGuide() {
+            try { localStorage.setItem('app_guide_seen', 'true'); } catch (_) {}
+            closeGuideModal();
+        }
+
+        function finishGuide() {
+            try { localStorage.setItem('app_guide_seen', 'true'); } catch (_) {}
+            closeGuideModal();
+            showToast('Rehber tamamlandı! İyi eğlenceler 🎉', '🚀');
+        }
+
+        function nextGuideStep() {
+            if (currentGuideStep < GUIDE_SLIDES.length - 1) {
+                currentGuideStep++;
+                renderGuideStep(currentGuideStep);
+            } else {
+                finishGuide();
+            }
+        }
+
+        function prevGuideStep() {
+            if (currentGuideStep > 0) {
+                currentGuideStep--;
+                renderGuideStep(currentGuideStep);
+            }
+        }
+
+        function renderGuideStep(idx) {
+            const slide = GUIDE_SLIDES[idx];
+            if (!slide) return;
+
+            const badgeEl = document.getElementById('guide-step-badge');
+            if (badgeEl) badgeEl.innerText = `${idx + 1} / ${GUIDE_SLIDES.length}`;
+
+            const dotsContainer = document.getElementById('guide-dots-container');
+            if (dotsContainer) {
+                dotsContainer.innerHTML = GUIDE_SLIDES.map((_, i) => `
+                    <div onclick="openGuideModal(${i})" style="width:${i === idx ? '22px' : '7px'}; height:7px; border-radius:4px; background:${i === idx ? '#38bdf8' : 'rgba(255,255,255,0.2)'}; cursor:pointer; transition:all 0.25s ease; box-shadow:${i === idx ? '0 0 8px #38bdf8' : 'none'};"></div>
+                `).join('');
+            }
+
+            const contentEl = document.getElementById('guide-slide-content');
+            if (contentEl) {
+                contentEl.innerHTML = `
+                    <div style="text-align:center; margin-bottom:12px;">
+                        <span style="font-size:9.5px; font-weight:800; background:${slide.tagBg}; color:${slide.tagColor}; border:1px solid ${slide.tagColor}44; padding:3px 9px; border-radius:6px; text-transform:uppercase; letter-spacing:0.5px;">
+                            ${slide.tag}
+                        </span>
+                        <div style="font-size:16px; font-weight:800; color:#fff; margin-top:8px;">
+                            ${slide.title}
+                        </div>
+                        <div style="font-size:11.5px; color:#94a3b8; margin-top:2px; font-weight:600;">
+                            ${slide.subtitle}
+                        </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+                        ${slide.flowSteps.map(st => `
+                            <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:8px 12px; display:flex; align-items:center; gap:10px;">
+                                <div style="width:30px; height:30px; border-radius:8px; background:${st.color}22; border:1px solid ${st.color}55; display:flex; align-items:center; justify-content:center; color:${st.color}; font-size:13px; flex-shrink:0;">
+                                    <i class="fa-solid ${st.icon}"></i>
+                                </div>
+                                <div style="flex:1;">
+                                    <div style="font-size:11.5px; font-weight:800; color:#fff;">${st.title}</div>
+                                    <div style="font-size:10.5px; color:#94a3b8; margin-top:1px; line-height:1.3;">${st.desc}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div style="background:rgba(56,189,248,0.06); border:1px dashed rgba(56,189,248,0.3); border-radius:10px; padding:10px; margin-bottom:10px; font-size:11px; color:#cbd5e1; line-height:1.45;">
+                        ${slide.explanation}
+                    </div>
+
+                    <div style="text-align:center;">
+                        <button id="guide-action-btn-${idx}" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); color:#fff; font-size:11px; font-weight:700; padding:6px 14px; border-radius:8px; cursor:pointer;">
+                            ${slide.actionBtnText}
+                        </button>
+                    </div>
+                `;
+
+                const actBtn = document.getElementById(`guide-action-btn-${idx}`);
+                if (actBtn) {
+                    actBtn.onclick = slide.actionBtnAction;
+                }
+            }
+
+            const prevBtn = document.getElementById('guide-prev-btn');
+            const nextBtn = document.getElementById('guide-next-btn');
+            if (prevBtn) prevBtn.style.display = idx > 0 ? 'flex' : 'none';
+            if (nextBtn) {
+                if (idx === GUIDE_SLIDES.length - 1) {
+                    nextBtn.innerHTML = `<span>Tamamla & Başla!</span> <i class="fa-solid fa-check"></i>`;
+                    nextBtn.style.background = `linear-gradient(135deg, #10b981, #059669)`;
+                } else {
+                    nextBtn.innerHTML = `<span>Devam Et</span> <i class="fa-solid fa-chevron-right"></i>`;
+                    nextBtn.style.background = `linear-gradient(135deg, #0284c7, #2563eb)`;
+                }
+            }
+        }
+
+        function checkStartupGuide() {
+            try {
+                const seen = localStorage.getItem('app_guide_seen');
+                if (!seen) {
+                    setTimeout(() => {
+                        openGuideModal(0);
+                    }, 1200);
+                }
+            } catch (e) {}
+        }
     </script>
     <!-- ➕ YENİ SEKME OLUŞTURMA MODALI -->
     <div class="modal-overlay" id="admin-create-cat-modal" onclick="closeModalOnOverlay(event)">
@@ -9019,6 +9686,60 @@
                     <i class="fa-solid fa-floppy-disk" style="margin-right:6px;"></i> Değişiklikleri Kaydet
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- 📖 NASIL KULLANILIR & İNTERAKTİF TANITIM REHBERİ MODALI -->
+    <div class="modal-overlay" id="app-guide-modal" onclick="closeGuideModalOnOverlay(event)" style="z-index: 99999;">
+        <div class="modal-sheet" style="padding: 20px; max-height: 90vh; display: flex; flex-direction: column; background: linear-gradient(170deg, #0f172a 0%, #030712 100%); border: 1.5px solid rgba(56, 189, 248, 0.45); border-top-left-radius: 24px; border-top-right-radius: 24px; box-shadow: 0 -10px 40px rgba(0,0,0,0.85);">
+            
+            <!-- Üst Bar: İkon, Başlık, Adım Sayacı ve Kapat -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #0284c7, #38bdf8); display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; box-shadow:0 0 15px rgba(56,189,248,0.4);">
+                        <i class="fa-solid fa-book-open"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin:0; font-size:15px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+                            Nasıl Kullanılır?
+                            <span id="guide-step-badge" style="font-size:10px; font-weight:800; background:rgba(56,189,248,0.2); color:#38bdf8; border:1px solid rgba(56,189,248,0.4); padding:1px 6px; border-radius:6px;">1 / 5</span>
+                        </h3>
+                        <div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">Uygulama Hızlı Başlangıç Rehberi</div>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="closeGuideModal()" style="font-size:18px; width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,0.1); border:none; color:#fff; cursor:pointer;">&times;</button>
+            </div>
+
+            <!-- Adım Noktaları (Progress Dots) -->
+            <div style="display:flex; justify-content:center; gap:6px; margin-bottom:12px;" id="guide-dots-container">
+            </div>
+
+            <!-- Slayt Dinamik İçeriği -->
+            <div id="guide-slide-content" style="flex:1; overflow-y:auto; padding:2px; min-height:260px; display:flex; flex-direction:column; justify-content:center;">
+            </div>
+
+            <!-- Alt Kontroller & "Açılışta tekrar gösterme" -->
+            <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,0.08); padding-top:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <label style="font-size:11px; color:#94a3b8; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
+                        <input type="checkbox" id="guide-dont-show-again" style="accent-color:#38bdf8; cursor:pointer;">
+                        Açılışta tekrar gösterme
+                    </label>
+                    <button onclick="skipGuide()" style="background:none; border:none; color:#64748b; font-size:11px; font-weight:700; cursor:pointer;">
+                        Atla &times;
+                    </button>
+                </div>
+
+                <div style="display:flex; gap:8px;">
+                    <button id="guide-prev-btn" onclick="prevGuideStep()" style="flex:1; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#cbd5e1; font-size:12px; font-weight:700; padding:10px; border-radius:10px; cursor:pointer; display:none; align-items:center; justify-content:center; gap:6px;">
+                        <i class="fa-solid fa-chevron-left"></i> Geri
+                    </button>
+                    <button id="guide-next-btn" onclick="nextGuideStep()" style="flex:2; background:linear-gradient(135deg, #0284c7, #2563eb); border:none; color:#fff; font-size:12px; font-weight:800; padding:10px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 15px rgba(37,99,235,0.4);">
+                        <span>Devam Et</span> <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
         </div>
     </div>
 
